@@ -1,0 +1,415 @@
+// @REVIEW: Landing Page Component
+// Modern SaaS-style landing page with premium animations
+
+import { Component, ChangeDetectionStrategy, signal, OnInit, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { RippleModule } from 'primeng/ripple';
+import { DividerModule } from 'primeng/divider';
+
+@Component({
+  selector: 'app-landing',
+  imports: [RouterLink, ButtonModule, CardModule, RippleModule, DividerModule],
+  template: `
+    <div class="landing">
+      <!-- Navigation -->
+      <nav class="landing__nav">
+        <div class="landing__nav-container">
+          <a routerLink="/" class="landing__logo">
+            <span class="landing__logo-icon">
+              <i class="pi pi-book"></i>
+            </span>
+            <span class="landing__logo-text">Tutor Desk</span>
+          </a>
+          
+          <div class="landing__nav-links">
+            <a href="#features" class="landing__nav-link">Features</a>
+            <a href="#about" class="landing__nav-link">About</a>
+            <a href="#contact" class="landing__nav-link">Contact</a>
+          </div>
+          
+          <div class="landing__nav-actions">
+            <a routerLink="/auth/login" class="landing__nav-link">Sign In</a>
+            <a routerLink="/auth/register">
+              <button pButton pRipple label="Get Started" class="p-button-rounded"></button>
+            </a>
+          </div>
+          
+          <!-- Mobile menu button -->
+          <button 
+            class="landing__mobile-menu-btn"
+            (click)="mobileMenuOpen.set(!mobileMenuOpen())"
+          >
+            <i [class]="mobileMenuOpen() ? 'pi pi-times' : 'pi pi-bars'"></i>
+          </button>
+        </div>
+        
+        <!-- Mobile menu -->
+        @if (mobileMenuOpen()) {
+          <div class="landing__mobile-menu animate-slide-up">
+            <a href="#features" class="landing__mobile-link" (click)="mobileMenuOpen.set(false)">Features</a>
+            <a href="#about" class="landing__mobile-link" (click)="mobileMenuOpen.set(false)">About</a>
+            <a href="#contact" class="landing__mobile-link" (click)="mobileMenuOpen.set(false)">Contact</a>
+            <p-divider />
+            <a routerLink="/auth/login" class="landing__mobile-link" (click)="mobileMenuOpen.set(false)">Sign In</a>
+            <a routerLink="/auth/register" (click)="mobileMenuOpen.set(false)">
+              <button pButton pRipple label="Get Started" class="p-button-rounded w-full"></button>
+            </a>
+          </div>
+        }
+      </nav>
+      
+      <!-- Hero Section -->
+      <section class="landing__hero">
+        <div class="landing__hero-bg">
+          <div class="landing__hero-gradient"></div>
+          <div class="landing__hero-grid"></div>
+        </div>
+        
+        <div class="landing__hero-content">
+          <div class="landing__hero-badge animate-slide-up">
+            <i class="pi pi-sparkles"></i>
+            <span>Empowering Education</span>
+          </div>
+          
+          <h1 class="landing__hero-title animate-slide-up stagger-1">
+            The Modern Platform for
+            <span class="landing__hero-highlight">Teachers & Students</span>
+          </h1>
+          
+          <p class="landing__hero-subtitle animate-slide-up stagger-2">
+            Simplify your teaching workflow with powerful exam management, 
+            student tracking, and real-time analytics. All in one place.
+          </p>
+          
+          <div class="landing__hero-actions animate-slide-up stagger-3">
+            <a routerLink="/auth/register">
+              <button pButton pRipple label="Start Free Trial" icon="pi pi-arrow-right" iconPos="right" class="p-button-lg p-button-rounded"></button>
+            </a>
+            <a href="#features">
+              <button pButton pRipple label="Learn More" icon="pi pi-play" class="p-button-lg p-button-rounded p-button-outlined"></button>
+            </a>
+          </div>
+          
+          <div class="landing__hero-stats animate-slide-up stagger-4">
+            @for (stat of stats; track stat.label) {
+              <div class="landing__stat">
+                <span class="landing__stat-value">{{ stat.value }}</span>
+                <span class="landing__stat-label">{{ stat.label }}</span>
+              </div>
+            }
+          </div>
+        </div>
+        
+        <!-- Floating elements -->
+        <div class="landing__hero-visuals">
+          <div class="landing__floating-card landing__floating-card--1 animate-float">
+            <i class="pi pi-check-circle"></i>
+            <span>Exam Completed</span>
+          </div>
+          <div class="landing__floating-card landing__floating-card--2 animate-float" style="animation-delay: 0.5s">
+            <i class="pi pi-chart-line"></i>
+            <span>95% Score</span>
+          </div>
+          <div class="landing__floating-card landing__floating-card--3 animate-float" style="animation-delay: 1s">
+            <i class="pi pi-users"></i>
+            <span>+50 Students</span>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Features Section -->
+      <section id="features" class="landing__features">
+        <div class="landing__section-header">
+          <span class="landing__section-badge">Features</span>
+          <h2 class="landing__section-title">Everything You Need</h2>
+          <p class="landing__section-subtitle">
+            Powerful features designed for modern education
+          </p>
+        </div>
+        
+        <div class="landing__features-grid">
+          @for (feature of features; track feature.title; let i = $index) {
+            <div class="landing__feature-card" [style.animation-delay.ms]="i * 100">
+              <div class="landing__feature-icon" [style.background]="feature.color">
+                <i [class]="'pi ' + feature.icon"></i>
+              </div>
+              <h3 class="landing__feature-title">{{ feature.title }}</h3>
+              <p class="landing__feature-desc">{{ feature.description }}</p>
+            </div>
+          }
+        </div>
+      </section>
+      
+      <!-- Simplicity Section -->
+      <section class="landing__simplicity">
+        <div class="landing__simplicity-content">
+          <span class="landing__section-badge">Simplicity</span>
+          <h2 class="landing__section-title">Focus on What Matters</h2>
+          <p class="landing__simplicity-text">
+            We believe in keeping things simple. No complex setups, no confusing interfaces. 
+            Just powerful tools that work the way you expect them to.
+          </p>
+          
+          <div class="landing__simplicity-points">
+            @for (point of simplicityPoints; track point) {
+              <div class="landing__simplicity-point">
+                <i class="pi pi-check-circle"></i>
+                <span>{{ point }}</span>
+              </div>
+            }
+          </div>
+        </div>
+        
+        <div class="landing__simplicity-visual">
+          <div class="landing__device-frame">
+            <div class="landing__device-screen">
+              <div class="landing__device-header">
+                <span class="landing__device-dot"></span>
+                <span class="landing__device-dot"></span>
+                <span class="landing__device-dot"></span>
+              </div>
+              <div class="landing__device-content">
+                <div class="landing__mock-sidebar"></div>
+                <div class="landing__mock-main">
+                  <div class="landing__mock-card"></div>
+                  <div class="landing__mock-card"></div>
+                  <div class="landing__mock-card"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Motto Section -->
+      <section class="landing__motto">
+        <div class="landing__motto-content">
+          <h2 class="landing__motto-text">
+            "Education is not preparation for life; <br />
+            <span class="landing__motto-highlight">education is life itself.</span>"
+          </h2>
+          <p class="landing__motto-author">- John Dewey</p>
+        </div>
+      </section>
+      
+      <!-- About Section -->
+      <section id="about" class="landing__about">
+        <div class="landing__about-content">
+          <span class="landing__section-badge">About</span>
+          <h2 class="landing__section-title">Built for Educators</h2>
+          <p class="landing__about-text">
+            Tutor Desk was born from a simple idea: teachers deserve better tools. 
+            We've built a platform that understands the unique challenges of education 
+            and provides solutions that actually work.
+          </p>
+          <p class="landing__about-text">
+            Our mission is to empower educators with technology that enhances, 
+            not complicates, the learning experience for both teachers and students.
+          </p>
+        </div>
+      </section>
+      
+      <!-- Contact Section -->
+      <section id="contact" class="landing__contact">
+        <div class="landing__section-header">
+          <span class="landing__section-badge">Contact</span>
+          <h2 class="landing__section-title">Get in Touch</h2>
+          <p class="landing__section-subtitle">
+            Have questions? We'd love to hear from you.
+          </p>
+        </div>
+        
+        <div class="landing__contact-cards">
+          @for (contact of contactMethods; track contact.title) {
+            <div class="landing__contact-card">
+              <i [class]="'pi ' + contact.icon"></i>
+              <h3>{{ contact.title }}</h3>
+              <p>{{ contact.value }}</p>
+            </div>
+          }
+        </div>
+      </section>
+      
+      <!-- Developer Section -->
+      <section class="landing__developer">
+        <div class="landing__developer-content">
+          <div class="landing__developer-avatar">
+            <i class="pi pi-code"></i>
+          </div>
+          <h3 class="landing__developer-title">Built with Love</h3>
+          <p class="landing__developer-text">
+            Crafted using Angular, Supabase, and PrimeNG. 
+            Open source and continuously improving.
+          </p>
+          <div class="landing__developer-tech">
+            <span class="landing__tech-badge">Angular 21</span>
+            <span class="landing__tech-badge">Supabase</span>
+            <span class="landing__tech-badge">PrimeNG</span>
+            <span class="landing__tech-badge">Tailwind CSS</span>
+          </div>
+        </div>
+      </section>
+      
+      <!-- CTA Section -->
+      <section class="landing__cta">
+        <div class="landing__cta-content">
+          <h2 class="landing__cta-title">Ready to Transform Your Teaching?</h2>
+          <p class="landing__cta-subtitle">
+            Join thousands of educators who have simplified their workflow with Tutor Desk.
+          </p>
+          <a routerLink="/auth/register">
+            <button pButton pRipple label="Get Started for Free" icon="pi pi-arrow-right" iconPos="right" class="p-button-lg p-button-rounded landing__cta-btn"></button>
+          </a>
+        </div>
+      </section>
+      
+      <!-- Footer -->
+      <footer class="landing__footer">
+        <div class="landing__footer-content">
+          <div class="landing__footer-brand">
+            <a routerLink="/" class="landing__logo">
+              <span class="landing__logo-icon landing__logo-icon--small">
+                <i class="pi pi-book"></i>
+              </span>
+              <span class="landing__logo-text">Tutor Desk</span>
+            </a>
+            <p class="landing__footer-tagline">Empowering education, one exam at a time.</p>
+          </div>
+          
+          <div class="landing__footer-links">
+            <div class="landing__footer-column">
+              <h4>Product</h4>
+              <a href="#features">Features</a>
+              <a href="#">Pricing</a>
+              <a href="#">Roadmap</a>
+            </div>
+            <div class="landing__footer-column">
+              <h4>Company</h4>
+              <a href="#about">About</a>
+              <a href="#contact">Contact</a>
+              <a href="#">Blog</a>
+            </div>
+            <div class="landing__footer-column">
+              <h4>Legal</h4>
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="landing__footer-bottom">
+          <p>&copy; {{ currentYear }} Tutor Desk. All rights reserved.</p>
+          <div class="landing__social-links">
+            <a href="#" aria-label="GitHub"><i class="pi pi-github"></i></a>
+            <a href="#" aria-label="Twitter"><i class="pi pi-twitter"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="pi pi-linkedin"></i></a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  `,
+  styleUrl: './landing.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class LandingComponent implements OnInit, OnDestroy {
+  private readonly platformId = inject(PLATFORM_ID);
+  
+  readonly mobileMenuOpen = signal(false);
+  readonly currentYear = new Date().getFullYear();
+  
+  readonly stats = [
+    { value: '10K+', label: 'Teachers' },
+    { value: '500K+', label: 'Students' },
+    { value: '1M+', label: 'Exams' },
+    { value: '99.9%', label: 'Uptime' },
+  ];
+  
+  readonly features = [
+    {
+      icon: 'pi-users',
+      title: 'Student Management',
+      description: 'Easily manage student profiles, track progress, and organize classes efficiently.',
+      color: 'linear-gradient(135deg, #10b981, #059669)',
+    },
+    {
+      icon: 'pi-file-edit',
+      title: 'Exam Creation',
+      description: 'Create MCQ exams with configurable timers, anti-cheat measures, and auto-grading.',
+      color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    },
+    {
+      icon: 'pi-clock',
+      title: 'Smart Timer',
+      description: 'Per-question timers with skip-and-return functionality for flexible exam taking.',
+      color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    },
+    {
+      icon: 'pi-shield',
+      title: 'Anti-Cheat System',
+      description: 'Fullscreen lock, tab detection, and auto-submit on window blur.',
+      color: 'linear-gradient(135deg, #ef4444, #dc2626)',
+    },
+    {
+      icon: 'pi-chart-bar',
+      title: 'Analytics Dashboard',
+      description: 'Comprehensive statistics and insights for better teaching decisions.',
+      color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    },
+    {
+      icon: 'pi-mobile',
+      title: 'Mobile First',
+      description: 'Progressive Web App designed for seamless mobile experience.',
+      color: 'linear-gradient(135deg, #ec4899, #db2777)',
+    },
+  ];
+  
+  readonly simplicityPoints = [
+    'No complex setup required',
+    'Intuitive interface for all users',
+    'Real-time sync across devices',
+    'Automatic backups and security',
+  ];
+  
+  readonly contactMethods = [
+    { icon: 'pi-envelope', title: 'Email', value: 'hello@tutordesk.com' },
+    { icon: 'pi-phone', title: 'Phone', value: '+1 (555) 123-4567' },
+    { icon: 'pi-map-marker', title: 'Location', value: 'San Francisco, CA' },
+  ];
+  
+  private scrollHandler: (() => void) | null = null;
+  
+  ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.initScrollAnimations();
+    }
+  }
+  
+  ngOnDestroy(): void {
+    if (this.scrollHandler && isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('scroll', this.scrollHandler);
+    }
+  }
+  
+  private initScrollAnimations(): void {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px',
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-visible');
+        }
+      });
+    }, observerOptions);
+    
+    // Observe elements that should animate on scroll
+    document.querySelectorAll('.landing__feature-card, .landing__contact-card').forEach((el) => {
+      observer.observe(el);
+    });
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "name": "tutor-desk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "app",
+  "sourceRoot": "apps/tutor-desk/src",
+  "tags": ["scope:tutor-desk"],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/tutor-desk",
+        "browser": "apps/tutor-desk/src/main.ts",
+        "polyfills": ["zone.js"],
+        "tsConfig": "apps/tutor-desk/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/tutor-desk/public"
+          },
+          "apps/tutor-desk/src/manifest.webmanifest"
+        ],
+        "serviceWorker": "apps/tutor-desk/ngsw-config.json",
+        "styles": ["apps/tutor-desk/src/styles.css"],
+        "server": "apps/tutor-desk/src/main.server.ts",
+        "ssr": {
+          "entry": "apps/tutor-desk/src/server.ts"
+        },
+        "outputMode": "server"
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "2mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "8kb",
+              "maximumError": "16kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "configurations": {
+        "production": {
+          "buildTarget": "tutor-desk:build:production"
+        },
+        "development": {
+          "buildTarget": "tutor-desk:build:development"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "extract-i18n": {
+      "executor": "@angular/build:extract-i18n",
+      "options": {
+        "buildTarget": "tutor-desk:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../coverage/apps/tutor-desk"
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "tutor-desk:build",
+        "port": 4200,
+        "staticFilePath": "dist/apps/tutor-desk/browser",
+        "spa": true
+      }
+    }
+  }
+}

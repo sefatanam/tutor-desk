@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(mkdir:*)",
+      "mcp__angular-cli__get_best_practices",
+      "mcp__primeng__get_installation",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_serena_serena__check_onboarding_performed",
+      "mcp__plugin_serena_serena__onboarding",
+      "mcp__plugin_serena_serena__list_dir",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__plugin_serena_serena__write_memory",
+      "mcp__plugin_serena_serena__execute_shell_command",
+      "mcp__plugin_serena_serena__create_text_file",
+      "mcp__primeng__get_component_import",
+      "mcp__plugin_serena_serena__replace_content",
+      "mcp__primeng__get_component",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_serena_serena__list_memories",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "mcp__plugin_supabase_supabase__list_migrations",
+      "mcp__plugin_supabase_supabase__deploy_edge_function",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "mcp__plugin_supabase_supabase__get_project_url",
+      "Bash(curl:*)",
+      "mcp__plugin_serena_serena__think_about_task_adherence",
+      "mcp__plugin_serena_serena__replace_symbol_body",
+      "mcp__angular-cli__search_documentation",
+      "Bash(npx tsc --noEmit)",
+      "mcp__plugin_serena_serena__think_about_whether_you_are_done",
+      "Bash(npx ng lint:*)",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "mcp__supabase__search_docs"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

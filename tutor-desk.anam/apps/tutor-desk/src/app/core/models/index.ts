@@ -1,0 +1,523 @@
+// @REVIEW: Core model interfaces for Tutor Desk
+// These interfaces map to the database schema and provide type safety
+
+// =============================================
+// ENUMS
+// =============================================
+
+export type UserRole = 'super_admin' | 'teacher' | 'student';
+
+export type UserStatus = 'pending' | 'active' | 'disabled' | 'suspended';
+
+export type ExamStatus = 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
+
+export type SubmissionStatus = 'in_progress' | 'submitted' | 'auto_submitted' | 'evaluated' | 'retake_allowed';
+
+export type AssetType = 'document' | 'image' | 'video' | 'link' | 'other';
+
+export type AuthProvider = 'email' | 'google';
+
+// =============================================
+// BASE INTERFACES
+// =============================================
+
+export interface BaseEntity {
+  readonly id: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+// =============================================
+// USER MODELS
+// =============================================
+
+export interface User extends BaseEntity {
+  readonly email: string;
+  readonly fullName: string;
+  readonly avatarUrl: string | null;
+  readonly role: UserRole;
+  readonly status: UserStatus;
+  readonly phone: string | null;
+  readonly authProvider: AuthProvider;
+  readonly authProviderId: string | null;
+  readonly lastLoginAt: Date | null;
+  readonly createdBy: string | null;
+}
+
+export interface CreateUserDto {
+  readonly email: string;
+  readonly password?: string;
+  readonly fullName: string;
+  readonly role: UserRole;
+  readonly phone?: string;
+  readonly authProvider?: AuthProvider;
+  readonly authProviderId?: string;
+}
+
+export interface UpdateUserDto {
+  readonly fullName?: string;
+  readonly avatarUrl?: string;
+  readonly phone?: string;
+  readonly status?: UserStatus;
+}
+
+// =============================================
+// TEACHER MODELS
+// =============================================
+
+export interface Teacher extends BaseEntity {
+  readonly userId: string;
+  readonly qualification: string | null;
+  readonly specialization: string | null;
+  readonly bio: string | null;
+  readonly allowStudentComments: boolean;
+  readonly showExamResultsImmediately: boolean;
+  readonly totalStudents: number;
+  readonly totalSubjects: number;
+  readonly totalExams: number;
+  readonly approvedAt: Date | null;
+  readonly approvedBy: string | null;
+}
+
+export interface TeacherWithUser extends Teacher {
+  readonly user: User;
+}
+
+export interface CreateTeacherDto {
+  readonly userId: string;
+  readonly qualification?: string;
+  readonly specialization?: string;
+  readonly bio?: string;
+}
+
+export interface UpdateTeacherDto {
+  readonly qualification?: string;
+  readonly specialization?: string;
+  readonly bio?: string;
+  readonly allowStudentComments?: boolean;
+  readonly showExamResultsImmediately?: boolean;
+}
+
+// =============================================
+// STUDENT MODELS
+// =============================================
+
+export interface Student extends BaseEntity {
+  readonly userId: string;
+  readonly teacherId: string;
+  readonly rollNumber: string | null;
+  readonly className: string | null;
+  readonly section: string | null;
+  readonly guardianName: string | null;
+  readonly guardianPhone: string | null;
+  readonly address: string | null;
+  readonly dateOfBirth: Date | null;
+  readonly totalExamsTaken: number;
+  readonly averageScore: number;
+}
+
+export interface StudentWithUser extends Student {
+  readonly user: User;
+}
+
+export interface CreateStudentDto {
+  readonly email: string;
+  readonly password: string;
+  readonly fullName: string;
+  readonly teacherId: string;
+  readonly rollNumber?: string;
+  readonly className?: string;
+  readonly section?: string;
+  readonly guardianName?: string;
+  readonly guardianPhone?: string;
+  readonly address?: string;
+  readonly dateOfBirth?: Date;
+}
+
+export interface UpdateStudentDto {
+  readonly rollNumber?: string;
+  readonly className?: string;
+  readonly section?: string;
+  readonly guardianName?: string;
+  readonly guardianPhone?: string;
+  readonly address?: string;
+  readonly dateOfBirth?: Date;
+}
+
+// =============================================
+// SUBJECT MODELS
+// =============================================
+
+export interface Subject extends BaseEntity {
+  readonly teacherId: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly code: string | null;
+  readonly color: string;
+  readonly icon: string;
+  readonly isActive: boolean;
+  readonly totalStudents: number;
+  readonly totalExams: number;
+  readonly totalAssets: number;
+}
+
+export interface CreateSubjectDto {
+  readonly teacherId: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly code?: string;
+  readonly color?: string;
+  readonly icon?: string;
+}
+
+export interface UpdateSubjectDto {
+  readonly name?: string;
+  readonly description?: string;
+  readonly code?: string;
+  readonly color?: string;
+  readonly icon?: string;
+  readonly isActive?: boolean;
+}
+
+// =============================================
+// SUBJECT ENROLLMENT
+// =============================================
+
+export interface SubjectEnrollment extends BaseEntity {
+  readonly studentId: string;
+  readonly subjectId: string;
+  readonly enrolledAt: Date;
+  readonly enrolledBy: string | null;
+}
+
+// =============================================
+// EXAM MODELS
+// =============================================
+
+export interface Exam extends BaseEntity {
+  readonly subjectId: string;
+  readonly teacherId: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly instructions: string | null;
+  readonly status: ExamStatus;
+  readonly totalQuestions: number;
+  readonly totalMarks: number;
+  readonly passingMarks: number;
+  
+  // Time configuration (CRITICAL)
+  readonly timePerQuestionSeconds: number;
+  readonly allowSkipReturn: boolean;
+  
+  // Anti-cheat settings
+  readonly fullscreenRequired: boolean;
+  readonly autoSubmitOnBlur: boolean;
+  readonly allowRetake: boolean;
+  readonly maxRetakes: number;
+  
+  // Scheduling
+  readonly scheduledStart: Date | null;
+  readonly scheduledEnd: Date | null;
+  readonly durationMinutes: number | null;
+  
+  // Statistics
+  readonly totalSubmissions: number;
+  readonly averageScore: number;
+  readonly publishedAt: Date | null;
+}
+
+export interface ExamWithSubject extends Exam {
+  readonly subject: Subject;
+}
+
+export interface CreateExamDto {
+  readonly subjectId: string;
+  readonly teacherId: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly instructions?: string;
+  readonly timePerQuestionSeconds?: number;
+  readonly allowSkipReturn?: boolean;
+  readonly fullscreenRequired?: boolean;
+  readonly autoSubmitOnBlur?: boolean;
+  readonly allowRetake?: boolean;
+  readonly maxRetakes?: number;
+  readonly scheduledStart?: Date;
+  readonly scheduledEnd?: Date;
+  readonly durationMinutes?: number;
+  readonly passingMarks?: number;
+}
+
+export interface UpdateExamDto {
+  readonly title?: string;
+  readonly description?: string;
+  readonly instructions?: string;
+  readonly status?: ExamStatus;
+  readonly timePerQuestionSeconds?: number;
+  readonly allowSkipReturn?: boolean;
+  readonly fullscreenRequired?: boolean;
+  readonly autoSubmitOnBlur?: boolean;
+  readonly allowRetake?: boolean;
+  readonly maxRetakes?: number;
+  readonly scheduledStart?: Date;
+  readonly scheduledEnd?: Date;
+  readonly durationMinutes?: number;
+  readonly passingMarks?: number;
+}
+
+// =============================================
+// QUESTION MODELS (MCQ)
+// =============================================
+
+export interface QuestionOption {
+  readonly id: string;
+  readonly text: string;
+  readonly imageUrl?: string;
+}
+
+export interface Question extends BaseEntity {
+  readonly examId: string;
+  readonly questionText: string;
+  readonly questionImageUrl: string | null;
+  readonly options: QuestionOption[];
+  readonly correctOptionId: string;
+  readonly marks: number;
+  readonly negativeMarks: number;
+  readonly timeLimitSeconds: number | null; // Per-question override
+  readonly sequenceNumber: number;
+  readonly explanation: string | null;
+}
+
+export interface CreateQuestionDto {
+  readonly examId: string;
+  readonly questionText: string;
+  readonly questionImageUrl?: string;
+  readonly options: QuestionOption[];
+  readonly correctOptionId: string;
+  readonly marks?: number;
+  readonly negativeMarks?: number;
+  readonly timeLimitSeconds?: number;
+  readonly sequenceNumber: number;
+  readonly explanation?: string;
+}
+
+export interface UpdateQuestionDto {
+  readonly questionText?: string;
+  readonly questionImageUrl?: string;
+  readonly options?: QuestionOption[];
+  readonly correctOptionId?: string;
+  readonly marks?: number;
+  readonly negativeMarks?: number;
+  readonly timeLimitSeconds?: number;
+  readonly sequenceNumber?: number;
+  readonly explanation?: string;
+}
+
+// =============================================
+// EXAM SUBMISSION MODELS
+// =============================================
+
+export interface ExamSubmission extends BaseEntity {
+  readonly examId: string;
+  readonly studentId: string;
+  readonly status: SubmissionStatus;
+  readonly startedAt: Date;
+  readonly submittedAt: Date | null;
+  readonly autoSubmitReason: string | null;
+  readonly totalAnswered: number;
+  readonly totalCorrect: number;
+  readonly totalWrong: number;
+  readonly totalSkipped: number;
+  readonly score: number;
+  readonly percentage: number;
+  readonly attemptNumber: number;
+  readonly evaluatedAt: Date | null;
+  readonly evaluatedBy: string | null;
+  readonly remarks: string | null;
+}
+
+export interface ExamSubmissionWithDetails extends ExamSubmission {
+  readonly exam: Exam;
+  readonly answers: SubmissionAnswer[];
+}
+
+// =============================================
+// SUBMISSION ANSWER MODELS
+// =============================================
+
+export interface SubmissionAnswer extends BaseEntity {
+  readonly submissionId: string;
+  readonly questionId: string;
+  readonly selectedOptionId: string | null;
+  readonly isCorrect: boolean | null;
+  readonly marksObtained: number;
+  
+  // Time tracking (CRITICAL for skip-return)
+  readonly timeSpentSeconds: number;
+  readonly timeRemainingSeconds: number | null;
+  readonly wasSkipped: boolean;
+  readonly returnedTo: boolean;
+  
+  readonly answeredAt: Date | null;
+  readonly sequenceAnswered: number | null;
+}
+
+export interface CreateSubmissionAnswerDto {
+  readonly submissionId: string;
+  readonly questionId: string;
+  readonly selectedOptionId?: string;
+  readonly timeSpentSeconds: number;
+  readonly timeRemainingSeconds?: number;
+  readonly wasSkipped?: boolean;
+  readonly sequenceAnswered: number;
+}
+
+export interface UpdateSubmissionAnswerDto {
+  readonly selectedOptionId?: string;
+  readonly timeSpentSeconds?: number;
+  readonly returnedTo?: boolean;
+}
+
+// =============================================
+// ASSET MODELS
+// =============================================
+
+export interface Asset extends BaseEntity {
+  readonly subjectId: string;
+  readonly teacherId: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly assetType: AssetType;
+  readonly fileUrl: string | null;
+  readonly fileName: string | null;
+  readonly fileSizeBytes: number | null;
+  readonly mimeType: string | null;
+  readonly externalUrl: string | null;
+  readonly thumbnailUrl: string | null;
+  readonly sequenceNumber: number;
+  readonly isPublished: boolean;
+}
+
+export interface CreateAssetDto {
+  readonly subjectId: string;
+  readonly teacherId: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly assetType: AssetType;
+  readonly fileUrl?: string;
+  readonly fileName?: string;
+  readonly fileSizeBytes?: number;
+  readonly mimeType?: string;
+  readonly externalUrl?: string;
+  readonly thumbnailUrl?: string;
+  readonly sequenceNumber?: number;
+}
+
+export interface UpdateAssetDto {
+  readonly title?: string;
+  readonly description?: string;
+  readonly assetType?: AssetType;
+  readonly externalUrl?: string;
+  readonly thumbnailUrl?: string;
+  readonly sequenceNumber?: number;
+  readonly isPublished?: boolean;
+}
+
+// =============================================
+// ASSET COMMENT MODELS
+// =============================================
+
+export interface AssetComment extends BaseEntity {
+  readonly assetId: string;
+  readonly userId: string;
+  readonly parentId: string | null;
+  readonly content: string;
+  readonly isVisible: boolean;
+}
+
+export interface AssetCommentWithUser extends AssetComment {
+  readonly user: Pick<User, 'id' | 'fullName' | 'avatarUrl' | 'role'>;
+  readonly replies?: AssetCommentWithUser[];
+}
+
+export interface CreateAssetCommentDto {
+  readonly assetId: string;
+  readonly userId: string;
+  readonly parentId?: string;
+  readonly content: string;
+}
+
+// =============================================
+// API RESPONSE TYPES
+// =============================================
+
+export interface ApiResponse<T> {
+  readonly data: T;
+  readonly success: boolean;
+  readonly message?: string;
+  readonly error?: string;
+}
+
+export interface PaginatedResponse<T> {
+  readonly items: T[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly totalPages: number;
+}
+
+export interface PaginationParams {
+  readonly page?: number;
+  readonly pageSize?: number;
+  readonly sortBy?: string;
+  readonly sortOrder?: 'asc' | 'desc';
+}
+
+// =============================================
+// AUTH MODELS
+// =============================================
+
+export interface LoginCredentials {
+  readonly email: string;
+  readonly password: string;
+}
+
+export interface AuthSession {
+  readonly user: User;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresAt: Date;
+}
+
+export interface GoogleAuthPayload {
+  readonly idToken: string;
+}
+
+// =============================================
+// DASHBOARD STATS
+// =============================================
+
+export interface TeacherDashboardStats {
+  readonly totalStudents: number;
+  readonly totalSubjects: number;
+  readonly totalExams: number;
+  readonly activeExams: number;
+  readonly totalSubmissions: number;
+  readonly averageStudentScore: number;
+}
+
+export interface StudentDashboardStats {
+  readonly enrolledSubjects: number;
+  readonly totalExamsTaken: number;
+  readonly averageScore: number;
+  readonly pendingExams: number;
+}
+
+export interface SuperAdminDashboardStats {
+  readonly totalTeachers: number;
+  readonly pendingTeachers: number;
+  readonly activeTeachers: number;
+  readonly disabledTeachers: number;
+  readonly totalStudents: number;
+  readonly totalExams: number;
+}

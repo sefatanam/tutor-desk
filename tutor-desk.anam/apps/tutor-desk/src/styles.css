@@ -1,0 +1,174 @@
+/* @REVIEW: Tailwind CSS v4 setup */
+/* Import Tailwind with layer structure for PrimeNG compatibility */
+@layer theme, base, primeng, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* PrimeIcons */
+@import "primeicons/primeicons.css" layer(primeng);
+
+/* @REVIEW: Custom CSS Variables for theming */
+:root {
+  /* Brand Colors */
+  --td-primary: #10b981;
+  --td-primary-dark: #059669;
+  --td-primary-light: #34d399;
+  
+  /* Neutral Colors */
+  --td-background: #f8fafc;
+  --td-surface: #ffffff;
+  --td-text: #1e293b;
+  --td-text-secondary: #64748b;
+  
+  /* Semantic Colors */
+  --td-success: #22c55e;
+  --td-warning: #f59e0b;
+  --td-danger: #ef4444;
+  --td-info: #3b82f6;
+  
+  /* Spacing */
+  --td-header-height: 64px;
+  --td-sidebar-width: 280px;
+  --td-sidebar-collapsed-width: 80px;
+  
+  /* Transitions */
+  --td-transition-fast: 150ms ease;
+  --td-transition-normal: 300ms ease;
+  --td-transition-slow: 500ms ease;
+  
+  /* Border Radius */
+  --td-radius-sm: 0.375rem;
+  --td-radius-md: 0.5rem;
+  --td-radius-lg: 0.75rem;
+  --td-radius-xl: 1rem;
+  
+  /* Shadows */
+  --td-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --td-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --td-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* @REVIEW: Dark mode variables */
+.dark-mode {
+  --td-background: #0f172a;
+  --td-surface: #1e293b;
+  --td-text: #f1f5f9;
+  --td-text-secondary: #94a3b8;
+}
+
+/* @REVIEW: Global base styles */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: var(--td-text);
+  background: var(--td-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* @REVIEW: Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--td-primary);
+  outline-offset: 2px;
+}
+
+/* @REVIEW: Selection styling */
+::selection {
+  background-color: var(--td-primary);
+  color: white;
+}
+
+/* @REVIEW: Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--td-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--td-text-secondary);
+  border-radius: var(--td-radius-lg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--td-text);
+}
+
+/* @REVIEW: Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px var(--td-primary), 0 0 10px var(--td-primary); }
+  50% { box-shadow: 0 0 20px var(--td-primary), 0 0 30px var(--td-primary); }
+}
+
+/* @REVIEW: Animation classes */
+.animate-fade-in { animation: fadeIn var(--td-transition-normal) forwards; }
+.animate-slide-up { animation: slideUp var(--td-transition-normal) forwards; }
+.animate-slide-in-left { animation: slideInLeft var(--td-transition-normal) forwards; }
+.animate-slide-in-right { animation: slideInRight var(--td-transition-normal) forwards; }
+.animate-scale-in { animation: scaleIn var(--td-transition-normal) forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* @REVIEW: Staggered animation delays */
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+.stagger-5 { animation-delay: 500ms; }
+
+/* @REVIEW: PWA-friendly mobile styles */
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+  :root { --td-header-height: 56px; }
+}
+
+/* @REVIEW: Safe area insets for notched devices */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
