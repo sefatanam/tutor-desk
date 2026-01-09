@@ -236,10 +236,11 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
   private readonly supabase = inject(SupabaseClientService);
 
   getById(id: string): Observable<TeacherWithUser | null> {
+    // @REVIEW: Use explicit FK name to disambiguate (teachers has user_id and approved_by both referencing users)
     return from(
       this.supabase
         .from('teachers')
-        .select('*, users(*)')
+        .select('*, users!teachers_user_id_fkey(*)')
         .eq('id', id)
         .single()
     ).pipe(
@@ -251,10 +252,11 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
   }
 
   getByUserId(userId: string): Observable<TeacherWithUser | null> {
+    // @REVIEW: Use explicit FK name to disambiguate
     return from(
       this.supabase
         .from('teachers')
-        .select('*, users(*)')
+        .select('*, users!teachers_user_id_fkey(*)')
         .eq('user_id', userId)
         .single()
     ).pipe(
@@ -271,10 +273,11 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
     const start = (page - 1) * pageSize;
     const end = start + pageSize - 1;
 
+    // @REVIEW: Use explicit FK name to disambiguate (teachers has user_id and approved_by both referencing users)
     return from(
       this.supabase
         .from('teachers')
-        .select('*, users(*)', { count: 'exact' })
+        .select('*, users!teachers_user_id_fkey(*)', { count: 'exact' })
         .range(start, end)
         .order(params?.sortBy ?? 'created_at', { ascending: params?.sortOrder === 'asc' })
     ).pipe(
@@ -294,10 +297,11 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
   }
 
   getPendingApprovals(): Observable<TeacherWithUser[]> {
+    // @REVIEW: Use explicit FK name to disambiguate
     return from(
       this.supabase
         .from('teachers')
-        .select('*, users!inner(*)')
+        .select('*, users!teachers_user_id_fkey!inner(*)')
         .is('approved_at', null)
         .eq('users.status', 'pending')
         .order('created_at', { ascending: false })
@@ -344,6 +348,7 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
   }
 
   approve(id: string, approvedBy: string): Observable<Teacher> {
+    // @REVIEW: Use explicit FK name to disambiguate
     // First update teacher approval
     return from(
       this.supabase
@@ -353,7 +358,7 @@ class SupabaseTeacherAdapter implements ITeacherAdapter {
           approved_by: approvedBy,
         })
         .eq('id', id)
-        .select('*, users(*)')
+        .select('*, users!teachers_user_id_fkey(*)')
         .single()
     ).pipe(
       switchMap(({ data, error }) => {

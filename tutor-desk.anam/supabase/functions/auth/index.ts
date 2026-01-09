@@ -27,7 +27,7 @@ interface AuthRequest {
 interface JWTPayload {
   sub: string; // user_id
   email: string;
-  role: string;
+  user_role: string; // @REVIEW: Changed from 'role' to avoid Supabase/PostgREST conflict
   status: string;
   iat: number;
   exp: number;
@@ -38,9 +38,14 @@ const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 const BCRYPT_ROUNDS = 12;
 
-// Get JWT secret key
+// @REVIEW: Get JWT secret key - MUST use Supabase's JWT secret for RLS to work
+// Use TD_JWT_SECRET (copy of Supabase's JWT secret) since SUPABASE_ prefix is reserved
 const getJwtKey = async (): Promise<CryptoKey> => {
-  const secret = Deno.env.get('JWT_SECRET') || 'tutor-desk-super-secret-key-change-in-production-2024';
+  // Priority: TD_JWT_SECRET (Supabase JWT secret copy) > JWT_SECRET (legacy) > fallback (dev only)
+  const secret = Deno.env.get('TD_JWT_SECRET') 
+    || Deno.env.get('JWT_SECRET') 
+    || 'tutor-desk-super-secret-key-change-in-production-2024';
+  
   const encoder = new TextEncoder();
   return await crypto.subtle.importKey(
     'raw',
@@ -71,10 +76,11 @@ const createAccessToken = async (user: { id: string; email: string; role: string
   const key = await getJwtKey();
   const now = Math.floor(Date.now() / 1000);
   
+  // @REVIEW: Use 'user_role' instead of 'role' to avoid PostgREST SET ROLE conflict
   const payload = {
     sub: user.id,
     email: user.email,
-    role: user.role,
+    user_role: user.role,
     status: user.status,
     iat: now,
     exp: now + ACCESS_TOKEN_EXPIRY,
@@ -469,7 +475,7 @@ Deno.serve(async (req) => {
         const adminToken = authHeader.substring(7);
         const adminPayload = await verifyAccessToken(adminToken);
 
-        if (!adminPayload || adminPayload.role !== 'super_admin') {
+        if (!adminPayload || adminPayload.user_role !== 'super_admin') {
           return new Response(
             JSON.stringify({ error: 'Super admin access required' }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -522,7 +528,7 @@ Deno.serve(async (req) => {
         const teacherToken = authHeader.substring(7);
         const teacherPayload = await verifyAccessToken(teacherToken);
 
-        if (!teacherPayload || teacherPayload.role !== 'teacher') {
+        if (!teacherPayload || teacherPayload.user_role !== 'teacher') {
           return new Response(
             JSON.stringify({ error: 'Teacher access required' }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

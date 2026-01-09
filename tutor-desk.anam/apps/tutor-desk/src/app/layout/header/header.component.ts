@@ -1,7 +1,7 @@
 // @REVIEW: Header Component with PrimeNG
 // Responsive header with user menu and mobile navigation
 
-import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
@@ -9,6 +9,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { BadgeModule } from 'primeng/badge';
 import { RippleModule } from 'primeng/ripple';
 import { MenuItem } from 'primeng/api';
+import { AuthStore } from '../../core/store/auth.store';
 
 @Component({
   selector: 'app-header',
@@ -222,6 +223,9 @@ import { MenuItem } from 'primeng/api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HeaderComponent {
+  // @REVIEW: Inject AuthStore for signout functionality
+  private readonly authStore = inject(AuthStore);
+
   readonly sidebarCollapsed = input<boolean>(false);
   readonly toggleSidebar = output<void>();
   
@@ -253,8 +257,8 @@ export class HeaderComponent {
     document.documentElement.classList.toggle('dark-mode', this.darkMode());
   }
   
+  // @REVIEW: Implemented signout using AuthStore
   private signOut(): void {
-    // TODO: Implement sign out
-    console.log('Sign out');
+    this.authStore.logout();
   }
 }
