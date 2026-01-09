@@ -5,7 +5,7 @@ export const serverRoutes: ServerRoute[] = [
   // Static pages - prerender for best performance
   {
     path: '',
-    renderMode: RenderMode.Prerender,
+    renderMode: RenderMode.Server,
   },
   {
     path: 'auth/**',

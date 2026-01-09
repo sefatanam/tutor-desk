@@ -1,10 +1,11 @@
-/* @REVIEW: Tailwind CSS v4 setup */
-/* Import Tailwind with layer structure for PrimeNG compatibility */
-@layer theme, base, primeng, components, utilities;
+/* @REVIEW: Tailwind CSS v4 setup with PrimeNG layer integration */
+/* Layer order must match providePrimeNG cssLayer.order config */
+@layer tailwind-base, primeng, tailwind-utilities;
 
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/preflight.css" layer(base);
-@import "tailwindcss/utilities.css" layer(utilities);
+/* Tailwind layers with proper syntax for v4 */
+@import "tailwindcss/theme.css" layer(tailwind-base);
+@import "tailwindcss/preflight.css" layer(tailwind-base);
+@import "tailwindcss/utilities.css" layer(tailwind-utilities);
 
 /* PrimeIcons */
 @import "primeicons/primeicons.css" layer(primeng);
@@ -171,4 +172,27 @@ body {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+}
+
+/* @REVIEW: PrimeNG component overrides for full-width form inputs */
+.w-full {
+  width: 100% !important;
+}
+
+/* Fix PrimeNG Password component width */
+p-password.w-full,
+p-password.w-full > .p-password,
+p-password.w-full input {
+  width: 100%;
+}
+
+/* Fix PrimeNG Select component width */
+p-select.w-full,
+p-select.w-full > .p-select {
+  width: 100%;
+}
+
+/* Fix PrimeNG InputText width */
+input.w-full[pInputText] {
+  width: 100%;
 }
