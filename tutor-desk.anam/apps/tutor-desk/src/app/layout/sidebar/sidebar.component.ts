@@ -1,19 +1,25 @@
 // @REVIEW: Sidebar Component with PrimeNG
 // Collapsible navigation sidebar with role-based menu
 
-import { Component, ChangeDetectionStrategy, input, output, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { PanelMenuModule } from 'primeng/panelmenu';
 import { TooltipModule } from 'primeng/tooltip';
 import { RippleModule } from 'primeng/ripple';
-import { MenuItem } from 'primeng/api';
+import { AuthStore } from '../../core/store/auth.store';
+
+interface MenuItem {
+  readonly label: string;
+  readonly icon: string;
+  readonly routerLink: string;
+  readonly exact?: boolean;
+  readonly badge?: string;
+}
 
 @Component({
   selector: 'app-sidebar',
   imports: [
     RouterLink,
     RouterLinkActive,
-    PanelMenuModule,
     TooltipModule,
     RippleModule,
   ],
@@ -21,7 +27,7 @@ import { MenuItem } from 'primeng/api';
     <aside class="sidebar" [class.collapsed]="collapsed()">
       <!-- Logo -->
       <div class="sidebar__header">
-        <a routerLink="/" class="sidebar__logo">
+        <a [routerLink]="dashboardRoute()" class="sidebar__logo">
           <span class="sidebar__logo-icon">
             <i class="pi pi-book"></i>
           </span>
@@ -85,8 +91,8 @@ import { MenuItem } from 'primeng/api';
     }
   `,
   styles: `
+    /* @REVIEW: Removed grid-area: sidebar - using implicit grid column */
     .sidebar {
-      grid-area: sidebar;
       display: flex;
       flex-direction: column;
       width: var(--td-sidebar-width);
@@ -261,51 +267,112 @@ import { MenuItem } from 'primeng/api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent {
+  private readonly authStore = inject(AuthStore);
+
   readonly collapsed = input<boolean>(false);
   readonly collapsedChange = output<boolean>();
   
   readonly mobileOpen = signal(false);
+
+  // @REVIEW: Role-based dashboard route
+  readonly dashboardRoute = computed(() => {
+    const role = this.authStore.userRole();
+    switch (role) {
+      case 'super_admin': return '/admin/dashboard';
+      case 'teacher': return '/teacher/dashboard';
+      case 'student': return '/student/dashboard';
+      default: return '/';
+    }
+  });
   
-  // @REVIEW: Menu items will be dynamic based on user role
-  // This is placeholder - will be updated with actual role-based menu
-  readonly menuItems = signal<Array<{
-    label: string;
-    icon: string;
-    routerLink: string;
-    exact?: boolean;
-    badge?: string;
-  }>>([
+  // @REVIEW: Role-based menu items using computed signal
+  readonly menuItems = computed<readonly MenuItem[]>(() => {
+    const role = this.authStore.userRole();
+    
+    switch (role) {
+      case 'super_admin':
+        return this.superAdminMenu;
+      case 'teacher':
+        return this.teacherMenu;
+      case 'student':
+        return this.studentMenu;
+      default:
+        return [];
+    }
+  });
+
+  // @REVIEW: Super Admin menu items
+  private readonly superAdminMenu: readonly MenuItem[] = [
     {
       label: 'Dashboard',
       icon: 'pi-home',
-      routerLink: '/dashboard',
+      routerLink: '/admin/dashboard',
+      exact: true,
+    },
+    {
+      label: 'Teachers',
+      icon: 'pi-users',
+      routerLink: '/admin/teachers',
+    },
+    {
+      label: 'Settings',
+      icon: 'pi-cog',
+      routerLink: '/admin/settings',
+    },
+  ];
+
+  // @REVIEW: Teacher menu items
+  private readonly teacherMenu: readonly MenuItem[] = [
+    {
+      label: 'Dashboard',
+      icon: 'pi-home',
+      routerLink: '/teacher/dashboard',
       exact: true,
     },
     {
       label: 'Subjects',
       icon: 'pi-book',
-      routerLink: '/subjects',
+      routerLink: '/teacher/subjects',
     },
     {
       label: 'Students',
       icon: 'pi-users',
-      routerLink: '/students',
+      routerLink: '/teacher/students',
     },
     {
       label: 'Exams',
       icon: 'pi-file-edit',
-      routerLink: '/exams',
-      badge: '3',
+      routerLink: '/teacher/exams',
     },
     {
       label: 'Results',
       icon: 'pi-chart-bar',
-      routerLink: '/results',
+      routerLink: '/teacher/results',
+    },
+  ];
+
+  // @REVIEW: Student menu items
+  private readonly studentMenu: readonly MenuItem[] = [
+    {
+      label: 'Dashboard',
+      icon: 'pi-home',
+      routerLink: '/student/dashboard',
+      exact: true,
     },
     {
-      label: 'Settings',
-      icon: 'pi-cog',
-      routerLink: '/settings',
+      label: 'Subjects',
+      icon: 'pi-book',
+      routerLink: '/student/subjects',
     },
-  ]);
+    {
+      label: 'Exams',
+      icon: 'pi-file-edit',
+      routerLink: '/student/exams',
+    },
+    {
+      label: 'Results',
+      icon: 'pi-chart-bar',
+      routerLink: '/student/results',
+    },
+  ];
 }

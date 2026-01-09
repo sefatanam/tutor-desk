@@ -20,6 +20,9 @@ import Aura from '@primeng/themes/aura';
 // @REVIEW: HTTP Interceptors
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 
+// @REVIEW: Database Adapter
+import { provideSupabaseDatabaseAdapter } from './core/adapters/supabase-database.adapter';
+
 import { appRoutes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -52,5 +55,8 @@ export const appConfig: ApplicationConfig = {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
+
+    // @REVIEW: Supabase Database Adapter
+    ...provideSupabaseDatabaseAdapter(),
   ],
 };

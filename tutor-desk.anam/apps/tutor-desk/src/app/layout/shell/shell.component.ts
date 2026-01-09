@@ -11,22 +11,25 @@ import { FooterComponent } from '../footer/footer.component';
   selector: 'app-shell',
   imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent],
   template: `
+    <!-- @REVIEW: Restructured shell layout - header now inside main area -->
     <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
-      <app-header 
-        [sidebarCollapsed]="sidebarCollapsed()" 
-        (toggleSidebar)="toggleSidebar()" 
-      />
-      
       <app-sidebar 
         [collapsed]="sidebarCollapsed()" 
         (collapsedChange)="sidebarCollapsed.set($event)" 
       />
       
-      <main class="shell__content">
-        <div class="shell__content-inner">
-          <router-outlet />
+      <main class="shell__main">
+        <app-header 
+          [sidebarCollapsed]="sidebarCollapsed()" 
+          (toggleSidebar)="toggleSidebar()" 
+        />
+        
+        <div class="shell__content">
+          <div class="shell__content-inner">
+            <router-outlet />
+          </div>
+          <app-footer />
         </div>
-        <app-footer />
       </main>
     </div>
   `,
@@ -34,10 +37,6 @@ import { FooterComponent } from '../footer/footer.component';
     .shell {
       display: grid;
       grid-template-columns: var(--td-sidebar-width) 1fr;
-      grid-template-rows: var(--td-header-height) 1fr;
-      grid-template-areas:
-        "sidebar header"
-        "sidebar content";
       min-height: 100vh;
       transition: grid-template-columns var(--td-transition-normal);
       
@@ -46,11 +45,17 @@ import { FooterComponent } from '../footer/footer.component';
       }
     }
     
-    .shell__content {
-      grid-area: content;
+    .shell__main {
       display: flex;
       flex-direction: column;
+      min-height: 100vh;
       overflow-x: hidden;
+    }
+    
+    .shell__content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       background: var(--td-background);
     }
     
@@ -63,14 +68,10 @@ import { FooterComponent } from '../footer/footer.component';
       }
     }
     
-    /* Mobile: Stack layout */
+    /* Mobile: Sidebar becomes overlay/hidden */
     @media (max-width: 768px) {
       .shell {
         grid-template-columns: 1fr;
-        grid-template-rows: var(--td-header-height) 1fr;
-        grid-template-areas:
-          "header"
-          "content";
       }
     }
   `,

@@ -9,20 +9,20 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'auth/**',
-    renderMode: RenderMode.Server,
+    renderMode: RenderMode.Client,
   },
   // Protected routes - server render (require auth check)
   {
     path: 'admin/**',
-    renderMode: RenderMode.Server,
+    renderMode: RenderMode.Client,
   },
   {
     path: 'teacher/**',
-    renderMode: RenderMode.Server,
+    renderMode: RenderMode.Client,
   },
   {
     path: 'student/**',
-    renderMode: RenderMode.Server,
+    renderMode: RenderMode.Client,
   },
   // Fallback
   {

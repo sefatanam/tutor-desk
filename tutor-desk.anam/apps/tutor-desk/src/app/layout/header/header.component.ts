@@ -101,8 +101,8 @@ import { MenuItem } from 'primeng/api';
     </header>
   `,
   styles: `
+    /* @REVIEW: Removed grid-area: header - now inside main content area */
     .header {
-      grid-area: header;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -114,6 +114,7 @@ import { MenuItem } from 'primeng/api';
       top: 0;
       z-index: 100;
       height: var(--td-header-height);
+      flex-shrink: 0;
     }
     
     .header__left,
