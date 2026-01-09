@@ -1,7 +1,9 @@
-// @REVIEW: Login Component - Placeholder
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+// @REVIEW: Login Component
+// Uses custom auth via Edge Function (NO Supabase Auth)
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AuthStore } from '../../../core/store/auth.store';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -45,8 +47,8 @@ import { MessageModule } from 'primeng/message';
             </div>
           </ng-template>
 
-          @if (errorMessage()) {
-            <p-message severity="error" [text]="errorMessage()" styleClass="w-full mb-4" />
+          @if (authStore.error()) {
+            <p-message severity="error" [text]="authStore.error()!" styleClass="w-full mb-4" />
           }
 
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -98,20 +100,23 @@ import { MessageModule } from 'primeng/message';
               pButton
               type="submit"
               label="Sign In"
-              [loading]="isLoading()"
-              [disabled]="loginForm.invalid || isLoading()"
+              [loading]="authStore.isLoading()"
+              [disabled]="loginForm.invalid || authStore.isLoading()"
               class="w-full p-button-lg"
             ></button>
           </form>
 
           <p-divider align="center">
-            <span class="divider-text">or</span>
+            <span class="divider-text">New teacher?</span>
           </p-divider>
 
           <div class="login-footer">
             <p>
-              Don't have an account?
-              <a routerLink="/auth/register" class="register-link">Create one</a>
+              <a routerLink="/auth/register" class="register-link">Register as a teacher</a>
+            </p>
+            <p class="student-note">
+              <i class="pi pi-info-circle"></i>
+              Students are created by their teachers
             </p>
           </div>
         </p-card>
@@ -242,6 +247,16 @@ import { MessageModule } from 'primeng/message';
       text-decoration: underline;
     }
 
+    .student-note {
+      margin-top: 0.75rem !important;
+      font-size: 0.75rem;
+      color: var(--text-color-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+    }
+
     .login-terms {
       text-align: center;
       margin-top: 1.5rem;
@@ -266,10 +281,9 @@ import { MessageModule } from 'primeng/message';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
-  private readonly fb = new FormBuilder();
-
-  readonly isLoading = signal(false);
-  readonly errorMessage = signal('');
+  // @REVIEW: Inject AuthStore for authentication
+  readonly authStore = inject(AuthStore);
+  private readonly fb = inject(FormBuilder);
 
   readonly loginForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -277,20 +291,19 @@ export class LoginComponent {
     rememberMe: [false],
   });
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.loginForm.invalid) return;
 
-    this.isLoading.set(true);
-    this.errorMessage.set('');
+    // Clear any previous errors
+    this.authStore.clearError();
 
-    // @TODO: Implement actual authentication
-    console.log('Login attempt:', this.loginForm.value);
+    const { email, password } = this.loginForm.getRawValue();
+    const result = await this.authStore.login(email, password);
 
-    // Simulate API call
-    setTimeout(() => {
-      this.isLoading.set(false);
-      // For now, just show a message
-      this.errorMessage.set('Authentication not implemented yet');
-    }, 1000);
+    if (result.success) {
+      // Navigate to appropriate dashboard based on role
+      this.authStore.navigateToDashboard();
+    }
+    // Error is handled by authStore.error() signal
   }
 }

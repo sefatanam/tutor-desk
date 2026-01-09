@@ -1,6 +1,8 @@
-import { Route } from '@angular/router';
-
 // @REVIEW: New routing structure for Tutor Desk
+// Protected routes use authGuard + roleGuard with custom auth (NO Supabase Auth)
+import { Route } from '@angular/router';
+import { authGuard, superAdminGuard, teacherGuard, studentGuard } from './core/guards';
+
 export const appRoutes: Route[] = [
   // Public routes (no layout shell)
   {
@@ -22,7 +24,7 @@ export const appRoutes: Route[] = [
     path: 'admin',
     loadComponent: () =>
       import('./layout/shell/shell.component').then(m => m.ShellComponent),
-    // canActivate: [authGuard, roleGuard('super_admin')], // @TODO: Enable when guards are ready
+    canActivate: [superAdminGuard],
     children: [
       {
         path: '',
@@ -36,7 +38,7 @@ export const appRoutes: Route[] = [
     path: 'teacher',
     loadComponent: () =>
       import('./layout/shell/shell.component').then(m => m.ShellComponent),
-    // canActivate: [authGuard, roleGuard('teacher')], // @TODO: Enable when guards are ready
+    canActivate: [teacherGuard],
     children: [
       {
         path: '',
@@ -50,7 +52,7 @@ export const appRoutes: Route[] = [
     path: 'student',
     loadComponent: () =>
       import('./layout/shell/shell.component').then(m => m.ShellComponent),
-    // canActivate: [authGuard, roleGuard('student')], // @TODO: Enable when guards are ready
+    canActivate: [studentGuard],
     children: [
       {
         path: '',

@@ -5,7 +5,7 @@ import {
   isDevMode,
 } from '@angular/core';
 import { provideRouter, withViewTransitions } from '@angular/router';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
   provideClientHydration,
   withEventReplay,
@@ -17,6 +17,9 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 
+// @REVIEW: HTTP Interceptors
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+
 import { appRoutes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -24,8 +27,8 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(appRoutes, withViewTransitions()),
-    provideHttpClient(withFetch()),
+    provideRouter(appRoutes),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
 
     // @REVIEW: PrimeNG with Aura Green theme

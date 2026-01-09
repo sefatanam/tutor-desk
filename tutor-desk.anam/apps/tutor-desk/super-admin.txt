@@ -1,0 +1,24 @@
+Please run this SQL in your Supabase Dashboard:
+1. Go to: https://supabase.com/dashboard/project/ynkiftmzeclkthpcaoqy/sql/new
+2. Paste and run:
+INSERT INTO users (
+    id,
+    email,
+    password_hash,
+    full_name,
+    role,
+    status,
+    auth_provider,
+    created_at,
+    updated_at
+) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'admin@tutordesk.app',
+    '$2a$12$iMRW0KLdghFnKHEIf65hHOHrflR4K2gkzcs2iRgBct5ZE7REsqlsC',
+    'Super Administrator',
+    'super_admin',
+    'active',
+    'email',
+    NOW(),
+    NOW()
+) ON CONFLICT (email) DO NOTHING;

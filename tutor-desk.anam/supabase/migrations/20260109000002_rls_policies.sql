@@ -2,14 +2,16 @@
 -- TUTOR DESK - Row Level Security Policies
 -- Version: 002
 -- Description: RLS policies for multi-tenant access control
+-- APPLIED: 2026-01-09 via Supabase MCP (rls_policies_v2)
 -- =============================================
 
 -- =============================================
--- HELPER FUNCTIONS FOR RLS
+-- HELPER FUNCTIONS FOR RLS (in public schema)
+-- Note: Cannot use auth schema, so functions are in public
 -- =============================================
 
 -- Get current user's role
-CREATE OR REPLACE FUNCTION auth.user_role()
+CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS user_role AS $$
     SELECT role FROM users WHERE id = auth.uid();
 $$ LANGUAGE sql SECURITY DEFINER;

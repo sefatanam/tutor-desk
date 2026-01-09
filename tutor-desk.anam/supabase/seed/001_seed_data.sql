@@ -5,13 +5,13 @@
 
 -- =============================================
 -- SUPER ADMIN (Hardcoded credentials)
--- Email: admin@tutordesk.com
--- Password: SuperAdmin@123 (hashed with bcrypt)
+-- Email: admin@tutordesk.app
+-- Password: adminoftutordesk@app (hashed with bcrypt 12 rounds)
 -- =============================================
 
--- Note: Password hash is for 'SuperAdmin@123' using bcrypt
+-- Note: Password hash is for 'adminoftutordesk@app' using bcrypt (12 rounds)
 -- In production, generate a new hash using: 
--- SELECT crypt('YourPassword', gen_salt('bf', 12));
+-- htpasswd -bnBC 12 "" "YourPassword" | tr -d ':\n' | sed 's/$2y/$2a/'
 
 INSERT INTO users (
     id,
@@ -25,8 +25,8 @@ INSERT INTO users (
     updated_at
 ) VALUES (
     '00000000-0000-0000-0000-000000000001',
-    'admin@tutordesk.com',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4DkMfU.ZdNFKIKHi', -- SuperAdmin@123
+    'admin@tutordesk.app',
+    '$2a$12$iMRW0KLdghFnKHEIf65hHOHrflR4K2gkzcs2iRgBct5ZE7REsqlsC', -- adminoftutordesk@app
     'Super Administrator',
     'super_admin',
     'active',

@@ -2,7 +2,22 @@
   "name": "@tutor-desk/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start": "nx serve tutor-desk",
+    "start:prod": "nx serve tutor-desk --configuration=production",
+    "build:dev": "nx build tutor-desk --configuration=development",
+    "build:prod": "nx build tutor-desk --configuration=production",
+    "lint:check": "nx lint tutor-desk",
+    "lint:fix": "nx lint tutor-desk --fix",
+    "test:unit": "nx test tutor-desk",
+    "test:e2e": "nx e2e tutor-desk-e2e",
+    "generate:types": "echo 'Use Supabase MCP: supabase_generate_typescript_types'",
+    "db:status": "echo 'Use Supabase MCP: supabase_list_tables'",
+    "db:migrate": "echo 'Use Supabase MCP: supabase_apply_migration'",
+    "db:seed": "node scripts/seed-database.mjs",
+    "db:seed:help": "echo 'Usage: SUPABASE_SERVICE_ROLE_KEY=your_key pnpm db:seed'",
+    "db:reset": "echo 'WARNING: Drops all tables. Use Supabase dashboard or MCP carefully'"
+  },
   "private": true,
   "dependencies": {
     "@angular-devkit/build-angular": "21.0.3",

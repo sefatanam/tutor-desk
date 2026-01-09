@@ -1,14 +1,16 @@
-// @REVIEW: Register Component - Placeholder
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+// @REVIEW: Register Component - Teacher Only
+// Students cannot self-register, they are created by teachers
+// Teachers register with pending status until approved by SuperAdmin
+import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
-import { SelectModule } from 'primeng/select';
 import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
+import { AuthStore } from '../../../core/store/auth.store';
 
 @Component({
   selector: 'app-register',
@@ -19,7 +21,6 @@ import { MessageModule } from 'primeng/message';
     InputTextModule,
     PasswordModule,
     CardModule,
-    SelectModule,
     DividerModule,
     MessageModule,
   ],
@@ -40,141 +41,141 @@ import { MessageModule } from 'primeng/message';
         <p-card styleClass="register-card">
           <ng-template pTemplate="header">
             <div class="register-header">
-              <h1>Create Account</h1>
-              <p>Join Tutor Desk today</p>
+              <h1>Teacher Registration</h1>
+              <p>Create your teacher account</p>
             </div>
           </ng-template>
 
-          @if (errorMessage()) {
-            <p-message severity="error" [text]="errorMessage()" styleClass="w-full mb-4" />
+          @if (authStore.error()) {
+            <p-message severity="error" [text]="authStore.error()!" styleClass="w-full mb-4" />
           }
 
           @if (successMessage()) {
-            <p-message severity="success" [text]="successMessage()" styleClass="w-full mb-4" />
+            <p-message severity="success" [text]="successMessage()!" styleClass="w-full mb-4" />
           }
 
-          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-            <div class="form-row">
+          @if (!isRegistered()) {
+            <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
               <div class="form-field">
-                <label for="firstName">First Name</label>
+                <label for="fullName">Full Name</label>
                 <input
                   pInputText
-                  id="firstName"
+                  id="fullName"
                   type="text"
-                  formControlName="firstName"
-                  placeholder="John"
+                  formControlName="fullName"
+                  placeholder="John Doe"
                   class="w-full"
                 />
-                @if (registerForm.get('firstName')?.touched && registerForm.get('firstName')?.errors?.['required']) {
-                  <small class="p-error">First name is required</small>
+                @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.errors?.['required']) {
+                  <small class="p-error">Full name is required</small>
+                }
+                @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.errors?.['minlength']) {
+                  <small class="p-error">Name must be at least 2 characters</small>
                 }
               </div>
 
               <div class="form-field">
-                <label for="lastName">Last Name</label>
+                <label for="email">Email</label>
                 <input
                   pInputText
-                  id="lastName"
-                  type="text"
-                  formControlName="lastName"
-                  placeholder="Doe"
+                  id="email"
+                  type="email"
+                  formControlName="email"
+                  placeholder="john.doe@example.com"
                   class="w-full"
                 />
-                @if (registerForm.get('lastName')?.touched && registerForm.get('lastName')?.errors?.['required']) {
-                  <small class="p-error">Last name is required</small>
+                @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['required']) {
+                  <small class="p-error">Email is required</small>
+                }
+                @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['email']) {
+                  <small class="p-error">Please enter a valid email</small>
                 }
               </div>
+
+              <div class="form-field">
+                <label for="password">Password</label>
+                <p-password
+                  id="password"
+                  formControlName="password"
+                  placeholder="Create a password"
+                  [toggleMask]="true"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
+                />
+                @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['required']) {
+                  <small class="p-error">Password is required</small>
+                }
+                @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['minlength']) {
+                  <small class="p-error">Password must be at least 8 characters</small>
+                }
+              </div>
+
+              <div class="form-field">
+                <label for="confirmPassword">Confirm Password</label>
+                <p-password
+                  id="confirmPassword"
+                  formControlName="confirmPassword"
+                  placeholder="Confirm your password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
+                />
+                @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.errors?.['required']) {
+                  <small class="p-error">Please confirm your password</small>
+                }
+                @if (registerForm.get('confirmPassword')?.touched && registerForm.errors?.['passwordMismatch']) {
+                  <small class="p-error">Passwords do not match</small>
+                }
+              </div>
+
+              <div class="info-box">
+                <i class="pi pi-info-circle"></i>
+                <span>Your account will be reviewed by an administrator before activation.</span>
+              </div>
+
+              <button
+                pButton
+                type="submit"
+                label="Register as Teacher"
+                [loading]="authStore.isLoading()"
+                [disabled]="registerForm.invalid || authStore.isLoading()"
+                class="w-full p-button-lg"
+              ></button>
+            </form>
+          } @else {
+            <!-- Success state -->
+            <div class="success-state">
+              <div class="success-icon">
+                <i class="pi pi-check-circle"></i>
+              </div>
+              <h2>Registration Successful!</h2>
+              <p>
+                Your account has been created and is pending approval.
+                You will receive an email once your account is activated.
+              </p>
+              <button
+                pButton
+                type="button"
+                label="Go to Login"
+                (click)="goToLogin()"
+                class="w-full p-button-lg"
+              ></button>
             </div>
+          }
 
-            <div class="form-field">
-              <label for="email">Email</label>
-              <input
-                pInputText
-                id="email"
-                type="email"
-                formControlName="email"
-                placeholder="john.doe@example.com"
-                class="w-full"
-              />
-              @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['required']) {
-                <small class="p-error">Email is required</small>
-              }
-              @if (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['email']) {
-                <small class="p-error">Please enter a valid email</small>
-              }
+          @if (!isRegistered()) {
+            <p-divider align="center">
+              <span class="divider-text">or</span>
+            </p-divider>
+
+            <div class="register-footer">
+              <p>
+                Already have an account?
+                <a routerLink="/auth/login" class="login-link">Sign in</a>
+              </p>
             </div>
-
-            <div class="form-field">
-              <label for="role">I am a</label>
-              <p-select
-                id="role"
-                formControlName="role"
-                [options]="roleOptions"
-                placeholder="Select your role"
-                styleClass="w-full"
-              />
-              @if (registerForm.get('role')?.touched && registerForm.get('role')?.errors?.['required']) {
-                <small class="p-error">Please select a role</small>
-              }
-            </div>
-
-            <div class="form-field">
-              <label for="password">Password</label>
-              <p-password
-                id="password"
-                formControlName="password"
-                placeholder="Create a password"
-                [toggleMask]="true"
-                styleClass="w-full"
-                inputStyleClass="w-full"
-              />
-              @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['required']) {
-                <small class="p-error">Password is required</small>
-              }
-              @if (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['minlength']) {
-                <small class="p-error">Password must be at least 8 characters</small>
-              }
-            </div>
-
-            <div class="form-field">
-              <label for="confirmPassword">Confirm Password</label>
-              <p-password
-                id="confirmPassword"
-                formControlName="confirmPassword"
-                placeholder="Confirm your password"
-                [toggleMask]="true"
-                [feedback]="false"
-                styleClass="w-full"
-                inputStyleClass="w-full"
-              />
-              @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.errors?.['required']) {
-                <small class="p-error">Please confirm your password</small>
-              }
-              @if (registerForm.get('confirmPassword')?.touched && registerForm.errors?.['passwordMismatch']) {
-                <small class="p-error">Passwords do not match</small>
-              }
-            </div>
-
-            <button
-              pButton
-              type="submit"
-              label="Create Account"
-              [loading]="isLoading()"
-              [disabled]="registerForm.invalid || isLoading()"
-              class="w-full p-button-lg"
-            ></button>
-          </form>
-
-          <p-divider align="center">
-            <span class="divider-text">or</span>
-          </p-divider>
-
-          <div class="register-footer">
-            <p>
-              Already have an account?
-              <a routerLink="/auth/login" class="login-link">Sign in</a>
-            </p>
-          </div>
+          }
         </p-card>
 
         <p class="register-terms">
@@ -251,12 +252,6 @@ import { MessageModule } from 'primeng/message';
       color: var(--text-color-secondary);
     }
 
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
     .form-field {
       margin-bottom: 1.25rem;
     }
@@ -266,6 +261,23 @@ import { MessageModule } from 'primeng/message';
       margin-bottom: 0.5rem;
       font-weight: 500;
       color: var(--text-color);
+    }
+
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-100);
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-color-secondary);
+    }
+
+    .info-box i {
+      color: var(--primary-color);
+      margin-top: 2px;
     }
 
     .divider-text {
@@ -313,32 +325,45 @@ import { MessageModule } from 'primeng/message';
       margin-top: 0.25rem;
     }
 
-    @media (max-width: 480px) {
-      .form-row {
-        grid-template-columns: 1fr;
-      }
+    /* Success State */
+    .success-state {
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    .success-icon {
+      font-size: 4rem;
+      color: var(--green-500);
+      margin-bottom: 1rem;
+    }
+
+    .success-state h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .success-state p {
+      margin: 0 0 1.5rem;
+      color: var(--text-color-secondary);
+      line-height: 1.5;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterComponent {
-  private readonly fb = new FormBuilder();
+  readonly authStore = inject(AuthStore);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
-  readonly isLoading = signal(false);
-  readonly errorMessage = signal('');
-  readonly successMessage = signal('');
-
-  readonly roleOptions = [
-    { label: 'Teacher', value: 'teacher' },
-    { label: 'Student', value: 'student' },
-  ];
+  readonly isRegistered = signal(false);
+  readonly successMessage = signal<string | null>(null);
 
   readonly registerForm = this.fb.nonNullable.group(
     {
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      role: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
     },
@@ -357,21 +382,23 @@ export class RegisterComponent {
     return null;
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.registerForm.invalid) return;
 
-    this.isLoading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
+    this.authStore.clearError();
+    this.successMessage.set(null);
 
-    // @TODO: Implement actual registration
-    console.log('Register attempt:', this.registerForm.value);
+    const { fullName, email, password } = this.registerForm.getRawValue();
+    const result = await this.authStore.signup(email, password, fullName);
 
-    // Simulate API call
-    setTimeout(() => {
-      this.isLoading.set(false);
-      // For now, just show a message
-      this.errorMessage.set('Registration not implemented yet');
-    }, 1000);
+    if (result.success) {
+      this.isRegistered.set(true);
+      this.successMessage.set('Your account has been created successfully!');
+    }
+    // Error is handled by authStore.error() signal
+  }
+
+  goToLogin(): void {
+    this.router.navigate(['/auth/login']);
   }
 }

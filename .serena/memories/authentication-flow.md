@@ -1,7 +1,57 @@
-# TutorDesk Authentication Flow
+# TutorDesk Authentication Flow (Custom Auth - NO Supabase Auth)
 
 ## Overview
-TutorDesk uses Supabase for all user authentication with role-based access control (RBAC).
+TutorDesk uses a **custom authentication system** via Supabase Edge Functions. 
+We do NOT use Supabase Auth - all auth is handled by our own Edge Function.
+
+## Architecture
+
+### Edge Function URL
+`https://ynkiftmzeclkthpcaoqy.supabase.co/functions/v1/auth`
+
+### Supported Actions
+| Action | Description | Auth Required |
+|--------|-------------|---------------|
+| `login` | Email/password login | No |
+| `signup` | Teacher registration (status=pending) | No |
+| `refresh` | Rotate tokens | No (refresh token) |
+| `logout` | Revoke refresh token | No |
+| `reset_password` | Admin resets user password | SuperAdmin JWT |
+| `create_student` | Teacher creates student | Teacher JWT |
+
+### Security Features
+- bcrypt password hashing (12 rounds)
+- JWT access tokens (15 min expiry)
+- Refresh tokens (7 days, rotated on use)
+- Rate limiting (5 attempts per 15 min)
+- Device fingerprint binding
+- IP tracking
+
+## Angular Implementation
+
+### Core Files
+- `core/services/auth.service.ts` - HTTP calls to Edge Function
+- `core/store/auth.store.ts` - Signal-based state management
+- `core/guards/auth.guard.ts` - Requires authentication
+- `core/guards/role.guard.ts` - Requires specific role
+- `core/guards/guest.guard.ts` - Blocks authenticated users
+
+### Auth Store Signals
+```typescript
+readonly user: Signal<AuthUser | null>
+readonly isAuthenticated: Signal<boolean>
+readonly isLoading: Signal<boolean>
+readonly error: Signal<string | null>
+readonly userRole: Signal<UserRole | null>
+readonly isPendingApproval: Signal<boolean>
+readonly canAccess: Signal<boolean>
+```
+
+### Storage Keys (localStorage)
+- `td_access_token` - JWT access token
+- `td_refresh_token` - Refresh token
+- `td_token_expires_at` - Token expiry timestamp
+- `td_user` - User data JSON
 
 ## User Roles
 1. **SuperAdmin** (`super_admin`) - Platform administrator
@@ -11,76 +61,71 @@ TutorDesk uses Supabase for all user authentication with role-based access contr
 ## Authentication Flows
 
 ### Teacher Registration
-1. Teacher signs up via `/auth/register`
-2. Supabase creates auth user with `user_metadata` (display_name, role)
-3. Email confirmation required (redirects to `/auth/callback`)
-4. On confirmation, `auth.store.ts` creates profile in `public.users` and `public.teachers`
-5. Teacher status = `pending`, is_approved = `false`
-6. Teacher redirected to `/auth/pending` until approved by SuperAdmin
+1. Teacher registers via `/auth/register`
+2. Edge Function creates user in `public.users` with `status = 'pending'`
+3. Edge Function creates teacher record in `public.teachers`
+4. Teacher sees success message, redirected to login
+5. Teacher waits for SuperAdmin approval
+6. After approval, teacher can login normally
 
 ### Teacher Login
-1. Teacher signs in via `/auth/login` (Teacher tab)
-2. Auth store verifies role = `teacher`
-3. If not approved → `/auth/pending`
-4. If approved → `/teacher`
+1. Teacher signs in via `/auth/login`
+2. Edge Function returns JWT + refresh token + user data
+3. Auth store saves tokens to localStorage
+4. If `status = 'pending'` → redirected to `/auth/pending`
+5. If `status = 'active'` → redirected to `/teacher/dashboard`
 
 ### Student Creation (by Teacher)
-1. Teacher calls `userService.createStudent()`
-2. Edge Function `create-student` is invoked with teacher's JWT
-3. Edge Function uses `service_role` to:
-   - Create auth user with auto-confirmed email
-   - Create `public.users` profile (role = `student`, status = `active`)
-   - Create `public.students` record (linked to teacher)
-4. Student can login immediately with provided credentials
+1. Teacher calls `authStore.createStudent(data)`
+2. Auth service calls Edge Function with teacher JWT
+3. Edge Function creates user with `status = 'active'`
+4. Edge Function creates student record linked to teacher
+5. Student can login immediately
 
 ### Student Login
-1. Student signs in via `/auth/login` (Student tab)
-2. Auth store fetches profile and navigates to `/student`
+1. Student signs in via `/auth/login`
+2. Gets JWT + refresh token
+3. Redirected to `/student/dashboard`
 
 ### SuperAdmin Login
-1. Admin signs in via `/auth/login` (Admin tab)
-2. Uses Supabase authentication (not hardcoded)
-3. Auth store verifies role = `super_admin`
-4. Navigates to `/admin`
+1. Admin signs in via `/auth/login`
+2. Gets JWT + refresh token
+3. Redirected to `/admin/dashboard`
 
-## Edge Functions
-
-### `create-student`
-- **Purpose**: Create student without session swap or email confirmation
-- **Auth**: Requires teacher JWT
-- **Uses**: `service_role` key
-
-### `admin-operations`
-- **Purpose**: Admin-only operations (approve teacher, disable/enable users)
-- **Auth**: Requires super_admin JWT
-- **Operations**: `list-users`, `list-teachers`, `list-students`, `approve-teacher`, `disable-user`, `enable-user`
-
-### `setup-admin`
-- **Purpose**: One-time SuperAdmin creation
-- **Auth**: Setup secret (not JWT)
-- **Note**: Should be disabled after initial setup
+### Token Refresh
+- Auth store checks token expiry every 5 minutes
+- If token expires within 60 seconds, auto-refresh triggered
+- Refresh token is rotated on each use
 
 ## Guards
 
 ### `authGuard`
 - Waits for auth initialization (max 5 seconds)
 - Requires authentication
-- Checks `canAccess()` (not disabled, approved if teacher)
+- Checks `canAccess()` (not disabled/suspended, approved if teacher)
+- Pending teachers → `/auth/pending`
+- Disabled/suspended → logout + `/auth/login`
 
 ### `roleGuard(roles[])`
 - Waits for auth initialization
+- Requires authentication
 - Requires specific role(s)
-- Redirects to role-appropriate dashboard if wrong role
+- Redirects to correct dashboard if wrong role
 
 ### `guestGuard`
-- Prevents authenticated users from accessing auth pages
-- Redirects to role-appropriate dashboard
+- Waits for auth initialization
+- Blocks authenticated users
+- Redirects to dashboard if logged in
 
-## RLS Policies
-- Teachers can CRUD their own students
-- Teachers can update their students' user status
-- SuperAdmin uses Edge Functions (service_role) for all operations
-- All authenticated users can read users/teachers (for admin views)
+## Database Tables
 
-## Credentials
-- **SuperAdmin**: admin@tutordesk.app / TutorDesk@Admin2024
+### Auth-Related Tables (public schema)
+- `users` - User accounts with `password_hash`
+- `refresh_tokens` - Active refresh tokens
+- `login_attempts` - DDOS protection
+- `rate_limits` - Rate limiting rules
+- `password_reset_tokens` - Password reset tracking
+
+## Credentials (Development)
+- **SuperAdmin**: admin@tutordesk.app / adminoftutordesk@app
+  (Must be seeded in database via `supabase/seed/001_seed_data.sql`)

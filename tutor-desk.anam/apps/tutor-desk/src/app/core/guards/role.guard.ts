@@ -1,10 +1,11 @@
 // @REVIEW: Role-based Guard Factory
 // Creates guards that check for specific user roles
+// Uses custom auth store (NO Supabase Auth)
 
 import { inject } from '@angular/core';
 import { Router, type CanActivateFn } from '@angular/router';
-import { SupabaseClientService } from '../services/supabase-client.service';
-import type { UserRole } from '../models';
+import { AuthStore } from '../store/auth.store';
+import type { UserRole } from '../types/database.types';
 
 /**
  * Factory function to create role-based guards
@@ -12,41 +13,37 @@ import type { UserRole } from '../models';
  */
 export const roleGuard = (...allowedRoles: UserRole[]): CanActivateFn => {
   return async () => {
-    const supabase = inject(SupabaseClientService);
+    const authStore = inject(AuthStore);
     const router = inject(Router);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    // Wait for auth to initialize (max 5 seconds)
+    await authStore.waitForInitialization();
 
-    if (!session) {
+    // Check if authenticated
+    if (!authStore.isAuthenticated()) {
       return router.createUrlTree(['/auth/login']);
     }
 
-    // Get user role from the users table
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-
-    if (error || !user) {
-      console.error('Error fetching user role:', error);
+    // Check if user can access (not disabled/suspended, approved if teacher)
+    if (!authStore.canAccess()) {
+      // Pending teachers go to pending page
+      if (authStore.isPendingApproval()) {
+        return router.createUrlTree(['/auth/pending']);
+      }
+      
+      // Disabled/suspended users are logged out
+      await authStore.logout();
       return router.createUrlTree(['/auth/login']);
     }
 
-    const userRole = user.role as UserRole;
-
-    if (allowedRoles.includes(userRole)) {
+    // Check if user has required role
+    const userRole = authStore.userRole();
+    if (userRole && allowedRoles.includes(userRole)) {
       return true;
     }
 
-    // Redirect to appropriate dashboard based on role
-    const redirectMap: Record<UserRole, string> = {
-      super_admin: '/admin/dashboard',
-      teacher: '/teacher/dashboard',
-      student: '/student/dashboard',
-    };
-
-    return router.createUrlTree([redirectMap[userRole] || '/']);
+    // Redirect to appropriate dashboard based on actual role
+    return router.createUrlTree([authStore.getDashboardRoute()]);
   };
 };
 
