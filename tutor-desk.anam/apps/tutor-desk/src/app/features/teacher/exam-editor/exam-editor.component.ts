@@ -20,7 +20,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
-import { Subject, Question, QuestionOption } from '../../../core/models';
+import { Subject, Question, QuestionOption, ExamStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-exam-editor',
@@ -99,21 +99,19 @@ import { Subject, Question, QuestionOption } from '../../../core/models';
 
           <form [formGroup]="examForm">
             <div class="form-grid">
-              <!-- Subject -->
+              <!-- @REVIEW: Subject is now optional - exam can be created independently -->
               <div class="form-field">
-                <label class="field-label">Subject *</label>
+                <label class="field-label">Subject (Optional)</label>
                 <p-select
                   formControlName="subjectId"
-                  [options]="subjects()"
+                  [options]="subjectOptions()"
                   optionLabel="name"
                   optionValue="id"
-                  placeholder="Select a subject"
+                  placeholder="None (Independent Exam)"
                   styleClass="w-full"
-                  [disabled]="isEditMode()"
+                  [showClear]="true"
                 />
-                @if (examForm.get('subjectId')?.invalid && examForm.get('subjectId')?.touched) {
-                  <small class="form-error">Subject is required</small>
-                }
+                <small class="field-hint">Leave empty to create an independent exam that can be assigned later</small>
               </div>
 
               <!-- Title -->
@@ -182,6 +180,20 @@ import { Subject, Question, QuestionOption } from '../../../core/models';
                   />
                 </div>
               </div>
+
+              <!-- @REVIEW: Status selector - only show in edit mode -->
+              @if (isEditMode()) {
+                <div class="form-field">
+                  <label class="field-label">Status</label>
+                  <p-select
+                    formControlName="status"
+                    [options]="examStatusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                  />
+                </div>
+              }
 
               <!-- Settings Row -->
               <div class="settings-row">
@@ -735,12 +747,25 @@ export class ExamEditorComponent implements OnInit {
   readonly isEditMode = computed(() => !!this.examId());
   readonly teacherId = computed(() => this.authStore.teacherId());
 
-  // Exam Form
+  // @REVIEW: Status options for dropdown
+  readonly examStatusOptions = [
+    { label: 'Draft', value: 'draft' },
+    { label: 'Scheduled', value: 'scheduled' },
+    { label: 'Active', value: 'active' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Cancelled', value: 'cancelled' },
+  ];
+
+  // @REVIEW: Computed for subject options with "None" option
+  readonly subjectOptions = computed(() => this.subjects());
+
+  // @REVIEW: Exam Form - subjectId is now optional (no Validators.required)
   readonly examForm = this.fb.group({
-    subjectId: ['', Validators.required],
+    subjectId: [''],
     title: ['', Validators.required],
     description: [''],
     instructions: [''],
+    status: ['draft'],
     timePerQuestionSeconds: [60, [Validators.required, Validators.min(10)]],
     passingMarks: [0],
     allowSkipReturn: [true],
@@ -810,6 +835,7 @@ export class ExamEditorComponent implements OnInit {
           title: exam.title,
           description: exam.description ?? '',
           instructions: exam.instructions ?? '',
+          status: exam.status,
           timePerQuestionSeconds: exam.timePerQuestionSeconds,
           passingMarks: exam.passingMarks,
           allowSkipReturn: exam.allowSkipReturn,
@@ -863,10 +889,12 @@ export class ExamEditorComponent implements OnInit {
     const formValue = this.examForm.value;
 
     if (this.isEditMode()) {
+      // @REVIEW: Added status to update payload
       this.db.exams.update(this.examId()!, {
         title: formValue.title || undefined,
         description: formValue.description || undefined,
         instructions: formValue.instructions || undefined,
+        status: (formValue.status as ExamStatus) || undefined,
         timePerQuestionSeconds: formValue.timePerQuestionSeconds ?? undefined,
         passingMarks: formValue.passingMarks ?? undefined,
         allowSkipReturn: formValue.allowSkipReturn ?? undefined,
@@ -875,6 +903,10 @@ export class ExamEditorComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.savingExam.set(false);
+          // @REVIEW: Update status signal after save
+          if (formValue.status) {
+            this.examStatus.set(formValue.status);
+          }
           this.messageService.add({
             severity: 'success',
             summary: 'Success',

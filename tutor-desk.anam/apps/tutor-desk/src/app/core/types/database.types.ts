@@ -187,7 +187,7 @@ export type Database = {
           scheduled_end: string | null
           scheduled_start: string | null
           status: Database["public"]["Enums"]["exam_status"]
-          subject_id: string
+          subject_id: string | null
           teacher_id: string
           time_per_question_seconds: number
           title: string
@@ -213,7 +213,7 @@ export type Database = {
           scheduled_end?: string | null
           scheduled_start?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
-          subject_id: string
+          subject_id?: string | null
           teacher_id: string
           time_per_question_seconds?: number
           title: string
@@ -574,6 +574,100 @@ export type Database = {
         }
         Relationships: []
       }
+      // @REVIEW: New tables for flexible exam assignments
+      exam_assignments: {
+        Row: {
+          id: string
+          exam_id: string
+          student_id: string
+          assigned_by: string
+          assigned_at: string
+          available_from: string | null
+          due_date: string | null
+          status: Database["public"]["Enums"]["exam_assignment_status"]
+          started_at: string | null
+          completed_at: string | null
+          max_attempts: number | null
+          time_limit_minutes: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exam_id: string
+          student_id: string
+          assigned_by: string
+          assigned_at?: string
+          available_from?: string | null
+          due_date?: string | null
+          status?: Database["public"]["Enums"]["exam_assignment_status"]
+          started_at?: string | null
+          completed_at?: string | null
+          max_attempts?: number | null
+          time_limit_minutes?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          exam_id?: string
+          student_id?: string
+          assigned_by?: string
+          assigned_at?: string
+          available_from?: string | null
+          due_date?: string | null
+          status?: Database["public"]["Enums"]["exam_assignment_status"]
+          started_at?: string | null
+          completed_at?: string | null
+          max_attempts?: number | null
+          time_limit_minutes?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exam_subject_assignments: {
+        Row: {
+          id: string
+          exam_id: string
+          subject_id: string
+          assigned_by: string
+          assigned_at: string
+          available_from: string | null
+          due_date: string | null
+          auto_assign_students: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exam_id: string
+          subject_id: string
+          assigned_by: string
+          assigned_at?: string
+          available_from?: string | null
+          due_date?: string | null
+          auto_assign_students?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          exam_id?: string
+          subject_id?: string
+          assigned_by?: string
+          assigned_at?: string
+          available_from?: string | null
+          due_date?: string | null
+          auto_assign_students?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       student_dashboard_stats: {
@@ -617,6 +711,7 @@ export type Database = {
     }
     Enums: {
       asset_type: "document" | "image" | "video" | "link" | "other"
+      exam_assignment_status: "assigned" | "started" | "completed" | "expired" | "cancelled"
       exam_status: "draft" | "scheduled" | "active" | "completed" | "cancelled"
       submission_status:
         | "in_progress"
@@ -671,10 +766,20 @@ export type Asset = Tables<"assets">
 export type AssetComment = Tables<"asset_comments">
 export type SubjectEnrollment = Tables<"subject_enrollments">
 
+// @REVIEW: New table types for flexible exam assignments
+export type ExamAssignment = Tables<"exam_assignments">
+export type ExamAssignmentInsert = TablesInsert<"exam_assignments">
+export type ExamAssignmentUpdate = TablesUpdate<"exam_assignments">
+
+export type ExamSubjectAssignment = Tables<"exam_subject_assignments">
+export type ExamSubjectAssignmentInsert = TablesInsert<"exam_subject_assignments">
+export type ExamSubjectAssignmentUpdate = TablesUpdate<"exam_subject_assignments">
+
 // Enum types
 export type UserRole = Enums<"user_role">
 export type UserStatus = Enums<"user_status">
 export type ExamStatus = Enums<"exam_status">
+export type ExamAssignmentStatus = Enums<"exam_assignment_status">
 export type SubmissionStatus = Enums<"submission_status">
 export type AssetType = Enums<"asset_type">
 

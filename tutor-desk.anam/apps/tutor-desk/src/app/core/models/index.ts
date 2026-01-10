@@ -194,8 +194,9 @@ export interface SubjectEnrollment extends BaseEntity {
 // EXAM MODELS
 // =============================================
 
+// @REVIEW: Made subjectId optional for independent exam creation
 export interface Exam extends BaseEntity {
-  readonly subjectId: string;
+  readonly subjectId: string | null;
   readonly teacherId: string;
   readonly title: string;
   readonly description: string | null;
@@ -227,11 +228,12 @@ export interface Exam extends BaseEntity {
 }
 
 export interface ExamWithSubject extends Exam {
-  readonly subject: Subject;
+  readonly subject: Subject | null;
 }
 
+// @REVIEW: Made subjectId optional
 export interface CreateExamDto {
-  readonly subjectId: string;
+  readonly subjectId?: string | null;
   readonly teacherId: string;
   readonly title: string;
   readonly description?: string;
@@ -248,11 +250,13 @@ export interface CreateExamDto {
   readonly passingMarks?: number;
 }
 
+// @REVIEW: Added subjectId to allow assigning exam to subject later
 export interface UpdateExamDto {
   readonly title?: string;
   readonly description?: string;
   readonly instructions?: string;
   readonly status?: ExamStatus;
+  readonly subjectId?: string | null;
   readonly timePerQuestionSeconds?: number;
   readonly allowSkipReturn?: boolean;
   readonly fullscreenRequired?: boolean;
@@ -263,6 +267,84 @@ export interface UpdateExamDto {
   readonly scheduledEnd?: Date;
   readonly durationMinutes?: number;
   readonly passingMarks?: number;
+}
+
+// =============================================
+// EXAM ASSIGNMENT MODELS
+// =============================================
+
+export type ExamAssignmentStatus = 'assigned' | 'started' | 'completed' | 'expired' | 'cancelled';
+
+// @REVIEW: Direct student assignment
+export interface ExamAssignment extends BaseEntity {
+  readonly examId: string;
+  readonly studentId: string;
+  readonly assignedBy: string;
+  readonly assignedAt: Date;
+  readonly availableFrom: Date | null;
+  readonly dueDate: Date | null;
+  readonly status: ExamAssignmentStatus;
+  readonly startedAt: Date | null;
+  readonly completedAt: Date | null;
+  readonly maxAttempts: number;
+  readonly timeLimitMinutes: number | null;
+  readonly notes: string | null;
+}
+
+export interface ExamAssignmentWithDetails extends ExamAssignment {
+  readonly exam: Exam;
+  readonly student: Student;
+}
+
+export interface CreateExamAssignmentDto {
+  readonly examId: string;
+  readonly studentId: string;
+  readonly assignedBy: string;
+  readonly availableFrom?: Date;
+  readonly dueDate?: Date;
+  readonly maxAttempts?: number;
+  readonly timeLimitMinutes?: number;
+  readonly notes?: string;
+}
+
+export interface UpdateExamAssignmentDto {
+  readonly availableFrom?: Date | null;
+  readonly dueDate?: Date | null;
+  readonly status?: ExamAssignmentStatus;
+  readonly maxAttempts?: number;
+  readonly timeLimitMinutes?: number | null;
+  readonly notes?: string | null;
+}
+
+// @REVIEW: Subject-level assignment (auto-assigns to enrolled students)
+export interface ExamSubjectAssignment extends BaseEntity {
+  readonly examId: string;
+  readonly subjectId: string;
+  readonly assignedBy: string;
+  readonly assignedAt: Date;
+  readonly availableFrom: Date | null;
+  readonly dueDate: Date | null;
+  readonly autoAssignStudents: boolean;
+}
+
+export interface ExamSubjectAssignmentWithDetails extends ExamSubjectAssignment {
+  readonly exam: Exam;
+  readonly subject: Subject;
+}
+
+export interface CreateExamSubjectAssignmentDto {
+  readonly examId: string;
+  readonly subjectId: string;
+  readonly assignedBy: string;
+  readonly availableFrom?: Date;
+  readonly dueDate?: Date;
+  readonly autoAssignStudents?: boolean;
+}
+
+export interface UpdateExamSubjectAssignmentDto {
+  readonly availableFrom?: Date | null;
+  readonly dueDate?: Date | null;
+  readonly autoAssignStudents?: boolean;
 }
 
 // =============================================

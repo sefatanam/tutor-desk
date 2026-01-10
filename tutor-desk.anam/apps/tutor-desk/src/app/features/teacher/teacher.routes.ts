@@ -57,6 +57,13 @@ export const teacherRoutes: Routes = [
       import('./subject-form/subject-form.component').then(m => m.SubjectFormComponent),
     title: 'Edit Subject - Tutor Desk',
   },
+  // @REVIEW: Subject report route - comprehensive report for a subject (must be before :id)
+  {
+    path: 'subjects/:id/report',
+    loadComponent: () =>
+      import('./subject-report/subject-report.component').then(m => m.SubjectReportComponent),
+    title: 'Subject Report - Tutor Desk',
+  },
   {
     path: 'subjects/:id',
     loadComponent: () =>
@@ -87,5 +94,12 @@ export const teacherRoutes: Routes = [
     loadComponent: () =>
       import('./exam-results/exam-results.component').then(m => m.ExamResultsComponent),
     title: 'Exam Results - Tutor Desk',
+  },
+  // @REVIEW: Submission detail route - view individual student's exam answers
+  {
+    path: 'submissions/:submissionId',
+    loadComponent: () =>
+      import('./submission-detail/submission-detail.component').then(m => m.SubmissionDetailComponent),
+    title: 'Submission Details - Tutor Desk',
   },
 ];

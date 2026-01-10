@@ -17,10 +17,17 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { DividerModule } from 'primeng/divider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import { Subject, StudentWithUser, Exam } from '../../../core/models';
+
+// @REVIEW: Exam stats for display in list
+interface ExamStats {
+  readonly totalSubmissions: number;
+  readonly completedSubmissions: number;
+  readonly avgScore: number;
+}
 
 @Component({
   selector: 'app-subject-detail',
@@ -85,6 +92,13 @@ import { Subject, StudentWithUser, Exam } from '../../../core/models';
             </div>
           </div>
           <div class="subject-header__actions">
+            <!-- @REVIEW: View comprehensive subject report -->
+            <p-button 
+              icon="pi pi-chart-bar" 
+              label="View Report" 
+              severity="info"
+              [routerLink]="['/teacher/subjects', subject()!.id, 'report']"
+            />
             <p-button 
               icon="pi pi-pencil" 
               label="Edit Subject" 
@@ -289,12 +303,29 @@ import { Subject, StudentWithUser, Exam } from '../../../core/models';
                       <span><i class="pi pi-list"></i> {{ exam.totalQuestions }} questions</span>
                       <span><i class="pi pi-star"></i> {{ exam.totalMarks }} marks</span>
                       <span><i class="pi pi-clock"></i> {{ exam.timePerQuestionSeconds }}s/question</span>
+                      @if (examStatsMap()[exam.id]; as stats) {
+                        <span class="submissions-badge">
+                          <i class="pi pi-users"></i> {{ stats.completedSubmissions }} submissions
+                          @if (stats.avgScore > 0) {
+                            ({{ stats.avgScore }}% avg)
+                          }
+                        </span>
+                      }
                     </div>
                   </div>
                   <div class="exam-item__actions">
                     <p-tag 
                       [value]="exam.status" 
                       [severity]="getExamStatusSeverity(exam.status)"
+                    />
+                    <p-button 
+                      icon="pi pi-chart-bar" 
+                      severity="info" 
+                      [text]="true" 
+                      [rounded]="true"
+                      size="small"
+                      pTooltip="View Results"
+                      [routerLink]="['/teacher/exams', exam.id, 'results']"
                     />
                     <p-button 
                       icon="pi pi-eye" 
@@ -424,8 +455,13 @@ import { Subject, StudentWithUser, Exam } from '../../../core/models';
     .exam-item__title { font-weight: 500; }
     .exam-item__meta { 
       display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text-color-secondary); 
+      flex-wrap: wrap;
     }
     .exam-item__meta span { display: flex; align-items: center; gap: 0.25rem; }
+    .exam-item__meta .submissions-badge { 
+      color: var(--primary-color); font-weight: 500;
+      background: var(--primary-50); padding: 0.125rem 0.5rem; border-radius: 4px;
+    }
     .exam-item__actions { display: flex; align-items: center; gap: 0.5rem; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -447,10 +483,14 @@ export class SubjectDetailComponent implements OnInit {
   readonly enrolledStudents = signal<StudentWithUser[]>([]);
   readonly exams = signal<Exam[]>([]);
   readonly enrollingStudentId = signal<string | null>(null);
+  // @REVIEW: Exam stats map for submission counts
+  readonly examStatsMap = signal<Record<string, ExamStats>>({});
 
   studentSearchFilter = '';
 
   readonly teacherId = computed(() => this.authStore.teacherId());
+  // @REVIEW: User ID for enrolled_by field (references users table, not teachers table)
+  readonly userId = computed(() => this.authStore.user()?.id ?? null);
 
   // @REVIEW: Compute available (not enrolled) students
   readonly availableStudents = computed(() => {
@@ -525,6 +565,8 @@ export class SubjectDetailComponent implements OnInit {
       next: (response) => {
         this.exams.set(response.items);
         this.loadingExams.set(false);
+        // @REVIEW: Load stats for each exam
+        this.loadExamStats(response.items);
       },
       error: (err) => {
         console.error('Failed to load exams:', err);
@@ -533,14 +575,52 @@ export class SubjectDetailComponent implements OnInit {
     });
   }
 
+  // @REVIEW: Load submission stats for each exam
+  private loadExamStats(examList: Exam[]): void {
+    if (examList.length === 0) return;
+
+    const statRequests = examList.map(exam =>
+      this.db.submissions.getByExam(exam.id, { page: 1, pageSize: 500 }).pipe()
+    );
+
+    forkJoin(statRequests).subscribe({
+      next: (responses) => {
+        const statsMap: Record<string, ExamStats> = {};
+        
+        examList.forEach((exam, index) => {
+          const submissions = responses[index].items;
+          const completed = submissions.filter(s =>
+            s.status === 'submitted' || s.status === 'auto_submitted' || s.status === 'evaluated'
+          );
+          
+          const avgScore = completed.length > 0
+            ? Math.round(completed.reduce((sum, s) => sum + s.percentage, 0) / completed.length)
+            : 0;
+
+          statsMap[exam.id] = {
+            totalSubmissions: submissions.length,
+            completedSubmissions: completed.length,
+            avgScore,
+          };
+        });
+
+        this.examStatsMap.set(statsMap);
+      },
+      error: (err) => {
+        console.error('Failed to load exam stats:', err);
+      },
+    });
+  }
+
   enrollStudent(student: StudentWithUser): void {
     const subject = this.subject();
-    const teacherId = this.teacherId();
-    if (!subject || !teacherId) return;
+    const userId = this.userId();
+    if (!subject || !userId) return;
 
     this.enrollingStudentId.set(student.id);
 
-    this.db.subjects.enrollStudent(student.id, subject.id, teacherId).subscribe({
+    // @REVIEW: Use userId (not teacherId) for enrolled_by - references users table
+    this.db.subjects.enrollStudent(student.id, subject.id, userId).subscribe({
       next: () => {
         // Move student from available to enrolled
         this.enrolledStudents.update(list => [...list, student]);

@@ -62,6 +62,16 @@ import {
   StudentDashboardStats,
   SuperAdminDashboardStats,
   UserStatus,
+  // @REVIEW: New models for exam assignments
+  ExamAssignment,
+  ExamAssignmentWithDetails,
+  CreateExamAssignmentDto,
+  UpdateExamAssignmentDto,
+  ExamSubjectAssignment,
+  ExamSubjectAssignmentWithDetails,
+  CreateExamSubjectAssignmentDto,
+  UpdateExamSubjectAssignmentDto,
+  ExamAssignmentStatus,
 } from '../models';
 
 // =============================================
@@ -126,10 +136,10 @@ const mapDbSubjectToModel = (row: Record<string, unknown>): Subject => ({
   updatedAt: new Date(row['updated_at'] as string),
 });
 
-// @REVIEW: Exam mapper
+// @REVIEW: Exam mapper - subjectId is now nullable
 const mapDbExamToModel = (row: Record<string, unknown>): Exam => ({
   id: row['id'] as string,
-  subjectId: row['subject_id'] as string,
+  subjectId: row['subject_id'] as string | null,
   teacherId: row['teacher_id'] as string,
   title: row['title'] as string,
   description: row['description'] as string | null,
@@ -154,14 +164,47 @@ const mapDbExamToModel = (row: Record<string, unknown>): Exam => ({
   updatedAt: new Date(row['updated_at'] as string),
 });
 
-// @REVIEW: ExamWithSubject mapper
+// @REVIEW: ExamWithSubject mapper - subject can be null
 const mapDbExamWithSubjectToModel = (row: Record<string, unknown>): ExamWithSubject => {
-  const subjectRow = row['subjects'] as Record<string, unknown>;
+  const subjectRow = row['subjects'] as Record<string, unknown> | null;
   return {
     ...mapDbExamToModel(row),
-    subject: mapDbSubjectToModel(subjectRow),
+    subject: subjectRow ? mapDbSubjectToModel(subjectRow) : null,
   };
 };
+
+// @REVIEW: ExamAssignment mapper
+const mapDbExamAssignmentToModel = (row: Record<string, unknown>): ExamAssignment => ({
+  id: row['id'] as string,
+  examId: row['exam_id'] as string,
+  studentId: row['student_id'] as string,
+  assignedBy: row['assigned_by'] as string,
+  assignedAt: new Date(row['assigned_at'] as string),
+  availableFrom: row['available_from'] ? new Date(row['available_from'] as string) : null,
+  dueDate: row['due_date'] ? new Date(row['due_date'] as string) : null,
+  status: row['status'] as ExamAssignmentStatus,
+  startedAt: row['started_at'] ? new Date(row['started_at'] as string) : null,
+  completedAt: row['completed_at'] ? new Date(row['completed_at'] as string) : null,
+  maxAttempts: row['max_attempts'] as number ?? 1,
+  timeLimitMinutes: row['time_limit_minutes'] as number | null,
+  notes: row['notes'] as string | null,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: ExamSubjectAssignment mapper
+const mapDbExamSubjectAssignmentToModel = (row: Record<string, unknown>): ExamSubjectAssignment => ({
+  id: row['id'] as string,
+  examId: row['exam_id'] as string,
+  subjectId: row['subject_id'] as string,
+  assignedBy: row['assigned_by'] as string,
+  assignedAt: new Date(row['assigned_at'] as string),
+  availableFrom: row['available_from'] ? new Date(row['available_from'] as string) : null,
+  dueDate: row['due_date'] ? new Date(row['due_date'] as string) : null,
+  autoAssignStudents: row['auto_assign_students'] as boolean ?? true,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
 
 // @REVIEW: Question mapper
 const mapDbQuestionToModel = (row: Record<string, unknown>): Question => ({
@@ -1240,8 +1283,10 @@ class SupabaseExamAdapter implements IExamAdapter {
     );
   }
 
+  // @REVIEW: Fixed to handle exams with null scheduled_end and increased limit
   getUpcomingForStudent(studentId: string): Observable<ExamWithSubject[]> {
-    // Get exams from subjects the student is enrolled in, that are active and upcoming
+    // Get exams from subjects the student is enrolled in, that are active
+    // Note: scheduled_end can be null for always-available exams
     return from(
       this.supabase
         .from('exams')
@@ -1251,23 +1296,30 @@ class SupabaseExamAdapter implements IExamAdapter {
         `)
         .eq('subjects.subject_enrollments.student_id', studentId)
         .eq('status', 'active')
-        .gte('scheduled_end', new Date().toISOString())
-        .order('scheduled_start', { ascending: true })
-        .limit(10)
+        .order('created_at', { ascending: false })
+        .limit(100)
     ).pipe(
       map(({ data, error }) => {
         if (error || !data) return [];
-        return (data as Record<string, unknown>[]).map(mapDbExamWithSubjectToModel);
+        const now = new Date();
+        // Filter: either no scheduled_end OR scheduled_end is in the future
+        return (data as Record<string, unknown>[])
+          .filter(row => {
+            const scheduledEnd = row['scheduled_end'] as string | null;
+            return !scheduledEnd || new Date(scheduledEnd) >= now;
+          })
+          .map(mapDbExamWithSubjectToModel);
       })
     );
   }
 
+  // @REVIEW: subjectId is now optional - exams can be created independently
   create(dto: CreateExamDto): Observable<Exam> {
     return from(
       this.supabase
         .from('exams')
         .insert({
-          subject_id: dto.subjectId,
+          subject_id: dto.subjectId ?? null,
           teacher_id: dto.teacherId,
           title: dto.title,
           description: dto.description ?? null,
@@ -1293,11 +1345,14 @@ class SupabaseExamAdapter implements IExamAdapter {
     );
   }
 
+  // @REVIEW: Added status and subjectId field support to update method
   update(id: string, dto: UpdateExamDto): Observable<Exam> {
     const updateData: Record<string, unknown> = {};
     if (dto.title !== undefined) updateData['title'] = dto.title;
     if (dto.description !== undefined) updateData['description'] = dto.description;
     if (dto.instructions !== undefined) updateData['instructions'] = dto.instructions;
+    if (dto.status !== undefined) updateData['status'] = dto.status;
+    if (dto.subjectId !== undefined) updateData['subject_id'] = dto.subjectId;
     if (dto.timePerQuestionSeconds !== undefined) updateData['time_per_question_seconds'] = dto.timePerQuestionSeconds;
     if (dto.allowSkipReturn !== undefined) updateData['allow_skip_return'] = dto.allowSkipReturn;
     if (dto.fullscreenRequired !== undefined) updateData['fullscreen_required'] = dto.fullscreenRequired;
@@ -1995,6 +2050,315 @@ class SupabaseCommentAdapter implements ICommentAdapter {
 }
 
 // =============================================
+// @REVIEW: EXAM ASSIGNMENT ADAPTER
+// =============================================
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseExamAssignmentAdapter {
+  private readonly supabase = inject(SupabaseClientService);
+
+  // Get all assignments for an exam
+  getByExam(examId: string): Observable<ExamAssignment[]> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .select('*')
+        .eq('exam_id', examId)
+        .order('assigned_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(mapDbExamAssignmentToModel);
+      })
+    );
+  }
+
+  // Get all assignments for a student
+  getByStudent(studentId: string): Observable<ExamAssignment[]> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('due_date', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(mapDbExamAssignmentToModel);
+      })
+    );
+  }
+
+  // Get assignments with details (exam + student info)
+  getByExamWithDetails(examId: string): Observable<ExamAssignmentWithDetails[]> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .select(`
+          *,
+          exams (*),
+          students (*, users (*))
+        `)
+        .eq('exam_id', examId)
+        .order('assigned_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(row => ({
+          ...mapDbExamAssignmentToModel(row),
+          exam: mapDbExamToModel(row['exams'] as Record<string, unknown>),
+          student: mapDbStudentWithUserToModel(row['students'] as Record<string, unknown>),
+        }));
+      })
+    );
+  }
+
+  // Assign exam to a student
+  create(dto: CreateExamAssignmentDto): Observable<ExamAssignment> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .insert({
+          exam_id: dto.examId,
+          student_id: dto.studentId,
+          assigned_by: dto.assignedBy,
+          available_from: dto.availableFrom?.toISOString() ?? null,
+          due_date: dto.dueDate?.toISOString() ?? null,
+          max_attempts: dto.maxAttempts ?? 1,
+          time_limit_minutes: dto.timeLimitMinutes ?? null,
+          notes: dto.notes ?? null,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamAssignmentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // Bulk assign exam to multiple students
+  createBulk(examId: string, studentIds: string[], assignedBy: string, options?: {
+    availableFrom?: Date;
+    dueDate?: Date;
+    maxAttempts?: number;
+  }): Observable<ExamAssignment[]> {
+    const records = studentIds.map(studentId => ({
+      exam_id: examId,
+      student_id: studentId,
+      assigned_by: assignedBy,
+      available_from: options?.availableFrom?.toISOString() ?? null,
+      due_date: options?.dueDate?.toISOString() ?? null,
+      max_attempts: options?.maxAttempts ?? 1,
+    }));
+
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .insert(records)
+        .select()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(mapDbExamAssignmentToModel);
+      })
+    );
+  }
+
+  // Update assignment
+  update(id: string, dto: UpdateExamAssignmentDto): Observable<ExamAssignment> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.availableFrom !== undefined) updateData['available_from'] = dto.availableFrom?.toISOString() ?? null;
+    if (dto.dueDate !== undefined) updateData['due_date'] = dto.dueDate?.toISOString() ?? null;
+    if (dto.status !== undefined) updateData['status'] = dto.status;
+    if (dto.maxAttempts !== undefined) updateData['max_attempts'] = dto.maxAttempts;
+    if (dto.timeLimitMinutes !== undefined) updateData['time_limit_minutes'] = dto.timeLimitMinutes;
+    if (dto.notes !== undefined) updateData['notes'] = dto.notes;
+
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamAssignmentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // Delete assignment
+  delete(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  // Remove all assignments for an exam
+  deleteByExam(examId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exam_assignments')
+        .delete()
+        .eq('exam_id', examId)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+}
+
+// =============================================
+// @REVIEW: EXAM SUBJECT ASSIGNMENT ADAPTER
+// =============================================
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseExamSubjectAssignmentAdapter {
+  private readonly supabase = inject(SupabaseClientService);
+
+  // Get all subject assignments for an exam
+  getByExam(examId: string): Observable<ExamSubjectAssignment[]> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .select('*')
+        .eq('exam_id', examId)
+        .order('assigned_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(mapDbExamSubjectAssignmentToModel);
+      })
+    );
+  }
+
+  // Get all exam assignments for a subject
+  getBySubject(subjectId: string): Observable<ExamSubjectAssignment[]> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .select('*')
+        .eq('subject_id', subjectId)
+        .order('assigned_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(mapDbExamSubjectAssignmentToModel);
+      })
+    );
+  }
+
+  // Get with details
+  getByExamWithDetails(examId: string): Observable<ExamSubjectAssignmentWithDetails[]> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .select(`
+          *,
+          exams (*),
+          subjects (*)
+        `)
+        .eq('exam_id', examId)
+        .order('assigned_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data as Record<string, unknown>[]).map(row => ({
+          ...mapDbExamSubjectAssignmentToModel(row),
+          exam: mapDbExamToModel(row['exams'] as Record<string, unknown>),
+          subject: mapDbSubjectToModel(row['subjects'] as Record<string, unknown>),
+        }));
+      })
+    );
+  }
+
+  // Assign exam to a subject
+  create(dto: CreateExamSubjectAssignmentDto): Observable<ExamSubjectAssignment> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .insert({
+          exam_id: dto.examId,
+          subject_id: dto.subjectId,
+          assigned_by: dto.assignedBy,
+          available_from: dto.availableFrom?.toISOString() ?? null,
+          due_date: dto.dueDate?.toISOString() ?? null,
+          auto_assign_students: dto.autoAssignStudents ?? true,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamSubjectAssignmentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // Update assignment
+  update(id: string, dto: UpdateExamSubjectAssignmentDto): Observable<ExamSubjectAssignment> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.availableFrom !== undefined) updateData['available_from'] = dto.availableFrom?.toISOString() ?? null;
+    if (dto.dueDate !== undefined) updateData['due_date'] = dto.dueDate?.toISOString() ?? null;
+    if (dto.autoAssignStudents !== undefined) updateData['auto_assign_students'] = dto.autoAssignStudents;
+
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamSubjectAssignmentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // Delete assignment
+  delete(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  // Remove all subject assignments for an exam
+  deleteByExam(examId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exam_subject_assignments')
+        .delete()
+        .eq('exam_id', examId)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+}
+
+// =============================================
 // MAIN DATABASE ADAPTER
 // =============================================
 
@@ -2013,6 +2377,9 @@ export class SupabaseDatabaseAdapter implements IDatabaseAdapter {
   readonly assets = inject(SupabaseAssetAdapter);
   readonly comments = inject(SupabaseCommentAdapter);
   readonly admin = inject(SupabaseAdminAdapter);
+  // @REVIEW: New adapters for flexible exam assignments
+  readonly examAssignments = inject(SupabaseExamAssignmentAdapter);
+  readonly examSubjectAssignments = inject(SupabaseExamSubjectAssignmentAdapter);
 }
 
 // =============================================
@@ -2031,5 +2398,8 @@ export const provideSupabaseDatabaseAdapter = () => [
   SupabaseAssetAdapter,
   SupabaseCommentAdapter,
   SupabaseAdminAdapter,
+  // @REVIEW: New adapters for flexible exam assignments
+  SupabaseExamAssignmentAdapter,
+  SupabaseExamSubjectAssignmentAdapter,
   SupabaseDatabaseAdapter,
 ];

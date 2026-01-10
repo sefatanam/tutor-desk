@@ -392,11 +392,12 @@ export class DashboardComponent implements OnInit {
           this.db.exams.getById(sub.examId).pipe(
             switchMap(exam => {
               if (!exam) return of(null);
+              // @REVIEW: Handle nullable subject for independent exams
               return of({
                 submission: sub,
                 examTitle: exam.title,
-                subjectName: exam.subject.name,
-                subjectColor: exam.subject.color,
+                subjectName: exam.subject?.name ?? 'Independent Exam',
+                subjectColor: exam.subject?.color ?? '#6b7280',
                 totalMarks: exam.totalMarks,
                 passingMarks: exam.passingMarks,
                 passed: sub.score >= exam.passingMarks,

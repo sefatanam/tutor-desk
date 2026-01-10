@@ -14,11 +14,25 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { SkeletonModule } from 'primeng/skeleton';
 import { DividerModule } from 'primeng/divider';
+import { TableModule } from 'primeng/table';
+import { DialogModule } from 'primeng/dialog';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
-import { StudentWithUser, Subject } from '../../../core/models';
+import { StudentWithUser, Subject, ExamSubmission } from '../../../core/models';
+
+// @REVIEW: Exam history item with exam details
+interface ExamHistoryItem {
+  readonly submission: ExamSubmission;
+  readonly examTitle: string;
+  readonly subjectName: string;
+  readonly subjectColor: string;
+  readonly totalMarks: number;
+  readonly passingMarks: number;
+  readonly passed: boolean;
+}
 
 @Component({
   selector: 'app-student-detail',
@@ -37,6 +51,9 @@ import { StudentWithUser, Subject } from '../../../core/models';
     ToastModule,
     SkeletonModule,
     DividerModule,
+    TableModule,
+    DialogModule,
+    ProgressBarModule,
   ],
   providers: [ConfirmationService, MessageService],
   template: `
@@ -289,8 +306,217 @@ import { StudentWithUser, Subject } from '../../../core/models';
             }
           </p-card>
         </div>
+
+        <!-- @REVIEW: Exam History Section -->
+        <p-card styleClass="exam-history-card">
+          <ng-template #header>
+            <div class="card-header">
+              <h2 class="card-header__title">
+                <i class="pi pi-history"></i>
+                Exam History
+              </h2>
+              @if (examHistory().length > 0) {
+                <span class="history-count">{{ examHistory().length }} exam(s)</span>
+              }
+            </div>
+          </ng-template>
+
+          @if (loadingExamHistory()) {
+            <div class="skeleton-table">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="skeleton-row">
+                  <p-skeleton width="200px" height="16px" />
+                  <p-skeleton width="100px" height="16px" />
+                  <p-skeleton width="60px" height="16px" />
+                  <p-skeleton width="80px" height="24px" borderRadius="16px" />
+                </div>
+              }
+            </div>
+          } @else if (examHistory().length === 0) {
+            <div class="empty-state-small">
+              <i class="pi pi-chart-bar"></i>
+              <p>No exam history yet</p>
+            </div>
+          } @else {
+            <p-table
+              [value]="examHistory()"
+              [paginator]="examHistory().length > 5"
+              [rows]="5"
+              [rowsPerPageOptions]="[5, 10, 25]"
+              styleClass="p-datatable-sm"
+            >
+              <ng-template #header>
+                <tr>
+                  <th pSortableColumn="examTitle">Exam <p-sortIcon field="examTitle" /></th>
+                  <th pSortableColumn="subjectName">Subject <p-sortIcon field="subjectName" /></th>
+                  <th pSortableColumn="submission.score">Score <p-sortIcon field="submission.score" /></th>
+                  <th pSortableColumn="submission.percentage">% <p-sortIcon field="submission.percentage" /></th>
+                  <th>Result</th>
+                  <th pSortableColumn="submission.submittedAt">Date <p-sortIcon field="submission.submittedAt" /></th>
+                  <th>Actions</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-item>
+                <tr>
+                  <td>
+                    <div class="exam-cell">
+                      <span class="exam-title">{{ item.examTitle }}</span>
+                      @if (item.submission.attemptNumber > 1) {
+                        <span class="attempt-badge">Attempt {{ item.submission.attemptNumber }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="subject-badge" [style.background]="item.subjectColor">
+                      {{ item.subjectName }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="score-cell">
+                      <span class="score-value" [class.score-value--pass]="item.passed">
+                        {{ item.submission.score }}
+                      </span>
+                      <span class="score-total">/ {{ item.totalMarks }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="percentage-cell">
+                      <p-progressBar
+                        [value]="item.submission.percentage"
+                        [showValue]="false"
+                        styleClass="percentage-bar"
+                        [style]="{ height: '6px', width: '50px' }"
+                      />
+                      <span>{{ item.submission.percentage }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <p-tag
+                      [value]="item.passed ? 'Passed' : 'Failed'"
+                      [severity]="item.passed ? 'success' : 'danger'"
+                    />
+                  </td>
+                  <td>
+                    {{ item.submission.submittedAt | date:'shortDate' }}
+                  </td>
+                  <td>
+                    <p-button
+                      icon="pi pi-eye"
+                      [rounded]="true"
+                      [text]="true"
+                      pTooltip="View Details"
+                      (click)="viewExamDetails(item)"
+                    />
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          }
+        </p-card>
       }
     </div>
+
+    <!-- @REVIEW: Exam Details Dialog -->
+    <p-dialog
+      [(visible)]="showExamDetailsDialog"
+      [modal]="true"
+      [closable]="true"
+      [style]="{ width: '600px' }"
+      header="Exam Result Details"
+    >
+      @if (selectedExamHistory()) {
+        <div class="details-dialog">
+          <div class="details-header">
+            <h3>{{ selectedExamHistory()!.examTitle }}</h3>
+            <span class="subject-badge" [style.background]="selectedExamHistory()!.subjectColor">
+              {{ selectedExamHistory()!.subjectName }}
+            </span>
+          </div>
+
+          <div class="details-score">
+            <div class="score-display">
+              <span class="score-main" [class.score-main--pass]="selectedExamHistory()!.passed">
+                {{ selectedExamHistory()!.submission.score }}
+              </span>
+              <span class="score-divider">/ {{ selectedExamHistory()!.totalMarks }}</span>
+            </div>
+            <span class="percentage-display">{{ selectedExamHistory()!.submission.percentage }}%</span>
+            <p-tag
+              [value]="selectedExamHistory()!.passed ? 'PASSED' : 'FAILED'"
+              [severity]="selectedExamHistory()!.passed ? 'success' : 'danger'"
+              styleClass="result-tag"
+            />
+          </div>
+
+          <div class="details-stats">
+            <div class="detail-stat">
+              <span class="detail-value correct">{{ selectedExamHistory()!.submission.totalCorrect }}</span>
+              <span class="detail-label">Correct</span>
+            </div>
+            <div class="detail-stat">
+              <span class="detail-value wrong">{{ selectedExamHistory()!.submission.totalWrong }}</span>
+              <span class="detail-label">Wrong</span>
+            </div>
+            <div class="detail-stat">
+              <span class="detail-value skipped">{{ selectedExamHistory()!.submission.totalSkipped }}</span>
+              <span class="detail-label">Skipped</span>
+            </div>
+            <div class="detail-stat">
+              <span class="detail-value">{{ selectedExamHistory()!.submission.totalAnswered }}</span>
+              <span class="detail-label">Answered</span>
+            </div>
+          </div>
+
+          <div class="details-info">
+            <div class="info-row">
+              <span class="info-label">Attempt</span>
+              <span class="info-value">#{{ selectedExamHistory()!.submission.attemptNumber }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Started</span>
+              <span class="info-value">{{ selectedExamHistory()!.submission.startedAt | date:'medium' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Submitted</span>
+              <span class="info-value">{{ selectedExamHistory()!.submission.submittedAt | date:'medium' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Status</span>
+              <span class="info-value">
+                @switch (selectedExamHistory()!.submission.status) {
+                  @case ('submitted') { Submitted }
+                  @case ('auto_submitted') { Auto-Submitted }
+                  @case ('evaluated') { Evaluated }
+                  @default { {{ selectedExamHistory()!.submission.status }} }
+                }
+              </span>
+            </div>
+            @if (selectedExamHistory()!.submission.autoSubmitReason) {
+              <div class="info-row">
+                <span class="info-label">Auto-Submit Reason</span>
+                <span class="info-value auto-reason">{{ selectedExamHistory()!.submission.autoSubmitReason }}</span>
+              </div>
+            }
+            @if (selectedExamHistory()!.submission.remarks) {
+              <div class="info-row">
+                <span class="info-label">Teacher Remarks</span>
+                <span class="info-value">{{ selectedExamHistory()!.submission.remarks }}</span>
+              </div>
+            }
+            @if (selectedExamHistory()!.passingMarks > 0) {
+              <div class="info-row">
+                <span class="info-label">Passing Marks</span>
+                <span class="info-value">{{ selectedExamHistory()!.passingMarks }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <ng-template pTemplate="footer">
+        <p-button label="Close" severity="secondary" (click)="showExamDetailsDialog = false" />
+      </ng-template>
+    </p-dialog>
 
     <p-confirmDialog />
     <p-toast />
@@ -399,6 +625,77 @@ import { StudentWithUser, Subject } from '../../../core/models';
     .subject-item__code { 
       font-size: 0.75rem; color: var(--text-color-secondary); 
     }
+
+    /* @REVIEW: Exam History Styles */
+    .exam-history-card { margin-top: 1.5rem; }
+    :host ::ng-deep .exam-history-card .p-card-body { padding: 0; }
+    :host ::ng-deep .exam-history-card .p-card-content { padding: 0; }
+    .history-count { 
+      font-size: 0.875rem; color: var(--text-color-secondary); 
+      background: var(--surface-100); padding: 0.25rem 0.75rem; border-radius: 16px;
+    }
+    
+    .skeleton-table { padding: 1rem; }
+    .skeleton-row {
+      display: flex; gap: 1.5rem; padding: 0.75rem 0;
+      border-bottom: 1px solid var(--surface-100);
+    }
+    
+    .exam-cell { display: flex; flex-direction: column; gap: 0.125rem; }
+    .exam-title { font-weight: 500; }
+    .attempt-badge {
+      font-size: 0.6875rem; color: var(--text-color-secondary);
+      background: var(--surface-100); padding: 0.125rem 0.375rem;
+      border-radius: 4px; width: fit-content;
+    }
+    .subject-badge {
+      display: inline-block; padding: 0.25rem 0.625rem;
+      border-radius: 16px; color: white;
+      font-size: 0.75rem; font-weight: 500;
+    }
+    .score-cell { display: flex; align-items: baseline; gap: 0.25rem; }
+    .score-value { font-weight: 600; color: var(--red-500); }
+    .score-value--pass { color: var(--green-500); }
+    .score-total { font-size: 0.8125rem; color: var(--text-color-secondary); }
+    .percentage-cell { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+    :host ::ng-deep .percentage-bar .p-progressbar-value { background: var(--primary-color); }
+
+    /* @REVIEW: Details Dialog Styles */
+    .details-dialog { display: flex; flex-direction: column; gap: 1.5rem; }
+    .details-header { display: flex; justify-content: space-between; align-items: center; }
+    .details-header h3 { margin: 0; font-size: 1.25rem; }
+
+    .details-score {
+      display: flex; align-items: center; justify-content: center;
+      gap: 1rem; padding: 1.5rem;
+      background: var(--surface-100); border-radius: 12px;
+    }
+    .score-display { display: flex; align-items: baseline; }
+    .score-main { font-size: 3rem; font-weight: 700; color: var(--red-500); }
+    .score-main--pass { color: var(--green-500); }
+    .score-divider { font-size: 1.5rem; color: var(--text-color-secondary); }
+    .percentage-display { font-size: 1.5rem; font-weight: 600; color: var(--text-color-secondary); }
+    :host ::ng-deep .result-tag { font-size: 1rem; padding: 0.5rem 1rem; }
+
+    .details-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1rem; text-align: center;
+    }
+    .detail-stat { padding: 0.75rem; background: var(--surface-50); border-radius: 8px; }
+    .detail-value { display: block; font-size: 1.5rem; font-weight: 600; }
+    .detail-value.correct { color: var(--green-500); }
+    .detail-value.wrong { color: var(--red-500); }
+    .detail-value.skipped { color: var(--orange-500); }
+    .detail-label { font-size: 0.8125rem; color: var(--text-color-secondary); }
+
+    .details-info {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      padding: 1rem; background: var(--surface-50); border-radius: 8px;
+    }
+    .info-row { display: flex; justify-content: space-between; }
+    .info-label { color: var(--text-color-secondary); }
+    .info-value { font-weight: 500; }
+    .info-value.auto-reason { color: var(--orange-600); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -418,9 +715,17 @@ export class StudentDetailComponent implements OnInit {
   readonly enrolledSubjects = signal<Subject[]>([]);
   readonly enrollingSubjectId = signal<string | null>(null);
 
+  // @REVIEW: Exam history state
+  readonly loadingExamHistory = signal(true);
+  readonly examHistory = signal<ExamHistoryItem[]>([]);
+  readonly selectedExamHistory = signal<ExamHistoryItem | null>(null);
+  showExamDetailsDialog = false;
+
   subjectSearchFilter = '';
 
   readonly teacherId = computed(() => this.authStore.teacherId());
+  // @REVIEW: User ID for enrolled_by field (references users table, not teachers table)
+  readonly userId = computed(() => this.authStore.user()?.id ?? null);
 
   // @REVIEW: Compute available (not enrolled) subjects
   readonly availableSubjects = computed(() => {
@@ -446,6 +751,7 @@ export class StudentDetailComponent implements OnInit {
     }
     this.loadStudent(studentId);
     this.loadSubjects(studentId);
+    this.loadExamHistory(studentId);
   }
 
   private loadStudent(id: string): void {
@@ -486,12 +792,13 @@ export class StudentDetailComponent implements OnInit {
 
   enrollInSubject(subject: Subject): void {
     const student = this.student();
-    const teacherId = this.teacherId();
-    if (!student || !teacherId) return;
+    const userId = this.userId();
+    if (!student || !userId) return;
 
     this.enrollingSubjectId.set(subject.id);
 
-    this.db.subjects.enrollStudent(student.id, subject.id, teacherId).subscribe({
+    // @REVIEW: Use userId (not teacherId) for enrolled_by - references users table
+    this.db.subjects.enrollStudent(student.id, subject.id, userId).subscribe({
       next: () => {
         // Move subject from available to enrolled
         this.enrolledSubjects.update(list => [...list, subject]);
@@ -550,6 +857,64 @@ export class StudentDetailComponent implements OnInit {
         });
       },
     });
+  }
+
+  // @REVIEW: Load student's exam history with exam details
+  private loadExamHistory(studentId: string): void {
+    this.loadingExamHistory.set(true);
+
+    this.db.submissions.getByStudent(studentId, { page: 1, pageSize: 100 }).pipe(
+      switchMap(response => {
+        // Filter to completed submissions only
+        const completedSubmissions = response.items.filter(s =>
+          s.status === 'submitted' || s.status === 'auto_submitted' || s.status === 'evaluated'
+        );
+
+        if (completedSubmissions.length === 0) {
+          return of([]);
+        }
+
+        // Get exam details for each submission
+        const examRequests = completedSubmissions.map(sub =>
+          this.db.exams.getById(sub.examId).pipe(
+            switchMap(exam => {
+              if (!exam) return of(null);
+              return of({
+                submission: sub,
+                examTitle: exam.title,
+                subjectName: exam.subject?.name ?? 'Independent Exam',
+                subjectColor: exam.subject?.color ?? '#6b7280',
+                totalMarks: exam.totalMarks,
+                passingMarks: exam.passingMarks,
+                passed: sub.score >= exam.passingMarks,
+              } as ExamHistoryItem);
+            })
+          )
+        );
+
+        return forkJoin(examRequests);
+      })
+    ).subscribe({
+      next: (items) => {
+        const validItems = (items ?? []).filter((item): item is ExamHistoryItem => item !== null);
+        // Sort by submitted date descending
+        validItems.sort((a, b) =>
+          (b.submission.submittedAt?.getTime() ?? 0) - (a.submission.submittedAt?.getTime() ?? 0)
+        );
+        this.examHistory.set(validItems);
+        this.loadingExamHistory.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load exam history:', err);
+        this.loadingExamHistory.set(false);
+      },
+    });
+  }
+
+  // @REVIEW: View exam details in dialog
+  viewExamDetails(item: ExamHistoryItem): void {
+    this.selectedExamHistory.set(item);
+    this.showExamDetailsDialog = true;
   }
 
   getAvatarColor(name: string): string {

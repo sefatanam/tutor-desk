@@ -90,9 +90,16 @@ type ExamPhase = 'loading' | 'ready' | 'in_progress' | 'submitting' | 'completed
           <div class="ready-content">
             <div class="ready-header">
               <h1>{{ exam()!.title }}</h1>
-              <span class="subject-badge" [style.background]="exam()!.subject.color">
-                {{ exam()!.subject.name }}
-              </span>
+              <!-- @REVIEW: Handle nullable subject for independent exams -->
+              @if (exam()!.subject) {
+                <span class="subject-badge" [style.background]="exam()!.subject!.color">
+                  {{ exam()!.subject!.name }}
+                </span>
+              } @else {
+                <span class="subject-badge" style="background: #6b7280">
+                  Independent Exam
+                </span>
+              }
             </div>
 
             <div class="ready-stats">
@@ -154,9 +161,16 @@ type ExamPhase = 'loading' | 'ready' | 'in_progress' | 'submitting' | 'completed
           <header class="exam-header">
             <div class="exam-header__left">
               <span class="exam-title">{{ exam()!.title }}</span>
-              <span class="subject-badge" [style.background]="exam()!.subject.color">
-                {{ exam()!.subject.name }}
-              </span>
+              <!-- @REVIEW: Handle nullable subject for independent exams -->
+              @if (exam()!.subject) {
+                <span class="subject-badge" [style.background]="exam()!.subject!.color">
+                  {{ exam()!.subject!.name }}
+                </span>
+              } @else {
+                <span class="subject-badge" style="background: #6b7280">
+                  Independent Exam
+                </span>
+              }
             </div>
             <div class="exam-header__center">
               <div class="timer" [class.timer--warning]="timeRemaining() <= 10" [class.timer--danger]="timeRemaining() <= 5">

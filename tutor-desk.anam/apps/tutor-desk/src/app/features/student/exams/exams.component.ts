@@ -180,10 +180,18 @@ interface ExamCard {
                   <h3 class="exam-card__title">{{ card.exam.title }}</h3>
                   <p-tag [value]="getStatusLabel(card)" [severity]="getStatusSeverity(card)" />
                 </div>
-                <span class="exam-card__subject" [style.color]="card.exam.subject.color">
-                  <i [class]="'pi ' + card.exam.subject.icon"></i>
-                  {{ card.exam.subject.name }}
-                </span>
+                <!-- @REVIEW: Handle nullable subject for independent exams -->
+                @if (card.exam.subject) {
+                  <span class="exam-card__subject" [style.color]="card.exam.subject.color">
+                    <i [class]="'pi ' + card.exam.subject.icon"></i>
+                    {{ card.exam.subject.name }}
+                  </span>
+                } @else {
+                  <span class="exam-card__subject" style="color: #6b7280">
+                    <i class="pi pi-file-edit"></i>
+                    Independent Exam
+                  </span>
+                }
               </div>
 
               <div class="exam-card__body">
@@ -294,7 +302,12 @@ interface ExamCard {
           <div class="instructions-dialog">
             <div class="instructions-header">
               <h3>{{ selectedExam()!.exam.title }}</h3>
-              <p-tag [value]="selectedExam()!.exam.subject.name" [style]="{ background: selectedExam()!.exam.subject.color }" />
+              <!-- @REVIEW: Handle nullable subject for independent exams -->
+              @if (selectedExam()!.exam.subject) {
+                <p-tag [value]="selectedExam()!.exam.subject!.name" [style]="{ background: selectedExam()!.exam.subject!.color }" />
+              } @else {
+                <p-tag value="Independent Exam" [style]="{ background: '#6b7280' }" />
+              }
             </div>
 
             <div class="instructions-stats">
@@ -566,11 +579,12 @@ export class ExamsComponent implements OnInit {
     }
     
     // Filter by search
+    // @REVIEW: Handle nullable subject for independent exams
     const search = this.searchTerm.toLowerCase().trim();
     if (search) {
       result = result.filter(c => 
         c.exam.title.toLowerCase().includes(search) ||
-        c.exam.subject.name.toLowerCase().includes(search)
+        (c.exam.subject?.name?.toLowerCase().includes(search) ?? false)
       );
     }
     
