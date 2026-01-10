@@ -72,6 +72,7 @@ export interface ResetPasswordRequest {
   readonly new_password: string;
 }
 
+// @REVIEW: Extended CreateStudentData to include all student profile fields
 export interface CreateStudentData {
   readonly full_name: string;
   readonly email: string;
@@ -79,6 +80,10 @@ export interface CreateStudentData {
   readonly roll_number?: string;
   readonly class_name?: string;
   readonly section?: string;
+  readonly guardian_name?: string;
+  readonly guardian_phone?: string;
+  readonly address?: string;
+  readonly date_of_birth?: string; // ISO date string YYYY-MM-DD
 }
 
 export interface CreateStudentRequest {
@@ -338,10 +343,39 @@ export class AuthService {
   /**
    * Send request to auth Edge Function
    * @REVIEW: Added response transformation from snake_case to camelCase
+   * @REVIEW: Added pre-request token refresh for authenticated requests
    */
   private sendAuthRequest(
     request: AuthRequest,
     requiresAuth: boolean = false
+  ): Observable<AuthResponse> {
+    // @REVIEW: For authenticated requests, check if token needs refresh first
+    if (requiresAuth && this.isTokenExpired() && this.getStoredRefreshToken()) {
+      // Token expired, refresh it first then retry the original request
+      return this.refreshToken().pipe(
+        switchMap((refreshResponse) => {
+          if (!refreshResponse.success) {
+            return throwError(() => new Error('Session expired. Please log in again.'));
+          }
+          // Now make the original request with fresh token
+          return this.executeAuthRequest(request, true);
+        }),
+        catchError(() => {
+          return throwError(() => new Error('Session expired. Please log in again.'));
+        })
+      );
+    }
+
+    return this.executeAuthRequest(request, requiresAuth);
+  }
+
+  /**
+   * Execute the actual HTTP request to auth Edge Function
+   * @REVIEW: Extracted from sendAuthRequest to support token refresh flow
+   */
+  private executeAuthRequest(
+    request: AuthRequest,
+    requiresAuth: boolean
   ): Observable<AuthResponse> {
     const headers = this.buildHeaders(requiresAuth);
 
@@ -349,11 +383,13 @@ export class AuthService {
       timeout(environment.api.timeout),
       // @REVIEW: Transform snake_case response to camelCase AuthResponse
       map((response) => this.transformResponse(response)),
+      // @REVIEW: Only retry on network errors (status 0), not on any HTTP error responses
+      // This prevents double-creation issues when server returns 500 after partial success
       retry({
         count: 1,
         delay: (error, retryCount) => {
-          // Only retry on network errors, not auth errors
-          if (error instanceof HttpErrorResponse && error.status >= 400 && error.status < 500) {
+          // Only retry on network errors (status 0), not server errors
+          if (error instanceof HttpErrorResponse && error.status !== 0) {
             return throwError(() => error);
           }
           return timer(1000 * retryCount);

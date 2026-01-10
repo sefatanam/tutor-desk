@@ -2,7 +2,9 @@
 // Concrete implementation of IDatabaseAdapter using Supabase
 
 import { Injectable, inject } from '@angular/core';
-import { from, map, Observable, of, switchMap, throwError } from 'rxjs';
+import { from, map, Observable, of, switchMap, throwError, catchError } from 'rxjs';
+// @REVIEW: Import AuthService for student creation (uses Edge Function for password hashing)
+import { AuthService } from '../services/auth.service';
 import { SupabaseClientService } from '../services/supabase-client.service';
 import {
   IDatabaseAdapter,
@@ -158,6 +160,33 @@ const mapDbExamWithSubjectToModel = (row: Record<string, unknown>): ExamWithSubj
   return {
     ...mapDbExamToModel(row),
     subject: mapDbSubjectToModel(subjectRow),
+  };
+};
+
+// @REVIEW: Student mapper
+const mapDbStudentToModel = (row: Record<string, unknown>): Student => ({
+  id: row['id'] as string,
+  userId: row['user_id'] as string,
+  teacherId: row['teacher_id'] as string,
+  rollNumber: row['roll_number'] as string | null,
+  className: row['class_name'] as string | null,
+  section: row['section'] as string | null,
+  guardianName: row['guardian_name'] as string | null,
+  guardianPhone: row['guardian_phone'] as string | null,
+  address: row['address'] as string | null,
+  dateOfBirth: row['date_of_birth'] ? new Date(row['date_of_birth'] as string) : null,
+  totalExamsTaken: row['total_exams_taken'] as number ?? 0,
+  averageScore: row['average_score'] as number ?? 0,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: StudentWithUser mapper
+const mapDbStudentWithUserToModel = (row: Record<string, unknown>): StudentWithUser => {
+  const userRow = row['users'] as Record<string, unknown>;
+  return {
+    ...mapDbStudentToModel(row),
+    user: mapDbUserToModel(userRow),
   };
 };
 
@@ -611,41 +640,453 @@ class SupabaseAdminAdapter implements IAdminAdapter {
 // STUB ADAPTERS (To be implemented)
 // =============================================
 
+// @REVIEW: SupabaseStudentAdapter - Full implementation
 @Injectable()
 class SupabaseStudentAdapter implements IStudentAdapter {
-  getById(_id: string): Observable<StudentWithUser | null> { return of(null); }
-  getByUserId(_userId: string): Observable<StudentWithUser | null> { return of(null); }
-  getByTeacher(_teacherId: string, _params?: PaginationParams): Observable<PaginatedResponse<StudentWithUser>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  private readonly supabase = inject(SupabaseClientService);
+  // @REVIEW: Use AuthService for student creation (handles password hashing via Edge Function)
+  private readonly authService = inject(AuthService);
+
+  getById(id: string): Observable<StudentWithUser | null> {
+    return from(
+      this.supabase
+        .from('students')
+        .select('*, users!students_user_id_fkey(*)')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return null;
+        return mapDbStudentWithUserToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  getBySubject(_subjectId: string, _params?: PaginationParams): Observable<PaginatedResponse<StudentWithUser>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+
+  getByUserId(userId: string): Observable<StudentWithUser | null> {
+    return from(
+      this.supabase
+        .from('students')
+        .select('*, users!students_user_id_fkey(*)')
+        .eq('user_id', userId)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return null;
+        return mapDbStudentWithUserToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  create(_dto: CreateStudentDto): Observable<Student> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _dto: UpdateStudentDto): Observable<Student> { return throwError(() => new Error('Not implemented')); }
-  disable(_id: string): Observable<Student> { return throwError(() => new Error('Not implemented')); }
-  enable(_id: string): Observable<Student> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  getDashboardStats(_studentId: string): Observable<StudentDashboardStats> {
-    return of({ enrolledSubjects: 0, totalExamsTaken: 0, averageScore: 0, pendingExams: 0 });
+
+  getByTeacher(teacherId: string, params?: PaginationParams): Observable<PaginatedResponse<StudentWithUser>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const fromIndex = (page - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+
+    return from(
+      this.supabase
+        .from('students')
+        .select('*, users!students_user_id_fkey(*)', { count: 'exact' })
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, toIndex)
+    ).pipe(
+      map(({ data, error, count }) => {
+        if (error || !data) {
+          return { items: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+        const items = (data as Record<string, unknown>[]).map(mapDbStudentWithUserToModel);
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
+  }
+
+  getBySubject(subjectId: string, params?: PaginationParams): Observable<PaginatedResponse<StudentWithUser>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const fromIndex = (page - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+
+    return from(
+      this.supabase
+        .from('students')
+        .select(`
+          *,
+          users!students_user_id_fkey(*),
+          subject_enrollments!inner(subject_id)
+        `, { count: 'exact' })
+        .eq('subject_enrollments.subject_id', subjectId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, toIndex)
+    ).pipe(
+      map(({ data, error, count }) => {
+        if (error || !data) {
+          return { items: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+        const items = (data as Record<string, unknown>[]).map(mapDbStudentWithUserToModel);
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
+  }
+
+  create(dto: CreateStudentDto): Observable<Student> {
+    // @REVIEW: Use Edge Function to create student (handles password hashing)
+    // The Edge Function creates both user and student profile in one call
+    return this.authService.createStudent({
+      full_name: dto.fullName,
+      email: dto.email,
+      password: dto.password,
+      roll_number: dto.rollNumber,
+      class_name: dto.className,
+      section: dto.section,
+      guardian_name: dto.guardianName,
+      guardian_phone: dto.guardianPhone,
+      address: dto.address,
+      date_of_birth: dto.dateOfBirth?.toISOString().split('T')[0],
+    }).pipe(
+      switchMap((response) => {
+        if (!response.success) {
+          return throwError(() => new Error(response.error || 'Failed to create student'));
+        }
+        // Edge Function only returns basic user info, fetch full student data
+        if (response.user?.id) {
+          return this.getByUserId(response.user.id).pipe(
+            map((student) => {
+              if (!student) throw new Error('Student created but not found');
+              return student;
+            })
+          );
+        }
+        return throwError(() => new Error('No user ID in response'));
+      }),
+      catchError((error) => {
+        console.error('[StudentAdapter] Create failed:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  update(id: string, dto: UpdateStudentDto): Observable<Student> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.rollNumber !== undefined) updateData['roll_number'] = dto.rollNumber;
+    if (dto.className !== undefined) updateData['class_name'] = dto.className;
+    if (dto.section !== undefined) updateData['section'] = dto.section;
+    if (dto.guardianName !== undefined) updateData['guardian_name'] = dto.guardianName;
+    if (dto.guardianPhone !== undefined) updateData['guardian_phone'] = dto.guardianPhone;
+    if (dto.address !== undefined) updateData['address'] = dto.address;
+    if (dto.dateOfBirth !== undefined) updateData['date_of_birth'] = dto.dateOfBirth?.toISOString().split('T')[0] ?? null;
+
+    return from(
+      this.supabase
+        .from('students')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbStudentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  disable(id: string): Observable<Student> {
+    // Disable student by updating the associated user's status
+    return this.getById(id).pipe(
+      switchMap((student) => {
+        if (!student) throw new Error('Student not found');
+        return from(
+          this.supabase
+            .from('users')
+            .update({ status: 'disabled' })
+            .eq('id', student.userId)
+        ).pipe(
+          switchMap(() => this.getById(id)),
+          map((updated) => {
+            if (!updated) throw new Error('Student not found after update');
+            return updated;
+          })
+        );
+      })
+    );
+  }
+
+  enable(id: string): Observable<Student> {
+    // Enable student by updating the associated user's status
+    return this.getById(id).pipe(
+      switchMap((student) => {
+        if (!student) throw new Error('Student not found');
+        return from(
+          this.supabase
+            .from('users')
+            .update({ status: 'active' })
+            .eq('id', student.userId)
+        ).pipe(
+          switchMap(() => this.getById(id)),
+          map((updated) => {
+            if (!updated) throw new Error('Student not found after update');
+            return updated;
+          })
+        );
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    // Delete student and associated user
+    return this.getById(id).pipe(
+      switchMap((student) => {
+        if (!student) throw new Error('Student not found');
+        return from(
+          this.supabase
+            .from('students')
+            .delete()
+            .eq('id', id)
+        ).pipe(
+          switchMap(() =>
+            from(
+              this.supabase
+                .from('users')
+                .delete()
+                .eq('id', student.userId)
+            )
+          ),
+          map(({ error }) => {
+            if (error) throw new Error(error.message);
+          })
+        );
+      })
+    );
+  }
+
+  getDashboardStats(studentId: string): Observable<StudentDashboardStats> {
+    return from(
+      this.supabase
+        .from('student_dashboard_stats')
+        .select('*')
+        .eq('student_id', studentId)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) {
+          return { enrolledSubjects: 0, totalExamsTaken: 0, averageScore: 0, pendingExams: 0 };
+        }
+        return {
+          enrolledSubjects: data['enrolled_subjects'] as number ?? 0,
+          totalExamsTaken: data['total_exams_taken'] as number ?? 0,
+          averageScore: data['average_score'] as number ?? 0,
+          pendingExams: data['pending_exams'] as number ?? 0,
+        };
+      })
+    );
   }
 }
 
+// @REVIEW: SupabaseSubjectAdapter - Full implementation
 @Injectable()
 class SupabaseSubjectAdapter implements ISubjectAdapter {
-  getById(_id: string): Observable<Subject | null> { return of(null); }
-  getByTeacher(_teacherId: string, _params?: PaginationParams): Observable<PaginatedResponse<Subject>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  private readonly supabase = inject(SupabaseClientService);
+
+  getById(id: string): Observable<Subject | null> {
+    return from(
+      this.supabase
+        .from('subjects')
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return null;
+        return mapDbSubjectToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  getByStudent(_studentId: string): Observable<Subject[]> { return of([]); }
-  create(_dto: CreateSubjectDto): Observable<Subject> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _dto: UpdateSubjectDto): Observable<Subject> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  enrollStudent(_studentId: string, _subjectId: string, _enrolledBy: string): Observable<SubjectEnrollment> {
-    return throwError(() => new Error('Not implemented'));
+
+  getByTeacher(teacherId: string, params?: PaginationParams): Observable<PaginatedResponse<Subject>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const fromIndex = (page - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+
+    return from(
+      this.supabase
+        .from('subjects')
+        .select('*', { count: 'exact' })
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, toIndex)
+    ).pipe(
+      map(({ data, error, count }) => {
+        if (error || !data) {
+          return { items: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+        const items = (data as Record<string, unknown>[]).map(mapDbSubjectToModel);
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
   }
-  unenrollStudent(_studentId: string, _subjectId: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  getEnrolledStudents(_subjectId: string): Observable<StudentWithUser[]> { return of([]); }
+
+  getByStudent(studentId: string): Observable<Subject[]> {
+    return from(
+      this.supabase
+        .from('subjects')
+        .select(`
+          *,
+          subject_enrollments!inner(student_id)
+        `)
+        .eq('subject_enrollments.student_id', studentId)
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return [];
+        return (data as Record<string, unknown>[]).map(mapDbSubjectToModel);
+      })
+    );
+  }
+
+  create(dto: CreateSubjectDto): Observable<Subject> {
+    return from(
+      this.supabase
+        .from('subjects')
+        .insert({
+          teacher_id: dto.teacherId,
+          name: dto.name,
+          description: dto.description ?? null,
+          code: dto.code ?? null,
+          color: dto.color ?? '#4CAF50',
+          icon: dto.icon ?? 'pi-book',
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubjectToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  update(id: string, dto: UpdateSubjectDto): Observable<Subject> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData['name'] = dto.name;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.code !== undefined) updateData['code'] = dto.code;
+    if (dto.color !== undefined) updateData['color'] = dto.color;
+    if (dto.icon !== undefined) updateData['icon'] = dto.icon;
+    if (dto.isActive !== undefined) updateData['is_active'] = dto.isActive;
+    updateData['updated_at'] = new Date().toISOString();
+
+    return from(
+      this.supabase
+        .from('subjects')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubjectToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  enrollStudent(studentId: string, subjectId: string, enrolledBy: string): Observable<SubjectEnrollment> {
+    return from(
+      this.supabase
+        .from('subject_enrollments')
+        .insert({
+          student_id: studentId,
+          subject_id: subjectId,
+          enrolled_by: enrolledBy,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const row = data as Record<string, unknown>;
+        return {
+          id: row['id'] as string,
+          studentId: row['student_id'] as string,
+          subjectId: row['subject_id'] as string,
+          enrolledAt: new Date(row['enrolled_at'] as string),
+          enrolledBy: row['enrolled_by'] as string | null,
+          createdAt: new Date(row['enrolled_at'] as string),
+          updatedAt: new Date(row['enrolled_at'] as string),
+        };
+      })
+    );
+  }
+
+  unenrollStudent(studentId: string, subjectId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('subject_enrollments')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('subject_id', subjectId)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  getEnrolledStudents(subjectId: string): Observable<StudentWithUser[]> {
+    return from(
+      this.supabase
+        .from('students')
+        .select(`
+          *,
+          users!students_user_id_fkey(*),
+          subject_enrollments!inner(subject_id)
+        `)
+        .eq('subject_enrollments.subject_id', subjectId)
+        .order('created_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return [];
+        return (data as Record<string, unknown>[]).map(mapDbStudentWithUserToModel);
+      })
+    );
+  }
 }
 
 // @REVIEW: SupabaseExamAdapter - Full implementation

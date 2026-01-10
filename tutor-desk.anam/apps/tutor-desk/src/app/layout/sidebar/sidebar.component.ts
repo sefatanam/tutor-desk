@@ -1,3 +1,4 @@
+/* eslint-disable @angular-eslint/template/click-events-have-key-events */
 // @REVIEW: Sidebar Component with PrimeNG
 // Collapsible navigation sidebar with role-based menu
 

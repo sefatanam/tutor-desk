@@ -81,8 +81,48 @@ Services used:
 - `SupabaseDatabaseAdapter.teachers.getDashboardStats(teacherId)`
 - `SupabaseDatabaseAdapter.exams.getByTeacher(teacherId, params)`
 
+### 7. Implemented SupabaseStudentAdapter
+**File:** `apps/tutor-desk/src/app/core/adapters/supabase-database.adapter.ts`
+
+Added mappers:
+- `mapDbStudentToModel` - Maps DB student row to Student model
+- `mapDbStudentWithUserToModel` - Maps student with joined user
+
+Implemented methods:
+- `getById(id)` - Get single student with user
+- `getByUserId(userId)` - Get student by user ID
+- `getByTeacher(teacherId, params)` - Paginated students by teacher
+- `getBySubject(subjectId, params)` - Paginated students enrolled in subject
+- `create(dto)` - Create user + student profile
+- `update(id, dto)` - Update student profile
+- `disable(id)` - Disable student (sets user status)
+- `enable(id)` - Enable student (sets user status)
+- `delete(id)` - Delete student and user
+- `getDashboardStats(studentId)` - Get student stats from view
+
+### 8. Built Teacher Students Page
+**File:** `apps/tutor-desk/src/app/features/teacher/students/students.component.ts`
+
+Features:
+- Stats cards (Total, Active, Disabled, Avg Score) computed from loaded data
+- PrimeNG Table with pagination, sorting, global filter
+- Status filter dropdown
+- Skeleton loading states
+- Empty state with "Add Student" button
+- Student info cell with avatar (initials + color)
+- Score badge with color coding (good/avg/low)
+- Action buttons: Edit, Disable/Enable, Delete
+- Add/Edit dialog with reactive form
+- Confirmation dialogs for actions
+- Toast notifications
+
+Form fields:
+- Full Name, Email, Password (create only)
+- Roll Number, Class, Section
+- Guardian Name, Guardian Phone
+- Date of Birth (DatePicker)
+
 ## Pending
-- Implement Teacher Students management page
 - Implement Teacher Subjects management page
 - Implement Teacher Exams list page
 - Implement Exam Editor (create/edit exams with questions)

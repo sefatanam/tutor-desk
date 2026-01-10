@@ -14,6 +14,7 @@ interface AuthRequest {
   refresh_token?: string;
   new_password?: string;
   user_id?: string;
+  // @REVIEW: Extended student_data to include all student profile fields
   student_data?: {
     full_name: string;
     email: string;
@@ -21,6 +22,10 @@ interface AuthRequest {
     roll_number?: string;
     class_name?: string;
     section?: string;
+    guardian_name?: string;
+    guardian_phone?: string;
+    address?: string;
+    date_of_birth?: string; // ISO date string YYYY-MM-DD
   };
 }
 
@@ -238,6 +243,26 @@ Deno.serve(async (req) => {
           );
         }
 
+        // @REVIEW: Fetch teacher_id or student_id based on role
+        let teacherId: string | null = null;
+        let studentId: string | null = null;
+
+        if (user.role === 'teacher') {
+          const { data: teacherData } = await supabase
+            .from('teachers')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          teacherId = teacherData?.id ?? null;
+        } else if (user.role === 'student') {
+          const { data: studentData } = await supabase
+            .from('students')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          studentId = studentData?.id ?? null;
+        }
+
         // Generate tokens
         const accessToken = await createAccessToken(user);
         const refreshToken = generateToken();
@@ -271,6 +296,9 @@ Deno.serve(async (req) => {
               role: user.role,
               status: user.status,
               avatar_url: user.avatar_url,
+              // @REVIEW: Include role-specific IDs
+              teacher_id: teacherId,
+              student_id: studentId,
             },
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -407,6 +435,26 @@ Deno.serve(async (req) => {
           );
         }
 
+        // @REVIEW: Fetch teacher_id or student_id based on role (same as login)
+        let teacherId: string | null = null;
+        let studentId: string | null = null;
+
+        if (user.role === 'teacher') {
+          const { data: teacherData } = await supabase
+            .from('teachers')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          teacherId = teacherData?.id ?? null;
+        } else if (user.role === 'student') {
+          const { data: studentData } = await supabase
+            .from('students')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          studentId = studentData?.id ?? null;
+        }
+
         // Rotate refresh token
         const newRefreshToken = generateToken();
         const newRefreshTokenHash = await hashToken(newRefreshToken);
@@ -437,6 +485,9 @@ Deno.serve(async (req) => {
               role: user.role,
               status: user.status,
               avatar_url: user.avatar_url,
+              // @REVIEW: Include role-specific IDs
+              teacher_id: teacherId,
+              student_id: studentId,
             },
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -542,7 +593,11 @@ Deno.serve(async (req) => {
           );
         }
 
-        const { full_name, email, password, roll_number, class_name, section } = body.student_data;
+        // @REVIEW: Extract all student fields including extended profile data
+        const { 
+          full_name, email, password, roll_number, class_name, section,
+          guardian_name, guardian_phone, address, date_of_birth 
+        } = body.student_data;
 
         if (!full_name || !email || !password) {
           return new Response(
@@ -551,14 +606,15 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Check if email exists
-        const { data: existingUser } = await supabase
+        // @REVIEW: Check if email exists - don't use .single() as it errors on 0 rows
+        const { data: existingUsers, error: emailCheckError } = await supabase
           .from('users')
           .select('id')
           .eq('email', email.toLowerCase())
-          .single();
+          .limit(1);
 
-        if (existingUser) {
+        // Only block if we actually found a user
+        if (!emailCheckError && existingUsers && existingUsers.length > 0) {
           return new Response(
             JSON.stringify({ error: 'Email already registered' }),
             { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -604,34 +660,82 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Create student profile
-        const { error: studentError } = await supabase.from('students').insert({
-          user_id: newUser.id,
-          teacher_id: teacherData.id,
-          roll_number: roll_number || null,
-          class_name: class_name || null,
-          section: section || null,
-        });
+        // @REVIEW: Create student profile with all fields - wrapped in try-catch for debugging
+        try {
+          // @REVIEW: Validate and format date_of_birth (must be YYYY-MM-DD or null)
+          let formattedDateOfBirth: string | null = null;
+          if (date_of_birth) {
+            // Handle various date formats
+            const dateObj = new Date(date_of_birth);
+            if (!isNaN(dateObj.getTime())) {
+              // Format as YYYY-MM-DD for PostgreSQL DATE type
+              formattedDateOfBirth = dateObj.toISOString().split('T')[0];
+            } else {
+              console.warn('[CREATE_STUDENT] Invalid date_of_birth format:', date_of_birth);
+            }
+          }
 
-        if (studentError) {
-          // Rollback user creation
-          await supabase.from('users').delete().eq('id', newUser.id);
+          // @REVIEW: Log the insert payload for debugging
+          const studentPayloadToInsert = {
+            user_id: newUser.id,
+            teacher_id: teacherData.id,
+            roll_number: roll_number || null,
+            class_name: class_name || null,
+            section: section || null,
+            guardian_name: guardian_name || null,
+            guardian_phone: guardian_phone || null,
+            address: address || null,
+            date_of_birth: formattedDateOfBirth,
+          };
+          console.log('[CREATE_STUDENT] Inserting student profile:', JSON.stringify(studentPayloadToInsert));
+
+          const { error: studentError } = await supabase.from('students').insert(studentPayloadToInsert);
+
+          if (studentError) {
+            console.error('[CREATE_STUDENT] Student profile insert error:', JSON.stringify(studentError));
+            console.error('[CREATE_STUDENT] Error code:', studentError.code);
+            console.error('[CREATE_STUDENT] Error hint:', studentError.hint);
+            console.error('[CREATE_STUDENT] Error details:', studentError.details);
+            // Rollback user creation
+            await supabase.from('users').delete().eq('id', newUser.id);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create student profile', 
+                details: studentError.message,
+                code: studentError.code,
+                hint: studentError.hint,
+              }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          // Update teacher's student count (ignore errors)
+          try {
+            await supabase.rpc('update_teacher_stats', { p_teacher_id: teacherData.id });
+          } catch (statsError) {
+            console.error('[CREATE_STUDENT] Stats update error (non-fatal):', statsError);
+          }
+
+          // @REVIEW: Return 'user' key (not 'student') to match AuthService.transformResponse()
           return new Response(
-            JSON.stringify({ error: 'Failed to create student profile' }),
+            JSON.stringify({
+              message: 'Student created successfully',
+              user: newUser,
+            }),
+            { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (createStudentError) {
+          console.error('[CREATE_STUDENT] Unexpected error:', createStudentError);
+          // Try to rollback user
+          await supabase.from('users').delete().eq('id', newUser.id).catch(() => {});
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to create student', 
+              details: createStudentError instanceof Error ? createStudentError.message : 'Unknown error' 
+            }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-
-        // Update teacher's student count
-        await supabase.rpc('update_teacher_stats', { p_teacher_id: teacherData.id }).catch(() => {});
-
-        return new Response(
-          JSON.stringify({
-            message: 'Student created successfully',
-            student: newUser,
-          }),
-          { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       }
 
       default:
@@ -641,9 +745,15 @@ Deno.serve(async (req) => {
         );
     }
   } catch (error) {
+    // @REVIEW: Enhanced error logging for debugging
     console.error('Auth error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        // @REVIEW: Include error details in dev (remove in production)
+        details: error instanceof Error ? error.message : String(error),
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
