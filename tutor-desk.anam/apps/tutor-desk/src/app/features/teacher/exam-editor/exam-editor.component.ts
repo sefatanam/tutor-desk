@@ -17,10 +17,14 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+// @REVIEW: New imports for result settings
+import { PanelModule } from 'primeng/panel';
+import { CheckboxModule } from 'primeng/checkbox';
+import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
-import { Subject, Question, QuestionOption, ExamStatus } from '../../../core/models';
+import { Subject, Question, QuestionOption, ExamStatus, ResultVisibility, ExamStyle } from '../../../core/models';
 
 @Component({
   selector: 'app-exam-editor',
@@ -41,6 +45,10 @@ import { Subject, Question, QuestionOption, ExamStatus } from '../../../core/mod
     AccordionModule,
     RadioButtonModule,
     ConfirmDialogModule,
+    // @REVIEW: New modules for result settings
+    PanelModule,
+    CheckboxModule,
+    DatePickerModule,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -210,6 +218,196 @@ import { Subject, Question, QuestionOption, ExamStatus } from '../../../core/mod
                   <label>Auto-submit on Tab Change</label>
                 </div>
               </div>
+
+              <!-- @REVIEW: Result Settings Section -->
+              <p-panel header="Result Settings" [toggleable]="true" [collapsed]="true" styleClass="result-settings-panel">
+                <div class="form-grid">
+                  <!-- When can students see results -->
+                  <div class="form-field">
+                    <label class="field-label">When can students view results?</label>
+                    <div class="visibility-options">
+                      @for (option of resultVisibilityOptions; track option.value) {
+                        <div class="visibility-option" [class.selected]="examForm.get('resultVisibility')?.value === option.value">
+                          <p-radiobutton
+                            name="resultVisibility"
+                            [value]="option.value"
+                            formControlName="resultVisibility"
+                            [inputId]="'visibility-' + option.value"
+                          />
+                          <label [for]="'visibility-' + option.value" class="visibility-label">
+                            <i class="pi {{ option.icon }}"></i>
+                            <span>{{ option.label }}</span>
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Manual release date picker -->
+                  @if (showReleaseDatePicker()) {
+                    <div class="form-field">
+                      <label class="field-label">Scheduled Release Date (Optional)</label>
+                      <p-datepicker
+                        formControlName="resultReleaseDate"
+                        [showTime]="true"
+                        [showIcon]="true"
+                        dateFormat="dd/mm/yy"
+                        placeholder="Select date to auto-release"
+                        styleClass="w-full"
+                      />
+                      <small class="field-hint">Leave empty to release manually using the button below</small>
+                    </div>
+                  }
+
+                  <!-- Release button for manual mode in edit mode -->
+                  @if (showReleaseButton()) {
+                    <div class="form-field">
+                      <p-button
+                        label="Release Results Now"
+                        icon="pi pi-send"
+                        severity="success"
+                        (click)="releaseResults()"
+                        [loading]="releasingResults()"
+                      />
+                    </div>
+                  }
+
+                  <!-- Already released indicator -->
+                  @if (isResultReleased()) {
+                    <div class="release-status success">
+                      <i class="pi pi-check-circle"></i>
+                      <span>Results have been released to students</span>
+                    </div>
+                  }
+
+                  <p-divider />
+
+                  <!-- What can students see -->
+                  <div class="form-field">
+                    <label class="field-label">What can students see in their results?</label>
+                    <div class="checkbox-grid">
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showScore" [binary]="true" inputId="showScore" />
+                        <label for="showScore">Score (marks obtained)</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showPercentage" [binary]="true" inputId="showPercentage" />
+                        <label for="showPercentage">Percentage</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showPassFail" [binary]="true" inputId="showPassFail" />
+                        <label for="showPassFail">Pass/Fail status</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showQuestionReview" [binary]="true" inputId="showQuestionReview" />
+                        <label for="showQuestionReview">Question-by-question review</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showCorrectAnswers" [binary]="true" inputId="showCorrectAnswers" />
+                        <label for="showCorrectAnswers">Correct answers</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showStudentAnswers" [binary]="true" inputId="showStudentAnswers" />
+                        <label for="showStudentAnswers">Student's selected answers</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showExplanations" [binary]="true" inputId="showExplanations" />
+                        <label for="showExplanations">Explanations</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showTimeSpent" [binary]="true" inputId="showTimeSpent" />
+                        <label for="showTimeSpent">Time spent per question</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showTeacherRemarks" [binary]="true" inputId="showTeacherRemarks" />
+                        <label for="showTeacherRemarks">Teacher remarks</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="showRank" [binary]="true" inputId="showRank" />
+                        <label for="showRank">Rank among students</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </p-panel>
+
+              <!-- @REVIEW: Exam Style Settings Section -->
+              <p-panel header="Exam Style Settings" [toggleable]="true" [collapsed]="true" styleClass="exam-style-panel">
+                <div class="form-grid">
+                  <!-- Exam style selector -->
+                  <div class="form-field">
+                    <label class="field-label">Select Exam Style</label>
+                    <div class="style-options">
+                      @for (option of examStyleOptions; track option.value) {
+                        <div 
+                          class="style-option" 
+                          [class.selected]="examForm.get('examStyle')?.value === option.value"
+                          (click)="selectExamStyle(option.value)"
+                        >
+                          <p-radiobutton
+                            name="examStyle"
+                            [value]="option.value"
+                            formControlName="examStyle"
+                            [inputId]="'style-' + option.value"
+                          />
+                          <label [for]="'style-' + option.value" class="style-label">
+                            <div class="style-header">
+                              <i class="pi {{ option.icon }}"></i>
+                              <span class="style-name">{{ option.label }}</span>
+                            </div>
+                            <span class="style-description">{{ option.description }}</span>
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Total time limit (for free_navigation and practice modes) -->
+                  @if (showTotalTimeLimit()) {
+                    <div class="form-field">
+                      <label class="field-label">Total Time Limit (minutes)</label>
+                      <p-inputnumber
+                        formControlName="totalTimeLimitMinutes"
+                        [min]="1"
+                        [max]="480"
+                        [showButtons]="true"
+                        placeholder="Leave empty for unlimited"
+                        styleClass="w-full"
+                      />
+                      <small class="field-hint">Total time for the entire exam. Leave empty for no time limit.</small>
+                    </div>
+                  }
+
+                  <p-divider />
+
+                  <!-- Shuffle and feedback options -->
+                  <div class="form-field">
+                    <label class="field-label">Additional Options</label>
+                    <div class="checkbox-grid">
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="shuffleQuestions" [binary]="true" inputId="shuffleQuestions" />
+                        <label for="shuffleQuestions">Shuffle questions order</label>
+                      </div>
+                      <div class="checkbox-item">
+                        <p-checkbox formControlName="shuffleOptions" [binary]="true" inputId="shuffleOptions" />
+                        <label for="shuffleOptions">Shuffle answer options</label>
+                      </div>
+                      @if (showImmediateFeedbackOption()) {
+                        <div class="checkbox-item">
+                          <p-checkbox formControlName="showImmediateFeedback" [binary]="true" inputId="showImmediateFeedback" />
+                          <label for="showImmediateFeedback">Show immediate feedback after each question</label>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Style-specific info box -->
+                  <div class="style-info-box" [class]="'style-' + examForm.get('examStyle')?.value">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ getExamStyleInfo() }}</span>
+                  </div>
+                </div>
+              </p-panel>
             </div>
 
             <!-- Save Exam Button -->
@@ -719,6 +917,208 @@ import { Subject, Question, QuestionOption, ExamStatus } from '../../../core/mod
     :host ::ng-deep .questions-card .p-accordion-panel {
       margin-bottom: 0.5rem;
     }
+
+    /* @REVIEW: Result Settings Panel Styles */
+    :host ::ng-deep .result-settings-panel {
+      margin-top: 1.5rem;
+    }
+
+    :host ::ng-deep .result-settings-panel .p-panel-header {
+      background: var(--surface-50);
+    }
+
+    .visibility-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .visibility-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface-50);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .visibility-option:hover {
+      background: var(--surface-100);
+    }
+
+    .visibility-option.selected {
+      border-color: var(--primary-color);
+      background: var(--primary-50, rgba(var(--primary-500-rgb), 0.1));
+    }
+
+    .visibility-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .visibility-label i {
+      color: var(--primary-color);
+      font-size: 1rem;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-50);
+      border-radius: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .checkbox-item label {
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .field-hint {
+      display: block;
+      color: var(--text-color-secondary);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
+    .release-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+
+    .release-status.success {
+      background: var(--green-50);
+      color: var(--green-700);
+    }
+
+    .release-status i {
+      font-size: 1rem;
+    }
+
+    /* @REVIEW: Exam Style Panel Styles */
+    :host ::ng-deep .exam-style-panel {
+      margin-top: 1.5rem;
+    }
+
+    :host ::ng-deep .exam-style-panel .p-panel-header {
+      background: var(--surface-50);
+    }
+
+    .style-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .style-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-50);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .style-option:hover {
+      background: var(--surface-100);
+    }
+
+    .style-option.selected {
+      border-color: var(--primary-color);
+      background: var(--primary-50, rgba(var(--primary-500-rgb), 0.1));
+    }
+
+    .style-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .style-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .style-header i {
+      color: var(--primary-color);
+      font-size: 1rem;
+    }
+
+    .style-name {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .style-description {
+      font-size: 0.8rem;
+      color: var(--text-color-secondary);
+      line-height: 1.4;
+    }
+
+    .style-info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      background: var(--blue-50);
+      color: var(--blue-700);
+    }
+
+    .style-info-box i {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .style-info-box.style-standard {
+      background: var(--blue-50);
+      color: var(--blue-700);
+    }
+
+    .style-info-box.style-free_navigation {
+      background: var(--cyan-50);
+      color: var(--cyan-700);
+    }
+
+    .style-info-box.style-practice {
+      background: var(--green-50);
+      color: var(--green-700);
+    }
+
+    .style-info-box.style-quiz {
+      background: var(--orange-50);
+      color: var(--orange-700);
+    }
+
+    .style-info-box.style-section_based {
+      background: var(--purple-50);
+      color: var(--purple-700);
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -756,8 +1156,55 @@ export class ExamEditorComponent implements OnInit {
     { label: 'Cancelled', value: 'cancelled' },
   ];
 
+  // @REVIEW: Result visibility options for radio buttons
+  readonly resultVisibilityOptions = [
+    { label: 'Immediately after submission', value: 'immediate', icon: 'pi-check-circle' },
+    { label: 'After exam due date', value: 'after_due_date', icon: 'pi-calendar' },
+    { label: 'Manual release by teacher', value: 'manual_release', icon: 'pi-lock' },
+    { label: 'Never (no access)', value: 'never', icon: 'pi-ban' },
+  ];
+
+  // @REVIEW: Exam style options for radio buttons
+  readonly examStyleOptions = [
+    { value: 'standard', label: 'Standard', icon: 'pi-clock', description: 'Per-question timer, skip & return allowed' },
+    { value: 'free_navigation', label: 'Free Navigation', icon: 'pi-arrows-alt', description: 'Total time limit, free navigation between questions' },
+    { value: 'practice', label: 'Practice Mode', icon: 'pi-book', description: 'No timer, immediate feedback after each question' },
+    { value: 'quiz', label: 'Quiz Mode', icon: 'pi-bolt', description: 'Per-question timer, sequential only, immediate feedback' },
+    { value: 'section_based', label: 'Section Based', icon: 'pi-th-large', description: 'Per-section timer, free navigation within sections' },
+  ];
+
   // @REVIEW: Computed for subject options with "None" option
   readonly subjectOptions = computed(() => this.subjects());
+
+  // @REVIEW: Computed for result settings conditional UI
+  readonly showReleaseDatePicker = computed(() => 
+    this.examForm.get('resultVisibility')?.value === 'manual_release'
+  );
+
+  readonly showReleaseButton = computed(() => 
+    this.examForm.get('resultVisibility')?.value === 'manual_release' && 
+    this.isEditMode() && 
+    !this.examForm.get('isResultReleased')?.value
+  );
+
+  readonly isResultReleased = computed(() => 
+    this.examForm.get('resultVisibility')?.value === 'manual_release' &&
+    this.examForm.get('isResultReleased')?.value === true
+  );
+
+  // @REVIEW: Signal for release results loading state
+  readonly releasingResults = signal(false);
+
+  // @REVIEW: Computed for exam style conditional UI
+  readonly showTotalTimeLimit = computed(() => {
+    const style = this.examForm.get('examStyle')?.value;
+    return style === 'free_navigation' || style === 'practice';
+  });
+
+  readonly showImmediateFeedbackOption = computed(() => {
+    const style = this.examForm.get('examStyle')?.value;
+    return style === 'practice' || style === 'quiz';
+  });
 
   // @REVIEW: Exam Form - subjectId is now optional (no Validators.required)
   readonly examForm = this.fb.group({
@@ -771,6 +1218,26 @@ export class ExamEditorComponent implements OnInit {
     allowSkipReturn: [true],
     fullscreenRequired: [true],
     autoSubmitOnBlur: [true],
+    // @REVIEW: Result visibility settings
+    resultVisibility: ['immediate' as ResultVisibility],
+    resultReleaseDate: [null as Date | null],
+    isResultReleased: [false],
+    showScore: [true],
+    showPercentage: [true],
+    showPassFail: [true],
+    showCorrectAnswers: [true],
+    showStudentAnswers: [true],
+    showExplanations: [true],
+    showQuestionReview: [true],
+    showTimeSpent: [true],
+    showTeacherRemarks: [true],
+    showRank: [false],
+    // @REVIEW: Exam style settings
+    examStyle: ['standard' as ExamStyle],
+    totalTimeLimitMinutes: [null as number | null],
+    showImmediateFeedback: [false],
+    shuffleQuestions: [false],
+    shuffleOptions: [false],
   });
 
   // Question Form
@@ -841,6 +1308,26 @@ export class ExamEditorComponent implements OnInit {
           allowSkipReturn: exam.allowSkipReturn,
           fullscreenRequired: exam.fullscreenRequired,
           autoSubmitOnBlur: exam.autoSubmitOnBlur,
+          // @REVIEW: Result visibility settings
+          resultVisibility: exam.resultVisibility,
+          resultReleaseDate: exam.resultReleaseDate,
+          isResultReleased: exam.isResultReleased,
+          showScore: exam.showScore,
+          showPercentage: exam.showPercentage,
+          showPassFail: exam.showPassFail,
+          showCorrectAnswers: exam.showCorrectAnswers,
+          showStudentAnswers: exam.showStudentAnswers,
+          showExplanations: exam.showExplanations,
+          showQuestionReview: exam.showQuestionReview,
+          showTimeSpent: exam.showTimeSpent,
+          showTeacherRemarks: exam.showTeacherRemarks,
+          showRank: exam.showRank,
+          // @REVIEW: Exam style settings
+          examStyle: exam.examStyle,
+          totalTimeLimitMinutes: exam.totalTimeLimitMinutes,
+          showImmediateFeedback: exam.showImmediateFeedback,
+          shuffleQuestions: exam.shuffleQuestions,
+          shuffleOptions: exam.shuffleOptions,
         });
         this.loading.set(false);
       },
@@ -889,7 +1376,7 @@ export class ExamEditorComponent implements OnInit {
     const formValue = this.examForm.value;
 
     if (this.isEditMode()) {
-      // @REVIEW: Added status to update payload
+      // @REVIEW: Added status and result visibility settings to update payload
       this.db.exams.update(this.examId()!, {
         title: formValue.title || undefined,
         description: formValue.description || undefined,
@@ -900,6 +1387,25 @@ export class ExamEditorComponent implements OnInit {
         allowSkipReturn: formValue.allowSkipReturn ?? undefined,
         fullscreenRequired: formValue.fullscreenRequired ?? undefined,
         autoSubmitOnBlur: formValue.autoSubmitOnBlur ?? undefined,
+        // @REVIEW: Result visibility settings
+        resultVisibility: formValue.resultVisibility as ResultVisibility ?? undefined,
+        resultReleaseDate: formValue.resultReleaseDate ?? undefined,
+        showScore: formValue.showScore ?? undefined,
+        showPercentage: formValue.showPercentage ?? undefined,
+        showPassFail: formValue.showPassFail ?? undefined,
+        showCorrectAnswers: formValue.showCorrectAnswers ?? undefined,
+        showStudentAnswers: formValue.showStudentAnswers ?? undefined,
+        showExplanations: formValue.showExplanations ?? undefined,
+        showQuestionReview: formValue.showQuestionReview ?? undefined,
+        showTimeSpent: formValue.showTimeSpent ?? undefined,
+        showTeacherRemarks: formValue.showTeacherRemarks ?? undefined,
+        showRank: formValue.showRank ?? undefined,
+        // @REVIEW: Exam style settings
+        examStyle: formValue.examStyle as ExamStyle ?? undefined,
+        totalTimeLimitMinutes: formValue.totalTimeLimitMinutes ?? undefined,
+        showImmediateFeedback: formValue.showImmediateFeedback ?? undefined,
+        shuffleQuestions: formValue.shuffleQuestions ?? undefined,
+        shuffleOptions: formValue.shuffleOptions ?? undefined,
       }).subscribe({
         next: () => {
           this.savingExam.set(false);
@@ -935,6 +1441,25 @@ export class ExamEditorComponent implements OnInit {
         allowSkipReturn: formValue.allowSkipReturn ?? true,
         fullscreenRequired: formValue.fullscreenRequired ?? true,
         autoSubmitOnBlur: formValue.autoSubmitOnBlur ?? true,
+        // @REVIEW: Result visibility settings
+        resultVisibility: formValue.resultVisibility as ResultVisibility ?? 'immediate',
+        resultReleaseDate: formValue.resultReleaseDate ?? undefined,
+        showScore: formValue.showScore ?? true,
+        showPercentage: formValue.showPercentage ?? true,
+        showPassFail: formValue.showPassFail ?? true,
+        showCorrectAnswers: formValue.showCorrectAnswers ?? true,
+        showStudentAnswers: formValue.showStudentAnswers ?? true,
+        showExplanations: formValue.showExplanations ?? true,
+        showQuestionReview: formValue.showQuestionReview ?? true,
+        showTimeSpent: formValue.showTimeSpent ?? true,
+        showTeacherRemarks: formValue.showTeacherRemarks ?? true,
+        showRank: formValue.showRank ?? false,
+        // @REVIEW: Exam style settings
+        examStyle: formValue.examStyle as ExamStyle ?? 'standard',
+        totalTimeLimitMinutes: formValue.totalTimeLimitMinutes ?? undefined,
+        showImmediateFeedback: formValue.showImmediateFeedback ?? false,
+        shuffleQuestions: formValue.shuffleQuestions ?? false,
+        shuffleOptions: formValue.shuffleOptions ?? false,
       }).subscribe({
         next: (exam) => {
           this.savingExam.set(false);
@@ -1187,6 +1712,62 @@ export class ExamEditorComponent implements OnInit {
         });
       },
     });
+  }
+
+  // @REVIEW: Release results for manual_release mode
+  releaseResults(): void {
+    if (!this.examId()) return;
+    
+    this.releasingResults.set(true);
+    this.db.exams.update(this.examId()!, { isResultReleased: true }).subscribe({
+      next: () => {
+        this.releasingResults.set(false);
+        this.examForm.patchValue({ isResultReleased: true });
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Results Released',
+          detail: 'Students can now view their results.',
+        });
+      },
+      error: (err) => {
+        console.error('Failed to release results:', err);
+        this.releasingResults.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to release results.',
+        });
+      },
+    });
+  }
+
+  // @REVIEW: Helper method to select exam style
+  selectExamStyle(style: string): void {
+    this.examForm.patchValue({ examStyle: style as ExamStyle });
+    
+    // Reset dependent fields based on style
+    if (style === 'standard' || style === 'quiz' || style === 'section_based') {
+      this.examForm.patchValue({ totalTimeLimitMinutes: null });
+    }
+    if (style === 'standard' || style === 'free_navigation' || style === 'section_based') {
+      this.examForm.patchValue({ showImmediateFeedback: false });
+    }
+    if (style === 'practice' || style === 'quiz') {
+      this.examForm.patchValue({ showImmediateFeedback: true });
+    }
+  }
+
+  // @REVIEW: Get info text for the selected exam style
+  getExamStyleInfo(): string {
+    const style = this.examForm.get('examStyle')?.value;
+    const styleInfoMap: Record<string, string> = {
+      standard: 'Standard mode uses per-question timing. Students can skip questions and return to them later. Results are shown only after submission.',
+      free_navigation: 'Free Navigation mode allows students to jump between any questions freely. A total time limit applies to the entire exam rather than individual questions.',
+      practice: 'Practice mode is designed for learning. No time pressure, and students see whether their answer was correct immediately after answering each question.',
+      quiz: 'Quiz mode is fast-paced with per-question timing. Students must answer questions in order (no going back). Immediate feedback is shown after each question.',
+      section_based: 'Section Based mode organizes questions into sections. Each section has its own time limit, and students can navigate freely within a section but cannot go back to previous sections.',
+    };
+    return styleInfoMap[style as string] || 'Select an exam style to see more information.';
   }
 
   goBack(): void {

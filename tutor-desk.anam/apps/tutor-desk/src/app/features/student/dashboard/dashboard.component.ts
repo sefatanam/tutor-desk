@@ -12,10 +12,10 @@ import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-databas
 import { AuthStore } from '../../../core/store/auth.store';
 import { ExamWithSubject, ExamSubmission, StudentDashboardStats } from '../../../core/models';
 
-// @REVIEW: Upcoming exam card data
+// @REVIEW: Upcoming exam card data - Updated to track submission status for proper button display
 interface UpcomingExam {
   readonly exam: ExamWithSubject;
-  readonly hasInProgress: boolean;
+  readonly status: 'not_started' | 'in_progress' | 'completed' | 'retake_allowed';
 }
 
 // @REVIEW: Recent result card data
@@ -134,22 +134,37 @@ interface RecentResult {
                 </td>
                 <td>{{ item.exam.totalQuestions }} ({{ item.exam.totalMarks }} marks)</td>
                 <td>
-                  @if (item.hasInProgress) {
-                    <button 
-                      pButton 
-                      label="Resume" 
-                      icon="pi pi-play" 
-                      class="p-button-sm p-button-warning"
-                      [routerLink]="['/student/exams', item.exam.id, 'take']"
-                    ></button>
-                  } @else {
-                    <button 
-                      pButton 
-                      label="Take Exam" 
-                      icon="pi pi-play" 
-                      class="p-button-sm"
-                      routerLink="/student/exams"
-                    ></button>
+                  @switch (item.status) {
+                    @case ('in_progress') {
+                      <button 
+                        pButton 
+                        label="Resume" 
+                        icon="pi pi-play" 
+                        class="p-button-sm p-button-warning"
+                        [routerLink]="['/student/exams', item.exam.id, 'take']"
+                      ></button>
+                    }
+                    @case ('retake_allowed') {
+                      <button 
+                        pButton 
+                        label="Retake" 
+                        icon="pi pi-refresh" 
+                        class="p-button-sm p-button-help"
+                        [routerLink]="['/student/exams', item.exam.id, 'take']"
+                      ></button>
+                    }
+                    @case ('completed') {
+                      <p-tag value="Completed" severity="success" icon="pi pi-check" />
+                    }
+                    @default {
+                      <button 
+                        pButton 
+                        label="Take Exam" 
+                        icon="pi pi-play" 
+                        class="p-button-sm"
+                        [routerLink]="['/student/exams', item.exam.id, 'take']"
+                      ></button>
+                    }
                   }
                 </td>
               </tr>
@@ -354,22 +369,42 @@ export class DashboardComponent implements OnInit {
       },
     });
 
-    // Load upcoming exams with in-progress check
+    // @REVIEW: Load upcoming exams with submission status check - Fixed to filter out completed exams
     forkJoin({
       exams: this.db.exams.getUpcomingForStudent(studentId),
-      submissions: this.db.submissions.getByStudent(studentId, { page: 1, pageSize: 50 }),
+      submissions: this.db.submissions.getByStudent(studentId, { page: 1, pageSize: 100 }),
     }).subscribe({
       next: ({ exams, submissions }) => {
-        // Build in-progress map
-        const inProgressMap = new Map<string, boolean>();
-        submissions.items
-          .filter(s => s.status === 'in_progress')
-          .forEach(s => inProgressMap.set(s.examId, true));
+        // @REVIEW: Build submission status map - tracks latest status for each exam
+        const submissionStatusMap = new Map<string, UpcomingExam['status']>();
+        
+        for (const sub of submissions.items) {
+          const currentStatus = submissionStatusMap.get(sub.examId);
+          
+          // Map submission status to our UpcomingExam status
+          if (sub.status === 'in_progress') {
+            submissionStatusMap.set(sub.examId, 'in_progress');
+          } else if (sub.status === 'retake_allowed') {
+            // Retake allowed takes precedence over completed
+            submissionStatusMap.set(sub.examId, 'retake_allowed');
+          } else if (
+            (sub.status === 'submitted' || sub.status === 'auto_submitted' || sub.status === 'evaluated') &&
+            currentStatus !== 'in_progress' && currentStatus !== 'retake_allowed'
+          ) {
+            // Only set completed if not already in_progress or retake_allowed
+            submissionStatusMap.set(sub.examId, 'completed');
+          }
+        }
 
-        const upcomingItems: UpcomingExam[] = exams.slice(0, 5).map(exam => ({
-          exam,
-          hasInProgress: inProgressMap.has(exam.id),
-        }));
+        // @REVIEW: Filter out completed exams (unless retake_allowed or in_progress)
+        const upcomingItems: UpcomingExam[] = exams
+          .map(exam => {
+            const status = submissionStatusMap.get(exam.id) ?? 'not_started';
+            return { exam, status };
+          })
+          .filter(item => item.status !== 'completed') // Hide completed exams from upcoming
+          .slice(0, 5);
+
         this.upcomingExams.set(upcomingItems);
         this.loadingExams.set(false);
       },

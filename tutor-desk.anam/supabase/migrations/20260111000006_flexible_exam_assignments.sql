@@ -138,7 +138,7 @@ SELECT DISTINCT
     e.total_marks,
     e.time_per_question_seconds,
     e.teacher_id,
-    en.student_id,
+    se.student_id,
     'assigned'::exam_assignment_status AS assignment_status,
     esa.available_from,
     esa.due_date,
@@ -147,9 +147,8 @@ SELECT DISTINCT
     'subject' AS assignment_type
 FROM exams e
 INNER JOIN exam_subject_assignments esa ON e.id = esa.exam_id
-INNER JOIN enrollments en ON esa.subject_id = en.subject_id
-WHERE esa.auto_assign_students = true
-  AND en.status = 'active';
+INNER JOIN subject_enrollments se ON esa.subject_id = se.subject_id
+WHERE esa.auto_assign_students = true;
 
 -- ============================================================================
 -- 8. Grant permissions

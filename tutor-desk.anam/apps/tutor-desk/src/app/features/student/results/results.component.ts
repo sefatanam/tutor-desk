@@ -2,6 +2,7 @@
 import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -11,12 +12,11 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { SkeletonModule } from 'primeng/skeleton';
-import { DialogModule } from 'primeng/dialog';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
-import { ExamSubmission, ExamSubmissionWithDetails, Exam } from '../../../core/models';
+import { ExamSubmission } from '../../../core/models';
 
 // @REVIEW: Result item with exam details
 interface ResultItem {
@@ -43,7 +43,6 @@ interface ResultItem {
     IconFieldModule,
     InputIconModule,
     SkeletonModule,
-    DialogModule,
     ProgressBarModule,
   ],
   template: `
@@ -210,108 +209,6 @@ interface ResultItem {
           </p-table>
         }
       </p-card>
-
-      <!-- Details Dialog -->
-      <p-dialog
-        [(visible)]="showDetailsDialog"
-        [modal]="true"
-        [closable]="true"
-        [style]="{ width: '600px' }"
-        header="Result Details"
-      >
-        @if (selectedResult()) {
-          <div class="details-dialog">
-            <div class="details-header">
-              <h3>{{ selectedResult()!.examTitle }}</h3>
-              <span class="subject-badge" [style.background]="selectedResult()!.subjectColor">
-                {{ selectedResult()!.subjectName }}
-              </span>
-            </div>
-
-            <div class="details-score">
-              <div class="score-display">
-                <span class="score-main" [class.score-main--pass]="selectedResult()!.passed">
-                  {{ selectedResult()!.submission.score }}
-                </span>
-                <span class="score-divider">/ {{ selectedResult()!.totalMarks }}</span>
-              </div>
-              <span class="percentage-display">{{ selectedResult()!.submission.percentage }}%</span>
-              <p-tag
-                [value]="selectedResult()!.passed ? 'PASSED' : 'FAILED'"
-                [severity]="selectedResult()!.passed ? 'success' : 'danger'"
-                styleClass="result-tag"
-              />
-            </div>
-
-            <div class="details-stats">
-              <div class="detail-stat">
-                <span class="detail-value correct">{{ selectedResult()!.submission.totalCorrect }}</span>
-                <span class="detail-label">Correct</span>
-              </div>
-              <div class="detail-stat">
-                <span class="detail-value wrong">{{ selectedResult()!.submission.totalWrong }}</span>
-                <span class="detail-label">Wrong</span>
-              </div>
-              <div class="detail-stat">
-                <span class="detail-value skipped">{{ selectedResult()!.submission.totalSkipped }}</span>
-                <span class="detail-label">Skipped</span>
-              </div>
-              <div class="detail-stat">
-                <span class="detail-value">{{ selectedResult()!.submission.totalAnswered }}</span>
-                <span class="detail-label">Answered</span>
-              </div>
-            </div>
-
-            <div class="details-info">
-              <div class="info-row">
-                <span class="info-label">Attempt</span>
-                <span class="info-value">#{{ selectedResult()!.submission.attemptNumber }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Started</span>
-                <span class="info-value">{{ selectedResult()!.submission.startedAt | date:'medium' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Submitted</span>
-                <span class="info-value">{{ selectedResult()!.submission.submittedAt | date:'medium' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Status</span>
-                <span class="info-value">
-                  @switch (selectedResult()!.submission.status) {
-                    @case ('submitted') { Submitted }
-                    @case ('auto_submitted') { Auto-Submitted }
-                    @case ('evaluated') { Evaluated }
-                    @default { {{ selectedResult()!.submission.status }} }
-                  }
-                </span>
-              </div>
-              @if (selectedResult()!.submission.autoSubmitReason) {
-                <div class="info-row">
-                  <span class="info-label">Auto-Submit Reason</span>
-                  <span class="info-value auto-reason">{{ selectedResult()!.submission.autoSubmitReason }}</span>
-                </div>
-              }
-              @if (selectedResult()!.submission.remarks) {
-                <div class="info-row">
-                  <span class="info-label">Teacher Remarks</span>
-                  <span class="info-value">{{ selectedResult()!.submission.remarks }}</span>
-                </div>
-              }
-              @if (selectedResult()!.passingMarks > 0) {
-                <div class="info-row">
-                  <span class="info-label">Passing Marks</span>
-                  <span class="info-value">{{ selectedResult()!.passingMarks }}</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        <ng-template pTemplate="footer">
-          <p-button label="Close" severity="secondary" (click)="showDetailsDialog = false" />
-        </ng-template>
-      </p-dialog>
     </div>
   `,
   styles: `
@@ -395,66 +292,18 @@ interface ResultItem {
     .empty-state__icon { font-size: 4rem; color: var(--primary-color); opacity: 0.5; margin-bottom: 1rem; }
     .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
     .empty-state__text { margin: 0; color: var(--text-color-secondary); }
-
-    /* Details Dialog */
-    .details-dialog { display: flex; flex-direction: column; gap: 1.5rem; }
-    .details-header { display: flex; justify-content: space-between; align-items: center; }
-    .details-header h3 { margin: 0; font-size: 1.25rem; }
-
-    .details-score {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      padding: 1.5rem;
-      background: var(--surface-100);
-      border-radius: 12px;
-    }
-    .score-display { display: flex; align-items: baseline; }
-    .score-main { font-size: 3rem; font-weight: 700; color: var(--red-500); }
-    .score-main--pass { color: var(--green-500); }
-    .score-divider { font-size: 1.5rem; color: var(--text-color-secondary); }
-    .percentage-display { font-size: 1.5rem; font-weight: 600; color: var(--text-color-secondary); }
-    :host ::ng-deep .result-tag { font-size: 1rem; padding: 0.5rem 1rem; }
-
-    .details-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      text-align: center;
-    }
-    .detail-stat { padding: 0.75rem; background: var(--surface-50); border-radius: 8px; }
-    .detail-value { display: block; font-size: 1.5rem; font-weight: 600; }
-    .detail-value.correct { color: var(--green-500); }
-    .detail-value.wrong { color: var(--red-500); }
-    .detail-value.skipped { color: var(--orange-500); }
-    .detail-label { font-size: 0.8125rem; color: var(--text-color-secondary); }
-
-    .details-info {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 1rem;
-      background: var(--surface-50);
-      border-radius: 8px;
-    }
-    .info-row { display: flex; justify-content: space-between; }
-    .info-label { color: var(--text-color-secondary); }
-    .info-value { font-weight: 500; }
-    .info-value.auto-reason { color: var(--orange-600); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultsComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
+  private readonly router = inject(Router);
 
   // State
   readonly loading = signal(true);
   readonly results = signal<ResultItem[]>([]);
   searchTerm = '';
-  showDetailsDialog = false;
-  readonly selectedResult = signal<ResultItem | null>(null);
 
   // Computed
   readonly filteredResults = computed(() => {
@@ -546,8 +395,8 @@ export class ResultsComponent implements OnInit {
     });
   }
 
+  // @REVIEW: Navigate to submission review page instead of showing dialog
   viewDetails(result: ResultItem): void {
-    this.selectedResult.set(result);
-    this.showDetailsDialog = true;
+    this.router.navigate(['/student/results', result.submission.id]);
   }
 }

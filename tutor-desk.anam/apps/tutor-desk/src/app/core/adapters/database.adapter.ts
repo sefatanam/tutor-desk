@@ -185,6 +185,8 @@ export interface ISubmissionAdapter {
   // Evaluation
   evaluate(submissionId: string, evaluatedBy: string, remarks?: string): Observable<ExamSubmission>;
   allowRetake(submissionId: string): Observable<ExamSubmission>;
+  // @REVIEW: Cancel retake - reverts status back to submitted/evaluated
+  cancelRetake(submissionId: string): Observable<ExamSubmission>;
 }
 
 // =============================================

@@ -37,4 +37,11 @@ export const studentRoutes: Routes = [
       import('./results/results.component').then(m => m.ResultsComponent),
     title: 'My Results - Tutor Desk',
   },
+  // @REVIEW: Student submission review with visibility settings
+  {
+    path: 'results/:submissionId',
+    loadComponent: () =>
+      import('./submission-review/submission-review.component').then(m => m.SubmissionReviewComponent),
+    title: 'Submission Review - Tutor Desk',
+  },
 ];

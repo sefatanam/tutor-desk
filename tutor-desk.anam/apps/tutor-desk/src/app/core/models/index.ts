@@ -17,6 +17,17 @@ export type AssetType = 'document' | 'image' | 'video' | 'link' | 'other';
 
 export type AuthProvider = 'email' | 'google';
 
+// @REVIEW: Result visibility options for exam - controls when students can view results
+export type ResultVisibility = 'immediate' | 'after_due_date' | 'manual_release' | 'never';
+
+// @REVIEW: Exam style/mode - controls the exam-taking experience
+// standard: Per-question timer, skip & return allowed, feedback after exam
+// free_navigation: Total time limit, free navigation, feedback after exam
+// practice: No timer (optional), free navigation, immediate feedback
+// quiz: Per-question timer, sequential only, immediate feedback
+// section_based: Per-section timer, free within section, feedback after exam
+export type ExamStyle = 'standard' | 'free_navigation' | 'practice' | 'quiz' | 'section_based';
+
 // =============================================
 // BASE INTERFACES
 // =============================================
@@ -221,6 +232,28 @@ export interface Exam extends BaseEntity {
   readonly scheduledEnd: Date | null;
   readonly durationMinutes: number | null;
   
+  // @REVIEW: Result Visibility Settings - controls what students can see after completing exam
+  readonly resultVisibility: ResultVisibility;
+  readonly resultReleaseDate: Date | null;
+  readonly isResultReleased: boolean;
+  readonly showScore: boolean;
+  readonly showPercentage: boolean;
+  readonly showPassFail: boolean;
+  readonly showCorrectAnswers: boolean;
+  readonly showStudentAnswers: boolean;
+  readonly showExplanations: boolean;
+  readonly showQuestionReview: boolean;
+  readonly showTimeSpent: boolean;
+  readonly showTeacherRemarks: boolean;
+  readonly showRank: boolean;
+  
+  // @REVIEW: Exam Style Settings - controls the exam-taking experience
+  readonly examStyle: ExamStyle;
+  readonly totalTimeLimitMinutes: number | null;
+  readonly showImmediateFeedback: boolean;
+  readonly shuffleQuestions: boolean;
+  readonly shuffleOptions: boolean;
+  
   // Statistics
   readonly totalSubmissions: number;
   readonly averageScore: number;
@@ -248,6 +281,25 @@ export interface CreateExamDto {
   readonly scheduledEnd?: Date;
   readonly durationMinutes?: number;
   readonly passingMarks?: number;
+  // @REVIEW: Result visibility settings
+  readonly resultVisibility?: ResultVisibility;
+  readonly resultReleaseDate?: Date;
+  readonly showScore?: boolean;
+  readonly showPercentage?: boolean;
+  readonly showPassFail?: boolean;
+  readonly showCorrectAnswers?: boolean;
+  readonly showStudentAnswers?: boolean;
+  readonly showExplanations?: boolean;
+  readonly showQuestionReview?: boolean;
+  readonly showTimeSpent?: boolean;
+  readonly showTeacherRemarks?: boolean;
+  readonly showRank?: boolean;
+  // @REVIEW: Exam style settings
+  readonly examStyle?: ExamStyle;
+  readonly totalTimeLimitMinutes?: number;
+  readonly showImmediateFeedback?: boolean;
+  readonly shuffleQuestions?: boolean;
+  readonly shuffleOptions?: boolean;
 }
 
 // @REVIEW: Added subjectId to allow assigning exam to subject later
@@ -267,6 +319,26 @@ export interface UpdateExamDto {
   readonly scheduledEnd?: Date;
   readonly durationMinutes?: number;
   readonly passingMarks?: number;
+  // @REVIEW: Result visibility settings
+  readonly resultVisibility?: ResultVisibility;
+  readonly resultReleaseDate?: Date | null;
+  readonly isResultReleased?: boolean;
+  readonly showScore?: boolean;
+  readonly showPercentage?: boolean;
+  readonly showPassFail?: boolean;
+  readonly showCorrectAnswers?: boolean;
+  readonly showStudentAnswers?: boolean;
+  readonly showExplanations?: boolean;
+  readonly showQuestionReview?: boolean;
+  readonly showTimeSpent?: boolean;
+  readonly showTeacherRemarks?: boolean;
+  readonly showRank?: boolean;
+  // @REVIEW: Exam style settings
+  readonly examStyle?: ExamStyle;
+  readonly totalTimeLimitMinutes?: number | null;
+  readonly showImmediateFeedback?: boolean;
+  readonly shuffleQuestions?: boolean;
+  readonly shuffleOptions?: boolean;
 }
 
 // =============================================

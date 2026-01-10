@@ -102,4 +102,18 @@ export const teacherRoutes: Routes = [
       import('./submission-detail/submission-detail.component').then(m => m.SubmissionDetailComponent),
     title: 'Submission Details - Tutor Desk',
   },
+  // @REVIEW: Results list route - view all student submissions with filters
+  {
+    path: 'results',
+    loadComponent: () =>
+      import('./results/results.component').then(m => m.TeacherResultsComponent),
+    title: 'All Results - Tutor Desk',
+  },
+  // @REVIEW: Results detail route - view individual submission
+  {
+    path: 'results/:submissionId',
+    loadComponent: () =>
+      import('./submission-detail/submission-detail.component').then(m => m.SubmissionDetailComponent),
+    title: 'Submission Details - Tutor Desk',
+  },
 ];

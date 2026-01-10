@@ -665,16 +665,19 @@ export class ExamsComponent implements OnInit {
     const isCompleted = submission?.status === 'submitted' || 
                         submission?.status === 'auto_submitted' || 
                         submission?.status === 'evaluated';
+    // @REVIEW: Student can only retake if teacher explicitly allowed it (status = retake_allowed)
     const canRetake = submission?.status === 'retake_allowed';
     
     const attemptsUsed = submission?.attemptNumber ?? 0;
-    const maxAttempts = exam.allowRetake ? exam.maxRetakes + 1 : 1;
-    const attemptsRemaining = Math.max(0, maxAttempts - attemptsUsed);
+    // @NOT-NEED: Old logic based on maxRetakes is removed - retakes are now teacher-controlled only
+    // const maxAttempts = exam.allowRetake ? exam.maxRetakes + 1 : 1;
+    // const attemptsRemaining = Math.max(0, maxAttempts - attemptsUsed);
     
-    // Determine if student can take exam
+    // @REVIEW: Determine if student can take exam
+    // Can take if: no submission yet, OR teacher allowed retake (status = retake_allowed)
     const canTake = isWithinSchedule && 
                     exam.status === 'active' &&
-                    (!submission || canRetake || (exam.allowRetake && attemptsRemaining > 0 && isCompleted));
+                    (!submission || canRetake);
     
     const canResume = isInProgress && isWithinSchedule;
 
@@ -685,7 +688,7 @@ export class ExamsComponent implements OnInit {
       canResume,
       isCompleted,
       attemptsUsed,
-      attemptsRemaining,
+      attemptsRemaining: canRetake ? 1 : 0, // Only 1 retake available when teacher allows it
     };
   }
 

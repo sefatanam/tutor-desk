@@ -72,6 +72,8 @@ import {
   CreateExamSubjectAssignmentDto,
   UpdateExamSubjectAssignmentDto,
   ExamAssignmentStatus,
+  // @REVIEW: Result visibility type
+  ResultVisibility,
 } from '../models';
 
 // =============================================
@@ -157,6 +159,27 @@ const mapDbExamToModel = (row: Record<string, unknown>): Exam => ({
   scheduledStart: row['scheduled_start'] ? new Date(row['scheduled_start'] as string) : null,
   scheduledEnd: row['scheduled_end'] ? new Date(row['scheduled_end'] as string) : null,
   durationMinutes: row['duration_minutes'] as number | null,
+  // @REVIEW: Result visibility settings
+  resultVisibility: (row['result_visibility'] as ResultVisibility) ?? 'immediate',
+  resultReleaseDate: row['result_release_date'] ? new Date(row['result_release_date'] as string) : null,
+  isResultReleased: row['is_result_released'] as boolean ?? false,
+  showScore: row['show_score'] as boolean ?? true,
+  showPercentage: row['show_percentage'] as boolean ?? true,
+  showPassFail: row['show_pass_fail'] as boolean ?? true,
+  showCorrectAnswers: row['show_correct_answers'] as boolean ?? true,
+  showStudentAnswers: row['show_student_answers'] as boolean ?? true,
+  showExplanations: row['show_explanations'] as boolean ?? true,
+  showQuestionReview: row['show_question_review'] as boolean ?? true,
+  showTimeSpent: row['show_time_spent'] as boolean ?? true,
+  showTeacherRemarks: row['show_teacher_remarks'] as boolean ?? true,
+  showRank: row['show_rank'] as boolean ?? false,
+  // @REVIEW: Exam style settings
+  examStyle: (row['exam_style'] as Exam['examStyle']) ?? 'standard',
+  totalTimeLimitMinutes: row['total_time_limit_minutes'] as number | null,
+  showImmediateFeedback: row['show_immediate_feedback'] as boolean ?? false,
+  shuffleQuestions: row['shuffle_questions'] as boolean ?? false,
+  shuffleOptions: row['shuffle_options'] as boolean ?? false,
+  // Statistics
   totalSubmissions: row['total_submissions'] as number ?? 0,
   averageScore: row['average_score'] as number ?? 0,
   publishedAt: row['published_at'] ? new Date(row['published_at'] as string) : null,
@@ -1334,6 +1357,25 @@ class SupabaseExamAdapter implements IExamAdapter {
           scheduled_end: dto.scheduledEnd?.toISOString() ?? null,
           duration_minutes: dto.durationMinutes ?? null,
           passing_marks: dto.passingMarks ?? 0,
+          // @REVIEW: Result visibility settings
+          result_visibility: dto.resultVisibility ?? 'immediate',
+          result_release_date: dto.resultReleaseDate?.toISOString() ?? null,
+          show_score: dto.showScore ?? true,
+          show_percentage: dto.showPercentage ?? true,
+          show_pass_fail: dto.showPassFail ?? true,
+          show_correct_answers: dto.showCorrectAnswers ?? true,
+          show_student_answers: dto.showStudentAnswers ?? true,
+          show_explanations: dto.showExplanations ?? true,
+          show_question_review: dto.showQuestionReview ?? true,
+          show_time_spent: dto.showTimeSpent ?? true,
+          show_teacher_remarks: dto.showTeacherRemarks ?? true,
+          show_rank: dto.showRank ?? false,
+          // @REVIEW: Exam style settings
+          exam_style: dto.examStyle ?? 'standard',
+          total_time_limit_minutes: dto.totalTimeLimitMinutes ?? null,
+          show_immediate_feedback: dto.showImmediateFeedback ?? false,
+          shuffle_questions: dto.shuffleQuestions ?? false,
+          shuffle_options: dto.shuffleOptions ?? false,
         })
         .select()
         .single()
@@ -1363,6 +1405,26 @@ class SupabaseExamAdapter implements IExamAdapter {
     if (dto.scheduledEnd !== undefined) updateData['scheduled_end'] = dto.scheduledEnd?.toISOString() ?? null;
     if (dto.durationMinutes !== undefined) updateData['duration_minutes'] = dto.durationMinutes;
     if (dto.passingMarks !== undefined) updateData['passing_marks'] = dto.passingMarks;
+    // @REVIEW: Result visibility settings
+    if (dto.resultVisibility !== undefined) updateData['result_visibility'] = dto.resultVisibility;
+    if (dto.resultReleaseDate !== undefined) updateData['result_release_date'] = dto.resultReleaseDate?.toISOString() ?? null;
+    if (dto.isResultReleased !== undefined) updateData['is_result_released'] = dto.isResultReleased;
+    if (dto.showScore !== undefined) updateData['show_score'] = dto.showScore;
+    if (dto.showPercentage !== undefined) updateData['show_percentage'] = dto.showPercentage;
+    if (dto.showPassFail !== undefined) updateData['show_pass_fail'] = dto.showPassFail;
+    if (dto.showCorrectAnswers !== undefined) updateData['show_correct_answers'] = dto.showCorrectAnswers;
+    if (dto.showStudentAnswers !== undefined) updateData['show_student_answers'] = dto.showStudentAnswers;
+    if (dto.showExplanations !== undefined) updateData['show_explanations'] = dto.showExplanations;
+    if (dto.showQuestionReview !== undefined) updateData['show_question_review'] = dto.showQuestionReview;
+    if (dto.showTimeSpent !== undefined) updateData['show_time_spent'] = dto.showTimeSpent;
+    if (dto.showTeacherRemarks !== undefined) updateData['show_teacher_remarks'] = dto.showTeacherRemarks;
+    if (dto.showRank !== undefined) updateData['show_rank'] = dto.showRank;
+    // @REVIEW: Exam style settings
+    if (dto.examStyle !== undefined) updateData['exam_style'] = dto.examStyle;
+    if (dto.totalTimeLimitMinutes !== undefined) updateData['total_time_limit_minutes'] = dto.totalTimeLimitMinutes;
+    if (dto.showImmediateFeedback !== undefined) updateData['show_immediate_feedback'] = dto.showImmediateFeedback;
+    if (dto.shuffleQuestions !== undefined) updateData['shuffle_questions'] = dto.shuffleQuestions;
+    if (dto.shuffleOptions !== undefined) updateData['shuffle_options'] = dto.shuffleOptions;
 
     return from(
       this.supabase
@@ -1722,12 +1784,13 @@ class SupabaseSubmissionAdapter implements ISubmissionAdapter {
   }
 
   // @REVIEW: Start exam - creates submission record with in_progress status
+  // Also handles retake logic by checking previous submission status
   startExam(examId: string, studentId: string): Observable<ExamSubmission> {
-    // First check existing submissions to get attempt number
+    // First check existing submissions to get attempt number and validate retake eligibility
     return from(
       this.supabase
         .from('exam_submissions')
-        .select('attempt_number')
+        .select('id, attempt_number, status')
         .eq('exam_id', examId)
         .eq('student_id', studentId)
         .order('attempt_number', { ascending: false })
@@ -1735,27 +1798,54 @@ class SupabaseSubmissionAdapter implements ISubmissionAdapter {
     ).pipe(
       switchMap(({ data, error }) => {
         if (error) throw new Error(error.message);
-        const lastAttempt = data?.[0]?.attempt_number ?? 0;
+        
+        const lastSubmission = data?.[0];
+        const lastAttempt = lastSubmission?.attempt_number ?? 0;
+        const lastStatus = lastSubmission?.status;
         const newAttemptNumber = lastAttempt + 1;
 
-        return from(
-          this.supabase
-            .from('exam_submissions')
-            .insert({
-              exam_id: examId,
-              student_id: studentId,
-              status: 'in_progress',
-              started_at: new Date().toISOString(),
-              attempt_number: newAttemptNumber,
-              total_answered: 0,
-              total_correct: 0,
-              total_wrong: 0,
-              total_skipped: 0,
-              score: 0,
-              percentage: 0,
-            })
-            .select()
-            .single()
+        // @REVIEW: If this is not the first attempt, check retake eligibility
+        // Student can only start a new attempt if:
+        // 1. No previous submission exists (first attempt)
+        // 2. Previous submission has status 'retake_allowed'
+        if (lastSubmission && lastStatus !== 'retake_allowed') {
+          // Check if previous submission is in_progress (resuming)
+          if (lastStatus === 'in_progress') {
+            throw new Error('You already have an exam in progress. Please resume it.');
+          }
+          throw new Error('You have already completed this exam. Contact your teacher to request a retake.');
+        }
+
+        // @REVIEW: If there was a previous submission with retake_allowed, update it to mark retake as used
+        const updatePreviousSubmission$ = lastSubmission && lastStatus === 'retake_allowed'
+          ? from(
+              this.supabase
+                .from('exam_submissions')
+                .update({ status: 'evaluated' }) // Revert to evaluated since retake is being used
+                .eq('id', lastSubmission.id)
+            ).pipe(map(() => void 0))
+          : of(void 0);
+
+        return updatePreviousSubmission$.pipe(
+          switchMap(() => from(
+            this.supabase
+              .from('exam_submissions')
+              .insert({
+                exam_id: examId,
+                student_id: studentId,
+                status: 'in_progress',
+                started_at: new Date().toISOString(),
+                attempt_number: newAttemptNumber,
+                total_answered: 0,
+                total_correct: 0,
+                total_wrong: 0,
+                total_skipped: 0,
+                score: 0,
+                percentage: 0,
+              })
+              .select()
+              .single()
+          ))
         );
       }),
       map(({ data, error }) => {
@@ -1981,6 +2071,25 @@ class SupabaseSubmissionAdapter implements ISubmissionAdapter {
         .from('exam_submissions')
         .update({
           status: 'retake_allowed',
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Cancel retake - reverts status back to evaluated
+  cancelRetake(submissionId: string): Observable<ExamSubmission> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .update({
+          status: 'evaluated',
         })
         .eq('id', submissionId)
         .select()

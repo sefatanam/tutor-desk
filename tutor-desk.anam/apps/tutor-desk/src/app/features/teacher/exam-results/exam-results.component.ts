@@ -242,7 +242,7 @@ interface SubmissionRow {
                   }
                 </td>
                 <td>
-                  <div class="actions-cell">
+                    <div class="actions-cell">
                     <p-button
                       icon="pi pi-eye"
                       [rounded]="true"
@@ -258,6 +258,16 @@ interface SubmissionRow {
                         severity="warn"
                         pTooltip="Allow Retake"
                         (click)="confirmAllowRetake(row)"
+                      />
+                    }
+                    @if (row.submission.status === 'retake_allowed') {
+                      <p-button
+                        icon="pi pi-times"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="danger"
+                        pTooltip="Cancel Retake"
+                        (click)="confirmCancelRetake(row)"
                       />
                     }
                   </div>
@@ -805,6 +815,47 @@ export class ExamResultsComponent implements OnInit {
           severity: 'error',
           summary: 'Error',
           detail: 'Failed to allow retake',
+        });
+      },
+    });
+  }
+
+  // @REVIEW: Cancel retake confirmation dialog
+  confirmCancelRetake(row: SubmissionRow): void {
+    this.confirmationService.confirm({
+      message: `Cancel retake permission for ${row.student?.user?.fullName ?? 'this student'}? Their previous result will be restored.`,
+      header: 'Cancel Retake',
+      icon: 'pi pi-times-circle',
+      acceptLabel: 'Cancel Retake',
+      acceptButtonStyleClass: 'p-button-danger',
+      rejectLabel: 'Keep',
+      accept: () => this.cancelRetake(row),
+    });
+  }
+
+  // @REVIEW: Cancel retake - reverts status back to evaluated
+  private cancelRetake(row: SubmissionRow): void {
+    this.db.submissions.cancelRetake(row.submission.id).subscribe({
+      next: (updated) => {
+        this.submissions.update(list =>
+          list.map(r =>
+            r.submission.id === updated.id
+              ? { ...r, submission: updated }
+              : r
+          )
+        );
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Retake Cancelled',
+          detail: `${row.student?.user?.fullName ?? 'Student'}'s retake permission has been revoked`,
+        });
+      },
+      error: (err) => {
+        console.error('Failed to cancel retake:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to cancel retake',
         });
       },
     });
