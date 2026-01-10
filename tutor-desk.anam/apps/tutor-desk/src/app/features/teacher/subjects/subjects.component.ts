@@ -1,8 +1,8 @@
-// @REVIEW: Teacher Subjects - Placeholder
-// @REVIEW: Teacher Subjects - Full CRUD implementation
+// @REVIEW: Teacher Subjects - Refactored to use navigation instead of dialogs
 import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { Table } from 'primeng/table';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
@@ -15,10 +15,6 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { SkeletonModule } from 'primeng/skeleton';
-import { DialogModule } from 'primeng/dialog';
-import { FloatLabelModule } from 'primeng/floatlabel';
-import { ColorPickerModule } from 'primeng/colorpicker';
-import { TextareaModule } from 'primeng/textarea';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
@@ -26,10 +22,10 @@ import { Subject } from '../../../core/models';
 
 @Component({
   selector: 'app-subjects',
+  // @NOT-NEED: Removed dialog, form-related imports (DialogModule, FloatLabelModule, ColorPickerModule, TextareaModule, ReactiveFormsModule)
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     CardModule,
     TableModule,
     ButtonModule,
@@ -41,10 +37,6 @@ import { Subject } from '../../../core/models';
     ConfirmDialogModule,
     ToastModule,
     SkeletonModule,
-    DialogModule,
-    FloatLabelModule,
-    ColorPickerModule,
-    TextareaModule,
   ],
   providers: [ConfirmationService, MessageService],
   template: `
@@ -56,7 +48,7 @@ import { Subject } from '../../../core/models';
           <p class="page-header__subtitle">Manage the subjects you teach and their details</p>
         </div>
         <div class="page-header__actions">
-          <p-button label="Add Subject" icon="pi pi-plus" (click)="showAddDialog()" />
+          <p-button label="Add Subject" icon="pi pi-plus" (click)="navigateToCreate()" />
         </div>
       </header>
 
@@ -130,7 +122,7 @@ import { Subject } from '../../../core/models';
             <i class="pi pi-book empty-state__icon"></i>
             <h3 class="empty-state__title">No subjects yet</h3>
             <p class="empty-state__text">Start by adding your first subject</p>
-            <p-button label="Add Subject" icon="pi pi-plus" (click)="showAddDialog()" />
+            <p-button label="Add Subject" icon="pi pi-plus" (click)="navigateToCreate()" />
           </div>
         } @else {
           <p-table
@@ -190,6 +182,16 @@ import { Subject } from '../../../core/models';
                 <td>
                   <div class="action-buttons">
                     <p-button
+                      icon="pi pi-eye"
+                      severity="info"
+                      [text]="true"
+                      size="small"
+                      [rounded]="true"
+                      pTooltip="View Details"
+                      tooltipPosition="top"
+                      (click)="navigateToDetail(subject)"
+                    />
+                    <p-button
                       icon="pi pi-pencil"
                       severity="secondary"
                       [text]="true"
@@ -197,7 +199,7 @@ import { Subject } from '../../../core/models';
                       [rounded]="true"
                       pTooltip="Edit"
                       tooltipPosition="top"
-                      (click)="showEditDialog(subject)"
+                      (click)="navigateToEdit(subject)"
                     />
                     @if (subject.isActive) {
                       <p-button
@@ -241,67 +243,7 @@ import { Subject } from '../../../core/models';
       </p-card>
     </div>
 
-    <!-- Add/Edit Subject Dialog -->
-    <p-dialog
-      [header]="editingSubject() ? 'Edit Subject' : 'Add New Subject'"
-      [(visible)]="dialogVisible"
-      [modal]="true"
-      [style]="{ width: '500px' }"
-      [draggable]="false"
-      [resizable]="false"
-    >
-      <form [formGroup]="subjectForm" (ngSubmit)="saveSubject()">
-        <div class="form-grid">
-          <div class="form-field">
-            <p-floatlabel>
-              <input pInputText id="name" formControlName="name" class="w-full" />
-              <label for="name">Subject Name *</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-field">
-            <p-floatlabel>
-              <input pInputText id="code" formControlName="code" class="w-full" />
-              <label for="code">Subject Code</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-field">
-            <p-floatlabel>
-              <textarea pTextarea id="description" formControlName="description" rows="3" class="w-full"></textarea>
-              <label for="description">Description</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-row">
-            <div class="form-field">
-              <label class="field-label">Color</label>
-              <p-colorpicker formControlName="color" />
-            </div>
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="icon" formControlName="icon" class="w-full" />
-                <label for="icon">Icon (pi-*)</label>
-              </p-floatlabel>
-            </div>
-          </div>
-          <div class="icon-preview">
-            <span class="icon-preview__label">Preview:</span>
-            <div class="icon-preview__box" [style.background]="subjectForm.get('color')?.value">
-              <i [class]="'pi ' + subjectForm.get('icon')?.value"></i>
-            </div>
-          </div>
-        </div>
-      </form>
-
-      <ng-template #footer>
-        <p-button label="Cancel" severity="secondary" [text]="true" (click)="dialogVisible = false" />
-        <p-button
-          [label]="editingSubject() ? 'Update' : 'Create'"
-          icon="pi pi-check"
-          (click)="saveSubject()"
-          [loading]="saving()"
-          [disabled]="!subjectForm.valid"
-        />
-      </ng-template>
-    </p-dialog>
+    <!-- @NOT-NEED: Dialog removed - now using dedicated pages for create/edit -->
 
     <p-confirmDialog />
     <p-toast />
@@ -333,14 +275,7 @@ import { Subject } from '../../../core/models';
     .empty-state__icon { font-size: 4rem; color: var(--text-color-secondary); opacity: 0.5; margin-bottom: 1rem; }
     .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
     .empty-state__text { margin: 0 0 1.5rem; color: var(--text-color-secondary); }
-    .form-grid { display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem 0; }
-    .form-row { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: end; }
-    .form-field { width: 100%; }
-    .field-label { display: block; font-size: 0.875rem; color: var(--text-color-secondary); margin-bottom: 0.5rem; }
-    .w-full { width: 100%; }
-    .icon-preview { display: flex; align-items: center; gap: 1rem; }
-    .icon-preview__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .icon-preview__box { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; color: white; font-size: 1.25rem; }
+    /* @NOT-NEED: Form/dialog styles removed - now using dedicated pages */
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -349,7 +284,7 @@ export class SubjectsComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
-  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   // @REVIEW: Table reference for global filtering
   readonly dt = viewChild<Table>('dt');
@@ -357,20 +292,9 @@ export class SubjectsComponent implements OnInit {
   // State
   readonly loading = signal(true);
   readonly loadingStats = signal(true);
-  readonly saving = signal(false);
   readonly subjects = signal<Subject[]>([]);
-  readonly editingSubject = signal<Subject | null>(null);
 
   globalFilter = '';
-  dialogVisible = false;
-
-  readonly subjectForm = this.fb.group({
-    name: ['', Validators.required],
-    code: [''],
-    description: [''],
-    color: ['#4CAF50'],
-    icon: ['pi-book'],
-  });
 
   readonly teacherId = computed(() => this.authStore.teacherId());
 
@@ -412,82 +336,17 @@ export class SubjectsComponent implements OnInit {
     });
   }
 
-  showAddDialog(): void {
-    this.editingSubject.set(null);
-    this.subjectForm.reset({
-      name: '',
-      code: '',
-      description: '',
-      color: '#4CAF50',
-      icon: 'pi-book',
-    });
-    this.dialogVisible = true;
+  // @REVIEW: Navigation methods (replaces dialog methods)
+  navigateToCreate(): void {
+    this.router.navigate(['/teacher/subjects/create']);
   }
 
-  showEditDialog(subject: Subject): void {
-    this.editingSubject.set(subject);
-    this.subjectForm.patchValue({
-      name: subject.name,
-      code: subject.code ?? '',
-      description: subject.description ?? '',
-      color: subject.color,
-      icon: subject.icon,
-    });
-    this.dialogVisible = true;
+  navigateToDetail(subject: Subject): void {
+    this.router.navigate(['/teacher/subjects', subject.id]);
   }
 
-  saveSubject(): void {
-    if (!this.subjectForm.valid) return;
-
-    const teacherId = this.teacherId();
-    if (!teacherId) return;
-
-    this.saving.set(true);
-    const formValue = this.subjectForm.value;
-
-    if (this.editingSubject()) {
-      const subjectId = this.editingSubject()!.id;
-      this.db.subjects.update(subjectId, {
-        name: formValue.name || undefined,
-        code: formValue.code || undefined,
-        description: formValue.description || undefined,
-        color: formValue.color || undefined,
-        icon: formValue.icon || undefined,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.dialogVisible = false;
-          this.loadSubjects();
-          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Subject updated successfully.' });
-        },
-        error: (err) => {
-          console.error('Failed to update subject:', err);
-          this.saving.set(false);
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update subject.' });
-        },
-      });
-    } else {
-      this.db.subjects.create({
-        teacherId,
-        name: formValue.name!,
-        code: formValue.code || undefined,
-        description: formValue.description || undefined,
-        color: formValue.color || undefined,
-        icon: formValue.icon || undefined,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.dialogVisible = false;
-          this.loadSubjects();
-          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Subject created successfully.' });
-        },
-        error: (err) => {
-          console.error('Failed to create subject:', err);
-          this.saving.set(false);
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: err.message || 'Failed to create subject.' });
-        },
-      });
-    }
+  navigateToEdit(subject: Subject): void {
+    this.router.navigate(['/teacher/subjects', subject.id, 'edit']);
   }
 
   confirmDeactivate(subject: Subject): void {

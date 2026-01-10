@@ -1,8 +1,9 @@
-// @REVIEW: Teacher Students Management - Full implementation
+// @REVIEW: Teacher Students Management - Refactored to use navigation instead of dialogs
 import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild } from '@angular/core';
 import { Table } from 'primeng/table';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -16,9 +17,6 @@ import { SelectModule } from 'primeng/select';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { SkeletonModule } from 'primeng/skeleton';
-import { DialogModule } from 'primeng/dialog';
-import { FloatLabelModule } from 'primeng/floatlabel';
-import { DatePickerModule } from 'primeng/datepicker';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
@@ -26,10 +24,10 @@ import { StudentWithUser } from '../../../core/models';
 
 @Component({
   selector: 'app-students',
+  // @NOT-NEED: Removed dialog, form-related imports (DialogModule, FloatLabelModule, DatePickerModule, ReactiveFormsModule, Validators, FormBuilder)
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     CardModule,
     TableModule,
     ButtonModule,
@@ -43,9 +41,6 @@ import { StudentWithUser } from '../../../core/models';
     ConfirmDialogModule,
     ToastModule,
     SkeletonModule,
-    DialogModule,
-    FloatLabelModule,
-    DatePickerModule,
   ],
   providers: [ConfirmationService, MessageService],
   template: `
@@ -57,7 +52,7 @@ import { StudentWithUser } from '../../../core/models';
           <p class="page-header__subtitle">Manage your students and their information</p>
         </div>
         <div class="page-header__actions">
-          <p-button label="Add Student" icon="pi pi-plus" (click)="showAddDialog()" />
+          <p-button label="Add Student" icon="pi pi-plus" (click)="navigateToCreate()" />
         </div>
       </header>
 
@@ -138,7 +133,7 @@ import { StudentWithUser } from '../../../core/models';
             <i class="pi pi-users empty-state__icon"></i>
             <h3 class="empty-state__title">No students yet</h3>
             <p class="empty-state__text">Start by adding your first student</p>
-            <p-button label="Add Student" icon="pi pi-plus" (click)="showAddDialog()" />
+            <p-button label="Add Student" icon="pi pi-plus" (click)="navigateToCreate()" />
           </div>
         } @else {
           <p-table
@@ -214,6 +209,16 @@ import { StudentWithUser } from '../../../core/models';
                 <td>
                   <div class="action-buttons">
                     <p-button
+                      icon="pi pi-eye"
+                      severity="info"
+                      [text]="true"
+                      size="small"
+                      [rounded]="true"
+                      pTooltip="View Details"
+                      tooltipPosition="top"
+                      (click)="navigateToDetail(student)"
+                    />
+                    <p-button
                       icon="pi pi-pencil"
                       severity="secondary"
                       [text]="true"
@@ -221,7 +226,7 @@ import { StudentWithUser } from '../../../core/models';
                       [rounded]="true"
                       pTooltip="Edit"
                       tooltipPosition="top"
-                      (click)="showEditDialog(student)"
+                      (click)="navigateToEdit(student)"
                     />
                     @if (student.user.status === 'active') {
                       <p-button
@@ -265,95 +270,7 @@ import { StudentWithUser } from '../../../core/models';
       </p-card>
     </div>
 
-    <!-- Add/Edit Student Dialog -->
-    <p-dialog
-      [header]="editingStudent() ? 'Edit Student' : 'Add New Student'"
-      [(visible)]="dialogVisible"
-      [modal]="true"
-      [style]="{ width: '500px' }"
-      [draggable]="false"
-      [resizable]="false"
-    >
-      <form [formGroup]="studentForm" (ngSubmit)="saveStudent()">
-        <div class="form-grid">
-          @if (!editingStudent()) {
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="fullName" formControlName="fullName" class="w-full" />
-                <label for="fullName">Full Name *</label>
-              </p-floatlabel>
-            </div>
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="email" formControlName="email" class="w-full" />
-                <label for="email">Email *</label>
-              </p-floatlabel>
-            </div>
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="password" type="password" formControlName="password" class="w-full" />
-                <label for="password">Password *</label>
-              </p-floatlabel>
-            </div>
-          }
-          <div class="form-field">
-            <p-floatlabel>
-              <input pInputText id="rollNumber" formControlName="rollNumber" class="w-full" />
-              <label for="rollNumber">Roll Number</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-row">
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="className" formControlName="className" class="w-full" />
-                <label for="className">Class</label>
-              </p-floatlabel>
-            </div>
-            <div class="form-field">
-              <p-floatlabel>
-                <input pInputText id="section" formControlName="section" class="w-full" />
-                <label for="section">Section</label>
-              </p-floatlabel>
-            </div>
-          </div>
-          <div class="form-field">
-            <p-floatlabel>
-              <input pInputText id="guardianName" formControlName="guardianName" class="w-full" />
-              <label for="guardianName">Guardian Name</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-field">
-            <p-floatlabel>
-              <input pInputText id="guardianPhone" formControlName="guardianPhone" class="w-full" />
-              <label for="guardianPhone">Guardian Phone</label>
-            </p-floatlabel>
-          </div>
-          <div class="form-field">
-            <p-floatlabel>
-              <p-datepicker
-                id="dateOfBirth"
-                formControlName="dateOfBirth"
-                dateFormat="yy-mm-dd"
-                [showIcon]="true"
-                class="w-full"
-              />
-              <label for="dateOfBirth">Date of Birth</label>
-            </p-floatlabel>
-          </div>
-        </div>
-      </form>
-
-      <ng-template #footer>
-        <p-button label="Cancel" severity="secondary" [text]="true" (click)="dialogVisible = false" />
-        <p-button
-          [label]="editingStudent() ? 'Update' : 'Create'"
-          icon="pi pi-check"
-          (click)="saveStudent()"
-          [loading]="saving()"
-          [disabled]="!studentForm.valid"
-        />
-      </ng-template>
-    </p-dialog>
+    <!-- @NOT-NEED: Dialog removed - now using dedicated pages for create/edit -->
 
     <p-confirmDialog />
     <p-toast />
@@ -390,10 +307,7 @@ import { StudentWithUser } from '../../../core/models';
     .empty-state__icon { font-size: 4rem; color: var(--text-color-secondary); opacity: 0.5; margin-bottom: 1rem; }
     .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
     .empty-state__text { margin: 0 0 1.5rem; color: var(--text-color-secondary); }
-    .form-grid { display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem 0; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-field { width: 100%; }
-    .w-full { width: 100%; }
+    /* @NOT-NEED: Form/dialog styles removed - now using dedicated pages */
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -402,7 +316,7 @@ export class StudentsComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
-  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   // @REVIEW: Table reference for global filtering
   readonly dt = viewChild<Table>('dt');
@@ -410,31 +324,16 @@ export class StudentsComponent implements OnInit {
   // State
   readonly loading = signal(true);
   readonly loadingStats = signal(true);
-  readonly saving = signal(false);
   readonly students = signal<StudentWithUser[]>([]);
-  readonly editingStudent = signal<StudentWithUser | null>(null);
 
   globalFilter = '';
   selectedStatus: string | null = null;
-  dialogVisible = false;
 
   readonly statusOptions = [
     { label: 'Active', value: 'active' },
     { label: 'Disabled', value: 'disabled' },
     { label: 'Pending', value: 'pending' },
   ];
-
-  readonly studentForm = this.fb.group({
-    fullName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', Validators.required],
-    rollNumber: [''],
-    className: [''],
-    section: [''],
-    guardianName: [''],
-    guardianPhone: [''],
-    dateOfBirth: [null as Date | null],
-  });
 
   readonly teacherId = computed(() => this.authStore.teacherId());
 
@@ -486,92 +385,17 @@ export class StudentsComponent implements OnInit {
     });
   }
 
-  showAddDialog(): void {
-    this.editingStudent.set(null);
-    this.studentForm.reset();
-    this.studentForm.get('password')?.setValidators(Validators.required);
-    this.studentForm.get('fullName')?.setValidators(Validators.required);
-    this.studentForm.get('email')?.setValidators([Validators.required, Validators.email]);
-    this.dialogVisible = true;
+  // @REVIEW: Navigation methods (replaces dialog methods)
+  navigateToCreate(): void {
+    this.router.navigate(['/teacher/students/create']);
   }
 
-  showEditDialog(student: StudentWithUser): void {
-    this.editingStudent.set(student);
-    this.studentForm.patchValue({
-      fullName: student.user.fullName,
-      email: student.user.email,
-      password: '',
-      rollNumber: student.rollNumber ?? '',
-      className: student.className ?? '',
-      section: student.section ?? '',
-      guardianName: student.guardianName ?? '',
-      guardianPhone: student.guardianPhone ?? '',
-      dateOfBirth: student.dateOfBirth,
-    });
-    this.studentForm.get('password')?.clearValidators();
-    this.studentForm.get('fullName')?.clearValidators();
-    this.studentForm.get('email')?.clearValidators();
-    this.studentForm.updateValueAndValidity();
-    this.dialogVisible = true;
+  navigateToDetail(student: StudentWithUser): void {
+    this.router.navigate(['/teacher/students', student.id]);
   }
 
-  saveStudent(): void {
-    if (!this.studentForm.valid && !this.editingStudent()) return;
-
-    const teacherId = this.teacherId();
-    if (!teacherId) return;
-
-    this.saving.set(true);
-    const formValue = this.studentForm.value;
-
-    if (this.editingStudent()) {
-      const studentId = this.editingStudent()!.id;
-      this.db.students.update(studentId, {
-        rollNumber: formValue.rollNumber || undefined,
-        className: formValue.className || undefined,
-        section: formValue.section || undefined,
-        guardianName: formValue.guardianName || undefined,
-        guardianPhone: formValue.guardianPhone || undefined,
-        dateOfBirth: formValue.dateOfBirth || undefined,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.dialogVisible = false;
-          this.loadStudents();
-          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Student updated successfully.' });
-        },
-        error: (err) => {
-          console.error('Failed to update student:', err);
-          this.saving.set(false);
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update student.' });
-        },
-      });
-    } else {
-      this.db.students.create({
-        email: formValue.email!,
-        password: formValue.password!,
-        fullName: formValue.fullName!,
-        teacherId,
-        rollNumber: formValue.rollNumber || undefined,
-        className: formValue.className || undefined,
-        section: formValue.section || undefined,
-        guardianName: formValue.guardianName || undefined,
-        guardianPhone: formValue.guardianPhone || undefined,
-        dateOfBirth: formValue.dateOfBirth || undefined,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.dialogVisible = false;
-          this.loadStudents();
-          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Student created successfully.' });
-        },
-        error: (err) => {
-          console.error('Failed to create student:', err);
-          this.saving.set(false);
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: err.message || 'Failed to create student.' });
-        },
-      });
-    }
+  navigateToEdit(student: StudentWithUser): void {
+    this.router.navigate(['/teacher/students', student.id, 'edit']);
   }
 
   confirmDisable(student: StudentWithUser): void {

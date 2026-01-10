@@ -13,6 +13,7 @@ export const teacherRoutes: Routes = [
       import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
     title: 'Teacher Dashboard - Tutor Desk',
   },
+  // @REVIEW: Student routes - specific routes MUST come before parameterized routes
   {
     path: 'students',
     loadComponent: () =>
@@ -20,11 +21,49 @@ export const teacherRoutes: Routes = [
     title: 'My Students - Tutor Desk',
   },
   {
+    path: 'students/create',
+    loadComponent: () =>
+      import('./student-form/student-form.component').then(m => m.StudentFormComponent),
+    title: 'Add Student - Tutor Desk',
+  },
+  {
+    path: 'students/:id/edit',
+    loadComponent: () =>
+      import('./student-form/student-form.component').then(m => m.StudentFormComponent),
+    title: 'Edit Student - Tutor Desk',
+  },
+  {
+    path: 'students/:id',
+    loadComponent: () =>
+      import('./student-detail/student-detail.component').then(m => m.StudentDetailComponent),
+    title: 'Student Details - Tutor Desk',
+  },
+  // @REVIEW: Subject routes - specific routes MUST come before parameterized routes
+  {
     path: 'subjects',
     loadComponent: () =>
       import('./subjects/subjects.component').then(m => m.SubjectsComponent),
     title: 'My Subjects - Tutor Desk',
   },
+  {
+    path: 'subjects/create',
+    loadComponent: () =>
+      import('./subject-form/subject-form.component').then(m => m.SubjectFormComponent),
+    title: 'Add Subject - Tutor Desk',
+  },
+  {
+    path: 'subjects/:id/edit',
+    loadComponent: () =>
+      import('./subject-form/subject-form.component').then(m => m.SubjectFormComponent),
+    title: 'Edit Subject - Tutor Desk',
+  },
+  {
+    path: 'subjects/:id',
+    loadComponent: () =>
+      import('./subject-detail/subject-detail.component').then(m => m.SubjectDetailComponent),
+    title: 'Subject Details - Tutor Desk',
+  },
+  // @REVIEW: Exam routes - specific routes MUST come before parameterized routes
   {
     path: 'exams',
     loadComponent: () =>
