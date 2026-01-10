@@ -40,14 +40,50 @@ Changes:
 - Added approve/reject functionality with ConfirmDialog
 - Added skeleton loading for all sections
 
-## Pending
-- Build Teacher Dashboard
-- Implement remaining database adapters (Student, Subject, Exam, etc.)
+## Completed Today (Continued)
 
-## Key Files Modified
-| File | Description |
-|------|-------------|
-| `core/adapters/supabase-database.adapter.ts` | New - Full database adapter |
-| `app.config.ts` | Added `provideSupabaseDatabaseAdapter()` |
-| `features/super-admin/teachers/teachers.component.ts` | Complete rewrite |
-| `features/super-admin/dashboard/dashboard.component.ts` | Connected to real data |
+### 5. Implemented SupabaseExamAdapter
+**File:** `apps/tutor-desk/src/app/core/adapters/supabase-database.adapter.ts`
+
+Added helper mappers:
+- `mapDbSubjectToModel` - Maps DB subject row to Subject model
+- `mapDbExamToModel` - Maps DB exam row to Exam model
+- `mapDbExamWithSubjectToModel` - Maps exam with joined subject
+
+Implemented methods:
+- `getById(id)` - Get single exam with subject
+- `getBySubject(subjectId, params)` - Paginated exams by subject
+- `getByTeacher(teacherId, params)` - Paginated exams by teacher with subjects
+- `getUpcomingForStudent(studentId)` - Active exams for enrolled student
+- `create(dto)` - Create new exam
+- `update(id, dto)` - Update existing exam
+- `publish(id)` - Publish exam (set status to active)
+- `cancel(id)` - Cancel exam
+- `delete(id)` - Delete exam
+
+### 6. Built Teacher Dashboard with Real Data
+**File:** `apps/tutor-desk/src/app/features/teacher/dashboard/dashboard.component.ts`
+
+Features:
+- Stats cards from `TeacherDashboardStats` (Students, Subjects, Active Exams, Avg Score)
+- Skeleton loading states for stats and exams table
+- Empty state for no exams
+- Recent exams table with subject color/icon
+- Status badges with severity mapping
+- Quick action buttons routed to:
+  - Create Exam → `/teacher/exams/create`
+  - Add Student → `/teacher/students`
+  - New Subject → `/teacher/subjects`
+- View/Edit buttons on exam rows
+
+Services used:
+- `AuthStore.teacherId()` - Get current teacher's ID
+- `SupabaseDatabaseAdapter.teachers.getDashboardStats(teacherId)`
+- `SupabaseDatabaseAdapter.exams.getByTeacher(teacherId, params)`
+
+## Pending
+- Implement Teacher Students management page
+- Implement Teacher Subjects management page
+- Implement Teacher Exams list page
+- Implement Exam Editor (create/edit exams with questions)
+- Build Student Portal

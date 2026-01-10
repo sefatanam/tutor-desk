@@ -107,6 +107,60 @@ const mapDbTeacherWithUserToModel = (row: Record<string, unknown>): TeacherWithU
   };
 };
 
+// @REVIEW: Subject mapper
+const mapDbSubjectToModel = (row: Record<string, unknown>): Subject => ({
+  id: row['id'] as string,
+  teacherId: row['teacher_id'] as string,
+  name: row['name'] as string,
+  description: row['description'] as string | null,
+  code: row['code'] as string | null,
+  color: row['color'] as string ?? '#4CAF50',
+  icon: row['icon'] as string ?? 'pi-book',
+  isActive: row['is_active'] as boolean ?? true,
+  totalStudents: row['total_students'] as number ?? 0,
+  totalExams: row['total_exams'] as number ?? 0,
+  totalAssets: row['total_assets'] as number ?? 0,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: Exam mapper
+const mapDbExamToModel = (row: Record<string, unknown>): Exam => ({
+  id: row['id'] as string,
+  subjectId: row['subject_id'] as string,
+  teacherId: row['teacher_id'] as string,
+  title: row['title'] as string,
+  description: row['description'] as string | null,
+  instructions: row['instructions'] as string | null,
+  status: row['status'] as Exam['status'],
+  totalQuestions: row['total_questions'] as number ?? 0,
+  totalMarks: row['total_marks'] as number ?? 0,
+  passingMarks: row['passing_marks'] as number ?? 0,
+  timePerQuestionSeconds: row['time_per_question_seconds'] as number ?? 60,
+  allowSkipReturn: row['allow_skip_return'] as boolean ?? true,
+  fullscreenRequired: row['fullscreen_required'] as boolean ?? true,
+  autoSubmitOnBlur: row['auto_submit_on_blur'] as boolean ?? true,
+  allowRetake: row['allow_retake'] as boolean ?? false,
+  maxRetakes: row['max_retakes'] as number ?? 0,
+  scheduledStart: row['scheduled_start'] ? new Date(row['scheduled_start'] as string) : null,
+  scheduledEnd: row['scheduled_end'] ? new Date(row['scheduled_end'] as string) : null,
+  durationMinutes: row['duration_minutes'] as number | null,
+  totalSubmissions: row['total_submissions'] as number ?? 0,
+  averageScore: row['average_score'] as number ?? 0,
+  publishedAt: row['published_at'] ? new Date(row['published_at'] as string) : null,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: ExamWithSubject mapper
+const mapDbExamWithSubjectToModel = (row: Record<string, unknown>): ExamWithSubject => {
+  const subjectRow = row['subjects'] as Record<string, unknown>;
+  return {
+    ...mapDbExamToModel(row),
+    subject: mapDbSubjectToModel(subjectRow),
+  };
+};
+
 // =============================================
 // AUTH ADAPTER (Stub - Auth is handled via Edge Function)
 // =============================================
@@ -594,21 +648,216 @@ class SupabaseSubjectAdapter implements ISubjectAdapter {
   getEnrolledStudents(_subjectId: string): Observable<StudentWithUser[]> { return of([]); }
 }
 
+// @REVIEW: SupabaseExamAdapter - Full implementation
 @Injectable()
 class SupabaseExamAdapter implements IExamAdapter {
-  getById(_id: string): Observable<ExamWithSubject | null> { return of(null); }
-  getBySubject(_subjectId: string, _params?: PaginationParams): Observable<PaginatedResponse<Exam>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  private readonly supabase = inject(SupabaseClientService);
+
+  getById(id: string): Observable<ExamWithSubject | null> {
+    return from(
+      this.supabase
+        .from('exams')
+        .select('*, subjects(*)')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return null;
+        return mapDbExamWithSubjectToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  getByTeacher(_teacherId: string, _params?: PaginationParams): Observable<PaginatedResponse<ExamWithSubject>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+
+  getBySubject(subjectId: string, params?: PaginationParams): Observable<PaginatedResponse<Exam>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const fromIndex = (page - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+
+    return from(
+      this.supabase
+        .from('exams')
+        .select('*', { count: 'exact' })
+        .eq('subject_id', subjectId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, toIndex)
+    ).pipe(
+      map(({ data, error, count }) => {
+        if (error || !data) {
+          return { items: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+        const items = (data as Record<string, unknown>[]).map(mapDbExamToModel);
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
   }
-  getUpcomingForStudent(_studentId: string): Observable<ExamWithSubject[]> { return of([]); }
-  create(_dto: CreateExamDto): Observable<Exam> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _dto: UpdateExamDto): Observable<Exam> { return throwError(() => new Error('Not implemented')); }
-  publish(_id: string): Observable<Exam> { return throwError(() => new Error('Not implemented')); }
-  cancel(_id: string): Observable<Exam> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
+
+  getByTeacher(teacherId: string, params?: PaginationParams): Observable<PaginatedResponse<ExamWithSubject>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const fromIndex = (page - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+
+    return from(
+      this.supabase
+        .from('exams')
+        .select('*, subjects(*)', { count: 'exact' })
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, toIndex)
+    ).pipe(
+      map(({ data, error, count }) => {
+        if (error || !data) {
+          return { items: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+        const items = (data as Record<string, unknown>[]).map(mapDbExamWithSubjectToModel);
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
+  }
+
+  getUpcomingForStudent(studentId: string): Observable<ExamWithSubject[]> {
+    // Get exams from subjects the student is enrolled in, that are active and upcoming
+    return from(
+      this.supabase
+        .from('exams')
+        .select(`
+          *,
+          subjects!inner(*, subject_enrollments!inner(student_id))
+        `)
+        .eq('subjects.subject_enrollments.student_id', studentId)
+        .eq('status', 'active')
+        .gte('scheduled_end', new Date().toISOString())
+        .order('scheduled_start', { ascending: true })
+        .limit(10)
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) return [];
+        return (data as Record<string, unknown>[]).map(mapDbExamWithSubjectToModel);
+      })
+    );
+  }
+
+  create(dto: CreateExamDto): Observable<Exam> {
+    return from(
+      this.supabase
+        .from('exams')
+        .insert({
+          subject_id: dto.subjectId,
+          teacher_id: dto.teacherId,
+          title: dto.title,
+          description: dto.description ?? null,
+          instructions: dto.instructions ?? null,
+          time_per_question_seconds: dto.timePerQuestionSeconds ?? 60,
+          allow_skip_return: dto.allowSkipReturn ?? true,
+          fullscreen_required: dto.fullscreenRequired ?? true,
+          auto_submit_on_blur: dto.autoSubmitOnBlur ?? true,
+          allow_retake: dto.allowRetake ?? false,
+          max_retakes: dto.maxRetakes ?? 0,
+          scheduled_start: dto.scheduledStart?.toISOString() ?? null,
+          scheduled_end: dto.scheduledEnd?.toISOString() ?? null,
+          duration_minutes: dto.durationMinutes ?? null,
+          passing_marks: dto.passingMarks ?? 0,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  update(id: string, dto: UpdateExamDto): Observable<Exam> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.title !== undefined) updateData['title'] = dto.title;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.instructions !== undefined) updateData['instructions'] = dto.instructions;
+    if (dto.timePerQuestionSeconds !== undefined) updateData['time_per_question_seconds'] = dto.timePerQuestionSeconds;
+    if (dto.allowSkipReturn !== undefined) updateData['allow_skip_return'] = dto.allowSkipReturn;
+    if (dto.fullscreenRequired !== undefined) updateData['fullscreen_required'] = dto.fullscreenRequired;
+    if (dto.autoSubmitOnBlur !== undefined) updateData['auto_submit_on_blur'] = dto.autoSubmitOnBlur;
+    if (dto.allowRetake !== undefined) updateData['allow_retake'] = dto.allowRetake;
+    if (dto.maxRetakes !== undefined) updateData['max_retakes'] = dto.maxRetakes;
+    if (dto.scheduledStart !== undefined) updateData['scheduled_start'] = dto.scheduledStart?.toISOString() ?? null;
+    if (dto.scheduledEnd !== undefined) updateData['scheduled_end'] = dto.scheduledEnd?.toISOString() ?? null;
+    if (dto.durationMinutes !== undefined) updateData['duration_minutes'] = dto.durationMinutes;
+    if (dto.passingMarks !== undefined) updateData['passing_marks'] = dto.passingMarks;
+
+    return from(
+      this.supabase
+        .from('exams')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  publish(id: string): Observable<Exam> {
+    return from(
+      this.supabase
+        .from('exams')
+        .update({ status: 'active', published_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  cancel(id: string): Observable<Exam> {
+    return from(
+      this.supabase
+        .from('exams')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbExamToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exams')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
 }
 
 @Injectable()
