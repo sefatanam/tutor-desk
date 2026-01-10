@@ -14,10 +14,13 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { AccordionModule } from 'primeng/accordion';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { MenuModule } from 'primeng/menu';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { forkJoin, of } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
+import { PdfExportService, PdfQuestionItem } from '../../../core/services/pdf-export.service';
+import { CsvExportService } from '../../../core/services/csv-export.service';
 import {
   ExamSubmissionWithDetails,
   Question,
@@ -55,6 +58,7 @@ interface QuestionReviewItem {
     ToastModule,
     ConfirmDialogModule,
     AccordionModule,
+    MenuModule,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -135,6 +139,15 @@ interface QuestionReviewItem {
             } @else {
               <p-tag value="Retake Allowed" severity="warn" />
             }
+            <!-- @REVIEW: Export dropdown menu for PDF/CSV -->
+            <p-menu #exportMenu [model]="exportMenuItems()" [popup]="true" />
+            <p-button
+              icon="pi pi-download"
+              label="Export"
+              severity="secondary"
+              [outlined]="true"
+              (click)="exportMenu.toggle($event)"
+            />
           </div>
         </header>
 
@@ -583,6 +596,9 @@ export class SubmissionDetailComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  // @REVIEW: Export services for PDF and CSV generation
+  private readonly pdfExportService = inject(PdfExportService);
+  private readonly csvExportService = inject(CsvExportService);
 
   // State
   readonly loading = signal(true);
@@ -649,6 +665,20 @@ export class SubmissionDetailComponent implements OnInit {
   readonly totalTimeSpent = computed(() =>
     this.reviewItems().reduce((sum, i) => sum + i.timeSpent, 0)
   );
+
+  // @REVIEW: Export menu items for PDF/CSV dropdown
+  readonly exportMenuItems = computed<MenuItem[]>(() => [
+    {
+      label: 'Export as PDF',
+      icon: 'pi pi-file-pdf',
+      command: () => this.exportToPdf(),
+    },
+    {
+      label: 'Export as CSV',
+      icon: 'pi pi-file',
+      command: () => this.exportToCsv(),
+    },
+  ]);
 
   ngOnInit(): void {
     const submissionId = this.route.snapshot.paramMap.get('submissionId');
@@ -818,5 +848,67 @@ export class SubmissionDetailComponent implements OnInit {
     const hours = Math.floor(mins / 60);
     const remainMins = mins % 60;
     return `${hours}h ${remainMins}m`;
+  }
+
+  // @REVIEW: Export submission as PDF
+  exportToPdf(): void {
+    const sub = this.submission();
+    const stud = this.student();
+    if (!sub || !stud) return;
+
+    const pdfQuestions = this.buildPdfQuestionItems();
+
+    this.pdfExportService.exportSubmissionReport({
+      submission: sub,
+      student: stud,
+      questions: pdfQuestions,
+      totalTimeSpent: this.totalTimeSpent(),
+      subjectName: this.subject()?.name ?? null,
+      options: {
+        includeQuestions: true,
+        includeAnswers: true,
+        includeCorrectAnswers: true,
+        includeExplanations: true,
+        includeTimeSpent: true,
+        includeRemarks: true,
+      },
+    });
+  }
+
+  // @REVIEW: Export submission as CSV
+  exportToCsv(): void {
+    const sub = this.submission();
+    const stud = this.student();
+    if (!sub || !stud) return;
+
+    const pdfQuestions = this.buildPdfQuestionItems();
+
+    this.csvExportService.exportSubmissionReport({
+      submission: sub,
+      student: stud,
+      questions: pdfQuestions,
+      totalTimeSpent: this.totalTimeSpent(),
+      subjectName: this.subject()?.name ?? null,
+      options: {
+        includeQuestionDetails: true,
+        includeTimeSpent: true,
+      },
+    });
+  }
+
+  // @REVIEW: Build PdfQuestionItem array from reviewItems
+  private buildPdfQuestionItems(): PdfQuestionItem[] {
+    return this.reviewItems().map(item => ({
+      questionNumber: item.question.sequenceNumber,
+      questionText: item.question.questionText,
+      options: item.question.options,
+      selectedOptionId: item.selectedOption?.id ?? null,
+      correctOptionId: item.correctOption.id,
+      status: item.status,
+      marksObtained: item.marksObtained,
+      maxMarks: item.question.marks,
+      timeSpentSeconds: item.timeSpent,
+      explanation: item.question.explanation ?? null,
+    }));
   }
 }

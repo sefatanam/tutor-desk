@@ -14,9 +14,13 @@ import { InputIconModule } from 'primeng/inputicon';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectModule } from 'primeng/select';
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { forkJoin } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
+import { CsvExportService, CsvResultRow } from '../../../core/services/csv-export.service';
+import { ReportExportService, StudentResultEntry, ExamReportData, SubjectReportData, ExamSummaryForSubject, StudentSubjectSummary, ExamResultForStudent } from '../../../core/services/report-export.service';
 import { ExamSubmission, ExamWithSubject, StudentWithUser } from '../../../core/models';
 
 // @REVIEW: Result item with exam and student details for teacher view
@@ -57,6 +61,7 @@ interface FilterOption {
     SkeletonModule,
     ProgressBarModule,
     SelectModule,
+    MenuModule,
   ],
   template: `
     <div class="results-page">
@@ -175,14 +180,25 @@ interface FilterOption {
 
       <!-- Results Table -->
       <p-card styleClass="results-table-card">
-        <ng-template #header>
-          <div class="table-header">
-            <h2 class="table-header__title">
-              Exam Submissions
-              <span class="table-header__count">({{ filteredResults().length }} results)</span>
-            </h2>
+        <!-- @REVIEW: Custom header with export dropdown -->
+        <div class="table-header">
+          <h2 class="table-header__title">
+            Exam Submissions
+            <span class="table-header__count">({{ filteredResults().length }} results)</span>
+          </h2>
+          <!-- @REVIEW: Export dropdown for bulk CSV/PDF export -->
+          <div class="table-header__actions">
+            <p-menu #exportMenu [model]="exportMenuItems()" [popup]="true" />
+            <p-button
+              icon="pi pi-download"
+              label="Export"
+              severity="secondary"
+              [outlined]="true"
+              [disabled]="loading()"
+              (click)="exportMenu.toggle($event)"
+            />
           </div>
-        </ng-template>
+        </div>
 
         @if (loading()) {
           <div class="skeleton-table">
@@ -379,6 +395,7 @@ interface FilterOption {
       align-items: center;
       padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--surface-200);
+      background: var(--surface-card);
     }
     .table-header__title { 
       margin: 0; 
@@ -393,6 +410,7 @@ interface FilterOption {
       font-weight: 400;
       color: var(--text-color-secondary);
     }
+    .table-header__actions { display: flex; gap: 0.5rem; }
 
     .skeleton-table { padding: 1rem; }
     .skeleton-row {
@@ -458,6 +476,10 @@ export class TeacherResultsComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
+  // @REVIEW: CSV export service for bulk export
+  private readonly csvExportService = inject(CsvExportService);
+  // @REVIEW: Report export service for PDF reports
+  private readonly reportExportService = inject(ReportExportService);
 
   // State
   readonly loading = signal(true);
@@ -589,6 +611,84 @@ export class TeacherResultsComponent implements OnInit {
       { icon: 'pi pi-check-circle', label: 'Passed', value: passed, color: 'var(--green-500)' },
       { icon: 'pi pi-chart-line', label: 'Avg Score', value: `${avgScore}%`, color: 'var(--blue-500)' },
     ];
+  });
+
+  // @REVIEW: Export menu items for bulk CSV/PDF export
+  readonly exportMenuItems = computed<MenuItem[]>(() => {
+    const hasResults = this.filteredResults().length > 0;
+    const hasAnyResults = this.results().length > 0;
+    
+    const items: MenuItem[] = [];
+
+    // @REVIEW: CSV Export submenu
+    items.push({
+      label: 'CSV Export',
+      icon: 'pi pi-file',
+      items: [
+        {
+          label: hasResults ? 'Export Filtered Results' : 'No results to export',
+          icon: 'pi pi-filter',
+          command: () => this.exportToCsv(),
+          disabled: !hasResults,
+        },
+        {
+          label: hasAnyResults ? 'Export All Results' : 'No results available',
+          icon: 'pi pi-list',
+          command: () => this.exportAllToCsv(),
+          disabled: !hasAnyResults,
+        },
+      ],
+    });
+
+    // @REVIEW: PDF Export submenu - always visible with clear options
+    const examId = this.examFilter();
+    const subjectId = this.subjectFilter();
+    const examResults = examId ? this.results().filter(r => r.examId === examId) : [];
+    const subjectResults = subjectId ? this.results().filter(r => r.subjectId === subjectId) : [];
+
+    const pdfItems: MenuItem[] = [];
+
+    // @REVIEW: Exam Report option
+    if (examId && examResults.length > 0) {
+      const selectedExam = this.exams().find(e => e.id === examId);
+      pdfItems.push({
+        label: `Exam Report: ${selectedExam?.title ?? 'Selected Exam'}`,
+        icon: 'pi pi-file-pdf',
+        command: () => this.exportExamReportPdf(),
+      });
+    } else {
+      pdfItems.push({
+        label: examId ? 'No submissions for selected exam' : 'Select an exam filter first',
+        icon: 'pi pi-info-circle',
+        disabled: true,
+        styleClass: 'text-muted',
+      });
+    }
+
+    // @REVIEW: Subject Report option
+    if (subjectId && subjectResults.length > 0) {
+      const selectedSubject = this.subjectOptions().find(s => s.value === subjectId);
+      pdfItems.push({
+        label: `Subject Report: ${selectedSubject?.label ?? 'Selected Subject'}`,
+        icon: 'pi pi-file-pdf',
+        command: () => this.exportSubjectReportPdf(),
+      });
+    } else {
+      pdfItems.push({
+        label: subjectId ? 'No submissions for selected subject' : 'Select a subject filter first',
+        icon: 'pi pi-info-circle',
+        disabled: true,
+        styleClass: 'text-muted',
+      });
+    }
+
+    items.push({
+      label: 'PDF Reports',
+      icon: 'pi pi-file-pdf',
+      items: pdfItems,
+    });
+
+    return items;
   });
 
   ngOnInit(): void {
@@ -757,5 +857,295 @@ export class TeacherResultsComponent implements OnInit {
       'retake_allowed': 'secondary',
     };
     return severities[status] ?? 'info';
+  }
+
+  // @REVIEW: Export filtered results to CSV
+  exportToCsv(): void {
+    const results = this.filteredResults();
+    if (results.length === 0) return;
+
+    const csvRows = this.buildCsvResultRows(results);
+    
+    // Get exam title if single exam is filtered
+    const examId = this.examFilter();
+    const examTitle = examId 
+      ? results.find(r => r.examId === examId)?.examTitle 
+      : undefined;
+    
+    // Get subject name if single subject is filtered
+    const subjectId = this.subjectFilter();
+    const subjectName = subjectId 
+      ? results.find(r => r.subjectId === subjectId)?.subjectName 
+      : undefined;
+
+    this.csvExportService.exportBulkResults({
+      results: csvRows,
+      examTitle,
+      subjectName,
+    });
+  }
+
+  // @REVIEW: Export all results (unfiltered) to CSV
+  exportAllToCsv(): void {
+    const results = this.results();
+    if (results.length === 0) return;
+
+    const csvRows = this.buildCsvResultRows(results);
+
+    this.csvExportService.exportBulkResults({
+      results: csvRows,
+    });
+  }
+
+
+  // =============================================
+  // @REVIEW: PDF EXPORT METHODS
+  // =============================================
+
+  // @REVIEW: Export exam-wise PDF report (deduplicates students, shows last attempt only)
+  exportExamReportPdf(): void {
+    const examId = this.examFilter();
+    console.log('[PDF Export] examId:', examId);
+    if (!examId) {
+      console.warn('[PDF Export] No exam selected');
+      return;
+    }
+
+    const exam = this.exams().find(e => e.id === examId);
+    console.log('[PDF Export] Found exam:', exam?.title);
+    if (!exam) {
+      console.warn('[PDF Export] Exam not found in exams list');
+      return;
+    }
+
+    const teacherName = this.authStore.user()?.fullName ?? 'Teacher';
+    
+    // @REVIEW: Get all results for this exam
+    const examResults = this.results().filter(r => r.examId === examId);
+    console.log('[PDF Export] Exam results count:', examResults.length);
+    
+    // @REVIEW: Deduplicate students - keep only the latest attempt per student
+    const deduplicatedResults = this.deduplicateStudentResults(examResults);
+    console.log('[PDF Export] Deduplicated results count:', deduplicatedResults.length);
+    
+    // @REVIEW: Build student entries for the report
+    const studentEntries: StudentResultEntry[] = deduplicatedResults.map(item => {
+      const student = this.students().find(s => s.id === item.studentId);
+      const allAttempts = examResults.filter(r => r.studentId === item.studentId);
+      const hasRetake = allAttempts.length > 1;
+
+      return {
+        studentId: item.studentId,
+        studentName: item.studentName,
+        studentEmail: item.studentEmail,
+        rollNumber: student?.rollNumber ?? null,
+        className: student?.className ?? null,
+        section: student?.section ?? null,
+        score: item.submission.score,
+        totalMarks: item.totalMarks,
+        percentage: item.submission.percentage,
+        passed: item.passed,
+        totalCorrect: item.submission.totalCorrect,
+        totalWrong: item.submission.totalWrong,
+        totalSkipped: item.submission.totalSkipped,
+        attemptNumber: item.submission.attemptNumber,
+        hasRetake,
+        submittedAt: item.submission.submittedAt,
+        status: item.submission.status,
+      };
+    });
+
+    const reportData: ExamReportData = {
+      examTitle: exam.title,
+      examDescription: exam.description,
+      subjectName: exam.subject?.name ?? null,
+      subjectColor: exam.subject?.color ?? null,
+      teacherName,
+      totalMarks: exam.totalMarks,
+      passingMarks: exam.passingMarks,
+      totalQuestions: exam.totalQuestions,
+      scheduledStart: exam.scheduledStart,
+      scheduledEnd: exam.scheduledEnd,
+      students: studentEntries,
+    };
+
+    console.log('[PDF Export] Calling reportExportService.exportExamReport');
+    this.reportExportService.exportExamReport(reportData, {
+      includeStatistics: true,
+      includeRanking: true,
+      sortBy: 'score',
+      sortOrder: 'desc',
+    });
+  }
+
+  // @REVIEW: Export subject-wise PDF report (all exams in subject, deduplicates per exam)
+  exportSubjectReportPdf(): void {
+    const subjectId = this.subjectFilter();
+    if (!subjectId) return;
+
+    // @REVIEW: Get all exams for this subject
+    const subjectExams = this.exams().filter(e => e.subjectId === subjectId);
+    if (subjectExams.length === 0) return;
+
+    const firstExam = subjectExams[0];
+    const subjectName = firstExam.subject?.name ?? 'Unknown Subject';
+    const subjectColor = firstExam.subject?.color ?? '#6b7280';
+    const teacherName = this.authStore.user()?.fullName ?? 'Teacher';
+
+    // @REVIEW: Build exam summaries
+    const examSummaries: ExamSummaryForSubject[] = subjectExams.map(exam => {
+      const examResults = this.results().filter(r => r.examId === exam.id);
+      const deduped = this.deduplicateStudentResults(examResults);
+      const passedCount = deduped.filter(r => r.passed).length;
+      const avgScore = deduped.length > 0 
+        ? deduped.reduce((sum, r) => sum + r.submission.score, 0) / deduped.length 
+        : 0;
+
+      return {
+        examId: exam.id,
+        examTitle: exam.title,
+        totalMarks: exam.totalMarks,
+        passingMarks: exam.passingMarks,
+        totalQuestions: exam.totalQuestions,
+        averageScore: avgScore,
+        passRate: deduped.length > 0 ? (passedCount / deduped.length) * 100 : 0,
+        totalSubmissions: deduped.length,
+      };
+    });
+
+    // @REVIEW: Get all unique students across all exams in this subject
+    const allSubjectResults = this.results().filter(r => r.subjectId === subjectId);
+    const uniqueStudentIds = [...new Set(allSubjectResults.map(r => r.studentId))];
+
+    // @REVIEW: Build student summaries with all exam results
+    const studentSummaries: StudentSubjectSummary[] = uniqueStudentIds.map(studentId => {
+      const student = this.students().find(s => s.id === studentId);
+      const studentResults = allSubjectResults.filter(r => r.studentId === studentId);
+      
+      // @REVIEW: Build exam results for each exam in subject
+      const examResults: ExamResultForStudent[] = subjectExams.map(exam => {
+        const examStudentResults = studentResults.filter(r => r.examId === exam.id);
+        
+        if (examStudentResults.length === 0) {
+          return {
+            examId: exam.id,
+            score: null,
+            totalMarks: exam.totalMarks,
+            percentage: null,
+            passed: null,
+            hasRetake: false,
+            attemptNumber: null,
+          };
+        }
+
+        // @REVIEW: Get latest attempt for this student in this exam
+        const latestAttempt = this.getLatestAttempt(examStudentResults);
+        const hasRetake = examStudentResults.length > 1;
+
+        return {
+          examId: exam.id,
+          score: latestAttempt.submission.score,
+          totalMarks: exam.totalMarks,
+          percentage: latestAttempt.submission.percentage,
+          passed: latestAttempt.passed,
+          hasRetake,
+          attemptNumber: latestAttempt.submission.attemptNumber,
+        };
+      });
+
+      // @REVIEW: Calculate overall statistics
+      const takenExams = examResults.filter(r => r.score !== null);
+      const totalScore = takenExams.reduce((sum, r) => sum + (r.score ?? 0), 0);
+      const totalMaxScore = takenExams.reduce((sum, r) => sum + r.totalMarks, 0);
+      const examsPassed = takenExams.filter(r => r.passed).length;
+
+      const firstStudentResult = studentResults[0];
+
+      return {
+        studentId,
+        studentName: firstStudentResult?.studentName ?? student?.user.fullName ?? 'Unknown',
+        studentEmail: firstStudentResult?.studentEmail ?? student?.user.email ?? '',
+        rollNumber: student?.rollNumber ?? null,
+        className: student?.className ?? null,
+        section: student?.section ?? null,
+        examResults,
+        totalScore,
+        totalMaxScore,
+        overallPercentage: totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0,
+        examsTaken: takenExams.length,
+        examsPassed,
+      };
+    });
+
+    const reportData: SubjectReportData = {
+      subjectName,
+      subjectColor,
+      teacherName,
+      exams: examSummaries,
+      students: studentSummaries,
+    };
+
+    this.reportExportService.exportSubjectReport(reportData, {
+      includeStatistics: true,
+      sortBy: 'percentage',
+      sortOrder: 'desc',
+    });
+  }
+
+  // @REVIEW: Deduplicate student results - keep only the latest attempt per student
+  private deduplicateStudentResults(results: ResultItem[]): ResultItem[] {
+    const studentLatestMap = new Map<string, ResultItem>();
+
+    results.forEach(result => {
+      const existing = studentLatestMap.get(result.studentId);
+      
+      if (!existing) {
+        studentLatestMap.set(result.studentId, result);
+      } else {
+        // @REVIEW: Keep the one with higher attempt number (latest attempt)
+        if (result.submission.attemptNumber > existing.submission.attemptNumber) {
+          studentLatestMap.set(result.studentId, result);
+        }
+      }
+    });
+
+    return Array.from(studentLatestMap.values());
+  }
+
+  // @REVIEW: Get latest attempt from multiple results
+  private getLatestAttempt(results: ResultItem[]): ResultItem {
+    return results.reduce((latest, current) => 
+      current.submission.attemptNumber > latest.submission.attemptNumber ? current : latest
+    );
+  }
+
+  // @REVIEW: Build CsvResultRow array from ResultItem array
+  private buildCsvResultRows(items: ResultItem[]): CsvResultRow[] {
+    // Get student lookup from stored students
+    const studentMap = new Map<string, StudentWithUser>();
+    this.students().forEach(s => studentMap.set(s.id, s));
+
+    return items.map(item => {
+      const student = studentMap.get(item.studentId);
+      
+      return {
+        studentName: item.studentName,
+        studentEmail: item.studentEmail,
+        rollNumber: student?.rollNumber ?? null,
+        className: student?.className ?? null,
+        examTitle: item.examTitle,
+        subjectName: item.subjectName,
+        score: item.submission.score,
+        totalMarks: item.totalMarks,
+        percentage: item.submission.percentage,
+        status: item.submission.status,
+        passed: item.passed,
+        correctAnswers: item.submission.totalCorrect,
+        wrongAnswers: item.submission.totalWrong,
+        skippedQuestions: item.submission.totalSkipped,
+        attemptNumber: item.submission.attemptNumber,
+        submittedAt: item.submission.submittedAt,
+      };
+    });
   }
 }
