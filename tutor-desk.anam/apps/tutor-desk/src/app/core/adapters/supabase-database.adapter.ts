@@ -163,6 +163,23 @@ const mapDbExamWithSubjectToModel = (row: Record<string, unknown>): ExamWithSubj
   };
 };
 
+// @REVIEW: Question mapper
+const mapDbQuestionToModel = (row: Record<string, unknown>): Question => ({
+  id: row['id'] as string,
+  examId: row['exam_id'] as string,
+  questionText: row['question_text'] as string,
+  questionImageUrl: row['question_image_url'] as string | null,
+  options: row['options'] as Question['options'],
+  correctOptionId: row['correct_option_id'] as string,
+  marks: row['marks'] as number ?? 1,
+  negativeMarks: parseFloat(row['negative_marks'] as string) ?? 0,
+  timeLimitSeconds: row['time_limit_seconds'] as number | null,
+  sequenceNumber: row['sequence_number'] as number,
+  explanation: row['explanation'] as string | null,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
 // @REVIEW: Student mapper
 const mapDbStudentToModel = (row: Record<string, unknown>): Student => ({
   id: row['id'] as string,
@@ -1301,15 +1318,206 @@ class SupabaseExamAdapter implements IExamAdapter {
   }
 }
 
+// @REVIEW: Question Adapter - Full CRUD implementation
 @Injectable()
 class SupabaseQuestionAdapter implements IQuestionAdapter {
-  getById(_id: string): Observable<Question | null> { return of(null); }
-  getByExam(_examId: string): Observable<Question[]> { return of([]); }
-  create(_dto: CreateQuestionDto): Observable<Question> { return throwError(() => new Error('Not implemented')); }
-  createBulk(_dtos: CreateQuestionDto[]): Observable<Question[]> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _dto: UpdateQuestionDto): Observable<Question> { return throwError(() => new Error('Not implemented')); }
-  updateSequence(_examId: string, _questionIds: string[]): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
+  private readonly supabase = inject(SupabaseClientService).client;
+
+  getById(id: string): Observable<Question | null> {
+    return from(
+      this.supabase
+        .from('questions')
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) return null;
+        return mapDbQuestionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  getByExam(examId: string): Observable<Question[]> {
+    return from(
+      this.supabase
+        .from('questions')
+        .select('*')
+        .eq('exam_id', examId)
+        .order('sequence_number', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map((row) => mapDbQuestionToModel(row as Record<string, unknown>));
+      })
+    );
+  }
+
+  create(dto: CreateQuestionDto): Observable<Question> {
+    return from(
+      this.supabase
+        .from('questions')
+        .insert({
+          exam_id: dto.examId,
+          question_text: dto.questionText,
+          question_image_url: dto.questionImageUrl,
+          options: dto.options,
+          correct_option_id: dto.correctOptionId,
+          marks: dto.marks ?? 1,
+          negative_marks: dto.negativeMarks ?? 0,
+          time_limit_seconds: dto.timeLimitSeconds,
+          sequence_number: dto.sequenceNumber,
+          explanation: dto.explanation,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbQuestionToModel(data as Record<string, unknown>);
+      }),
+      // @REVIEW: Update exam's totalQuestions and totalMarks after creating question
+      switchMap((question) => this.updateExamStats(question.examId).pipe(map(() => question)))
+    );
+  }
+
+  createBulk(dtos: CreateQuestionDto[]): Observable<Question[]> {
+    if (dtos.length === 0) return of([]);
+
+    const examId = dtos[0].examId;
+    const insertData = dtos.map((dto) => ({
+      exam_id: dto.examId,
+      question_text: dto.questionText,
+      question_image_url: dto.questionImageUrl,
+      options: dto.options,
+      correct_option_id: dto.correctOptionId,
+      marks: dto.marks ?? 1,
+      negative_marks: dto.negativeMarks ?? 0,
+      time_limit_seconds: dto.timeLimitSeconds,
+      sequence_number: dto.sequenceNumber,
+      explanation: dto.explanation,
+    }));
+
+    return from(
+      this.supabase
+        .from('questions')
+        .insert(insertData)
+        .select()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map((row) => mapDbQuestionToModel(row as Record<string, unknown>));
+      }),
+      switchMap((questions) => this.updateExamStats(examId).pipe(map(() => questions)))
+    );
+  }
+
+  update(id: string, dto: UpdateQuestionDto): Observable<Question> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.questionText !== undefined) updateData['question_text'] = dto.questionText;
+    if (dto.questionImageUrl !== undefined) updateData['question_image_url'] = dto.questionImageUrl;
+    if (dto.options !== undefined) updateData['options'] = dto.options;
+    if (dto.correctOptionId !== undefined) updateData['correct_option_id'] = dto.correctOptionId;
+    if (dto.marks !== undefined) updateData['marks'] = dto.marks;
+    if (dto.negativeMarks !== undefined) updateData['negative_marks'] = dto.negativeMarks;
+    if (dto.timeLimitSeconds !== undefined) updateData['time_limit_seconds'] = dto.timeLimitSeconds;
+    if (dto.sequenceNumber !== undefined) updateData['sequence_number'] = dto.sequenceNumber;
+    if (dto.explanation !== undefined) updateData['explanation'] = dto.explanation;
+
+    return from(
+      this.supabase
+        .from('questions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbQuestionToModel(data as Record<string, unknown>);
+      }),
+      // @REVIEW: Update exam stats if marks changed
+      switchMap((question) => 
+        dto.marks !== undefined 
+          ? this.updateExamStats(question.examId).pipe(map(() => question))
+          : of(question)
+      )
+    );
+  }
+
+  updateSequence(examId: string, questionIds: string[]): Observable<void> {
+    // @REVIEW: Update sequence_number for each question based on array order
+    const updates = questionIds.map((id, index) =>
+      this.supabase
+        .from('questions')
+        .update({ sequence_number: index + 1 })
+        .eq('id', id)
+        .eq('exam_id', examId)
+    );
+
+    return from(Promise.all(updates)).pipe(
+      map((results) => {
+        const hasError = results.some((r) => r.error);
+        if (hasError) throw new Error('Failed to update question sequence');
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    // @REVIEW: First get the question to know the examId for stats update
+    return from(
+      this.supabase
+        .from('questions')
+        .select('exam_id')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const examId = (data as Record<string, unknown>)['exam_id'] as string;
+
+        return from(
+          this.supabase
+            .from('questions')
+            .delete()
+            .eq('id', id)
+        ).pipe(
+          switchMap(({ error: deleteError }) => {
+            if (deleteError) throw new Error(deleteError.message);
+            return this.updateExamStats(examId);
+          })
+        );
+      })
+    );
+  }
+
+  // @REVIEW: Helper to update exam's totalQuestions and totalMarks
+  private updateExamStats(examId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('questions')
+        .select('marks')
+        .eq('exam_id', examId)
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const questions = data ?? [];
+        const totalQuestions = questions.length;
+        const totalMarks = questions.reduce((sum, q) => sum + ((q as Record<string, unknown>)['marks'] as number ?? 0), 0);
+
+        return from(
+          this.supabase
+            .from('exams')
+            .update({ total_questions: totalQuestions, total_marks: totalMarks })
+            .eq('id', examId)
+        ).pipe(
+          map(({ error: updateError }) => {
+            if (updateError) throw new Error(updateError.message);
+          })
+        );
+      })
+    );
+  }
 }
 
 @Injectable()
