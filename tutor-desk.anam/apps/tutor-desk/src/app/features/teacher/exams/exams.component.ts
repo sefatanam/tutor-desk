@@ -1,7 +1,7 @@
-// @REVIEW: Teacher Exams - Full CRUD implementation
+// @REVIEW: Teacher Exams - Full CRUD implementation with Questions Management
 import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormArray, Validators } from '@angular/forms';
 import { Table } from 'primeng/table';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
@@ -21,10 +21,13 @@ import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
+import { OrderListModule } from 'primeng/orderlist';
+import { RadioButtonModule } from 'primeng/radiobutton';
+import { DividerModule } from 'primeng/divider';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
-import { ExamWithSubject, Subject, ExamStatus } from '../../../core/models';
+import { ExamWithSubject, Subject, ExamStatus, Question, QuestionOption } from '../../../core/models';
 
 @Component({
   selector: 'app-exams',
@@ -50,6 +53,9 @@ import { ExamWithSubject, Subject, ExamStatus } from '../../../core/models';
     InputNumberModule,
     CheckboxModule,
     DatePickerModule,
+    OrderListModule,
+    RadioButtonModule,
+    DividerModule,
   ],
   providers: [ConfirmationService, MessageService],
   template: `
@@ -403,6 +409,249 @@ import { ExamWithSubject, Subject, ExamStatus } from '../../../core/models';
       </ng-template>
     </p-dialog>
 
+    <!-- @REVIEW: Questions Management Dialog -->
+    <p-dialog
+      [header]="'Questions - ' + (selectedExamForQuestions()?.title ?? '')"
+      [(visible)]="questionsDialogVisible"
+      [modal]="true"
+      [style]="{ width: '900px', maxHeight: '90vh' }"
+      [draggable]="false"
+      [resizable]="false"
+      styleClass="questions-dialog"
+    >
+      <div class="questions-container">
+        <!-- Questions Header -->
+        <div class="questions-header">
+          <div class="questions-stats">
+            <span class="stat-item">
+              <i class="pi pi-list"></i>
+              {{ questions().length }} Questions
+            </span>
+            <span class="stat-item">
+              <i class="pi pi-star"></i>
+              {{ totalMarks() }} Total Marks
+            </span>
+          </div>
+          <p-button
+            label="Add Question"
+            icon="pi pi-plus"
+            size="small"
+            (click)="showAddQuestionForm()"
+            [disabled]="selectedExamForQuestions()?.status !== 'draft'"
+          />
+        </div>
+
+        @if (loadingQuestions()) {
+          <div class="questions-loading">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="question-skeleton">
+                <p-skeleton width="100%" height="80px" />
+              </div>
+            }
+          </div>
+        } @else if (questions().length === 0 && !showQuestionForm()) {
+          <div class="questions-empty">
+            <i class="pi pi-file-edit"></i>
+            <p>No questions yet. Add your first question to get started.</p>
+            <p-button
+              label="Add First Question"
+              icon="pi pi-plus"
+              (click)="showAddQuestionForm()"
+              [disabled]="selectedExamForQuestions()?.status !== 'draft'"
+            />
+          </div>
+        } @else {
+          <!-- Questions List -->
+          @if (!showQuestionForm()) {
+            <div class="questions-list">
+              @for (question of questions(); track question.id; let i = $index) {
+                <div class="question-card">
+                  <div class="question-card__header">
+                    <span class="question-number">Q{{ i + 1 }}</span>
+                    <div class="question-meta">
+                      <span class="marks-badge">{{ question.marks }} marks</span>
+                      @if (question.negativeMarks > 0) {
+                        <span class="negative-badge">-{{ question.negativeMarks }}</span>
+                      }
+                      @if (question.timeLimitSeconds) {
+                        <span class="time-badge">
+                          <i class="pi pi-clock"></i>
+                          {{ question.timeLimitSeconds }}s
+                        </span>
+                      }
+                    </div>
+                    <div class="question-actions">
+                      <p-button
+                        icon="pi pi-pencil"
+                        [text]="true"
+                        [rounded]="true"
+                        size="small"
+                        pTooltip="Edit"
+                        (click)="editQuestion(question)"
+                        [disabled]="selectedExamForQuestions()?.status !== 'draft'"
+                      />
+                      <p-button
+                        icon="pi pi-trash"
+                        [text]="true"
+                        [rounded]="true"
+                        size="small"
+                        severity="danger"
+                        pTooltip="Delete"
+                        (click)="confirmDeleteQuestion(question)"
+                        [disabled]="selectedExamForQuestions()?.status !== 'draft'"
+                      />
+                    </div>
+                  </div>
+                  <div class="question-card__body">
+                    <p class="question-text">{{ question.questionText }}</p>
+                    <div class="options-grid">
+                      @for (option of question.options; track option.id) {
+                        <div
+                          class="option-item"
+                          [class.correct]="option.id === question.correctOptionId"
+                        >
+                          <span class="option-letter">{{ getOptionLetter($index) }}</span>
+                          <span class="option-text">{{ option.text }}</span>
+                          @if (option.id === question.correctOptionId) {
+                            <i class="pi pi-check correct-icon"></i>
+                          }
+                        </div>
+                      }
+                    </div>
+                    @if (question.explanation) {
+                      <div class="question-explanation">
+                        <strong>Explanation:</strong> {{ question.explanation }}
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Question Form (Add/Edit) -->
+          @if (showQuestionForm()) {
+            <form [formGroup]="questionForm" class="question-form">
+              <div class="form-section">
+                <h4 class="form-section__title">
+                  {{ editingQuestion() ? 'Edit Question' : 'New Question' }}
+                </h4>
+
+                <div class="form-field">
+                  <label for="questionText">Question Text *</label>
+                  <textarea
+                    pTextarea
+                    id="questionText"
+                    formControlName="questionText"
+                    rows="3"
+                    class="w-full"
+                    placeholder="Enter your question here..."
+                  ></textarea>
+                </div>
+
+                <p-divider />
+
+                <div class="options-section">
+                  <label>Answer Options *</label>
+                  <p class="options-hint">Select the correct answer by clicking the radio button</p>
+
+                  <div formArrayName="options" class="options-form-list">
+                    @for (opt of optionsFormArray.controls; track opt; let i = $index) {
+                      <div class="option-form-row" [formGroupName]="i">
+                        <p-radioButton
+                          [value]="getOptionId(i)"
+                          formControlName="isCorrect"
+                          (onClick)="setCorrectOption(i)"
+                          [inputId]="'opt' + i"
+                        />
+                        <span class="option-letter-label">{{ getOptionLetter(i) }}.</span>
+                        <input
+                          pInputText
+                          formControlName="text"
+                          class="option-input"
+                          [placeholder]="'Option ' + getOptionLetter(i)"
+                        />
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <p-divider />
+
+                <div class="form-row-3">
+                  <div class="form-field">
+                    <label for="marks">Marks *</label>
+                    <p-inputnumber
+                      id="marks"
+                      formControlName="marks"
+                      [min]="1"
+                      [max]="100"
+                      styleClass="w-full"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="negativeMarks">Negative Marks</label>
+                    <p-inputnumber
+                      id="negativeMarks"
+                      formControlName="negativeMarks"
+                      [min]="0"
+                      [max]="100"
+                      [minFractionDigits]="0"
+                      [maxFractionDigits]="2"
+                      styleClass="w-full"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="timeLimitSeconds">Time Override (sec)</label>
+                    <p-inputnumber
+                      id="timeLimitSeconds"
+                      formControlName="timeLimitSeconds"
+                      [min]="10"
+                      [max]="600"
+                      styleClass="w-full"
+                      placeholder="Use exam default"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="explanation">Explanation (shown after submission)</label>
+                  <textarea
+                    pTextarea
+                    id="explanation"
+                    formControlName="explanation"
+                    rows="2"
+                    class="w-full"
+                    placeholder="Explain the correct answer..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="question-form-actions">
+                <p-button
+                  label="Cancel"
+                  severity="secondary"
+                  [text]="true"
+                  (click)="cancelQuestionForm()"
+                />
+                <p-button
+                  [label]="editingQuestion() ? 'Update Question' : 'Add Question'"
+                  icon="pi pi-check"
+                  (click)="saveQuestion()"
+                  [loading]="savingQuestion()"
+                  [disabled]="!questionForm.valid || !hasCorrectOption()"
+                />
+              </div>
+            </form>
+          }
+        }
+      </div>
+
+      <ng-template #footer>
+        <p-button label="Close" severity="secondary" (click)="questionsDialogVisible = false" />
+      </ng-template>
+    </p-dialog>
+
     <p-confirmDialog />
     <p-toast />
   `,
@@ -444,6 +693,49 @@ import { ExamWithSubject, Subject, ExamStatus } from '../../../core/models';
     .checkbox-item { display: flex; align-items: center; gap: 0.5rem; }
     .checkbox-item label { font-size: 0.875rem; cursor: pointer; }
     .w-full { width: 100%; }
+
+    /* @REVIEW: Questions Dialog Styles */
+    .questions-container { display: flex; flex-direction: column; gap: 1rem; }
+    .questions-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--surface-border); }
+    .questions-stats { display: flex; gap: 1.5rem; }
+    .stat-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--text-color-secondary); }
+    .stat-item i { color: var(--primary-color); }
+    .questions-loading, .questions-empty { padding: 2rem; text-align: center; }
+    .questions-empty i { font-size: 3rem; color: var(--text-color-secondary); opacity: 0.5; margin-bottom: 1rem; display: block; }
+    .questions-empty p { color: var(--text-color-secondary); margin-bottom: 1rem; }
+    .question-skeleton { margin-bottom: 1rem; }
+    .questions-list { display: flex; flex-direction: column; gap: 1rem; max-height: 500px; overflow-y: auto; padding-right: 0.5rem; }
+    .question-card { border: 1px solid var(--surface-border); border-radius: 8px; overflow: hidden; }
+    .question-card__header { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: var(--surface-ground); border-bottom: 1px solid var(--surface-border); }
+    .question-number { font-weight: 700; color: var(--primary-color); font-size: 0.875rem; }
+    .question-meta { display: flex; gap: 0.5rem; flex: 1; }
+    .marks-badge { background: var(--green-100); color: var(--green-700); padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+    .negative-badge { background: var(--red-100); color: var(--red-700); padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+    .time-badge { display: flex; align-items: center; gap: 0.25rem; background: var(--blue-100); color: var(--blue-700); padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+    .question-actions { display: flex; gap: 0.25rem; }
+    .question-card__body { padding: 1rem; }
+    .question-text { margin: 0 0 1rem; line-height: 1.5; }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .option-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border: 1px solid var(--surface-border); border-radius: 6px; font-size: 0.875rem; }
+    .option-item.correct { background: var(--green-50); border-color: var(--green-300); }
+    .option-letter { font-weight: 600; color: var(--text-color-secondary); min-width: 1.25rem; }
+    .option-text { flex: 1; }
+    .correct-icon { color: var(--green-600); margin-left: auto; }
+    .question-explanation { margin-top: 1rem; padding: 0.75rem; background: var(--surface-ground); border-radius: 6px; font-size: 0.875rem; color: var(--text-color-secondary); }
+
+    /* Question Form Styles */
+    .question-form { padding: 1rem; border: 1px solid var(--surface-border); border-radius: 8px; background: var(--surface-ground); }
+    .question-form .form-section__title { margin: 0 0 1rem; font-size: 1rem; font-weight: 600; color: var(--primary-color); }
+    .question-form .form-field { margin-bottom: 1rem; }
+    .question-form .form-field label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+    .options-section { margin: 1rem 0; }
+    .options-hint { font-size: 0.75rem; color: var(--text-color-secondary); margin: 0.25rem 0 0.75rem; }
+    .options-form-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option-form-row { display: flex; align-items: center; gap: 0.75rem; }
+    .option-letter-label { font-weight: 600; min-width: 1.5rem; }
+    .option-input { flex: 1; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .question-form-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--surface-border); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -465,8 +757,17 @@ export class ExamsComponent implements OnInit {
   readonly subjects = signal<Subject[]>([]);
   readonly editingExam = signal<ExamWithSubject | null>(null);
 
+  // @REVIEW: Questions state
+  readonly selectedExamForQuestions = signal<ExamWithSubject | null>(null);
+  readonly questions = signal<Question[]>([]);
+  readonly editingQuestion = signal<Question | null>(null);
+  readonly loadingQuestions = signal(false);
+  readonly savingQuestion = signal(false);
+  readonly showQuestionForm = signal(false);
+
   globalFilter = '';
   dialogVisible = false;
+  questionsDialogVisible = false;
 
   readonly examForm = this.fb.group({
     title: ['', Validators.required],
@@ -485,10 +786,43 @@ export class ExamsComponent implements OnInit {
     scheduledEnd: [null as Date | null],
   });
 
+  // @REVIEW: Question form with 4 MCQ options
+  readonly questionForm = this.fb.group({
+    questionText: ['', Validators.required],
+    options: this.fb.array([
+      this.createOptionGroup(0),
+      this.createOptionGroup(1),
+      this.createOptionGroup(2),
+      this.createOptionGroup(3),
+    ]),
+    correctOptionId: [''],
+    marks: [1, [Validators.required, Validators.min(1)]],
+    negativeMarks: [0],
+    timeLimitSeconds: [null as number | null],
+    explanation: [''],
+  });
+
+  private createOptionGroup(index: number) {
+    return this.fb.group({
+      id: [`opt_${index}`],
+      text: ['', Validators.required],
+      isCorrect: [''],
+    });
+  }
+
+  get optionsFormArray(): FormArray {
+    return this.questionForm.get('options') as FormArray;
+  }
+
   readonly teacherId = computed(() => this.authStore.teacherId());
 
   readonly subjectOptions = computed(() =>
     this.subjects().map(s => ({ label: s.name, value: s.id }))
+  );
+
+  // @REVIEW: Total marks computed from questions
+  readonly totalMarks = computed(() =>
+    this.questions().reduce((sum, q) => sum + q.marks, 0)
   );
 
   readonly statsCards = computed(() => {
@@ -741,11 +1075,220 @@ export class ExamsComponent implements OnInit {
   }
 
   openQuestions(exam: ExamWithSubject): void {
-    // @TODO: Navigate to questions page or open questions dialog
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Coming Soon',
-      detail: 'Question management will be available in the next release.',
+    this.selectedExamForQuestions.set(exam);
+    this.questions.set([]);
+    this.editingQuestion.set(null);
+    this.showQuestionForm.set(false);
+    this.questionsDialogVisible = true;
+    this.loadQuestions(exam.id);
+  }
+
+  // @REVIEW: Load questions for an exam
+  private loadQuestions(examId: string): void {
+    this.loadingQuestions.set(true);
+    this.db.questions.getByExam(examId).subscribe({
+      next: (questions) => {
+        this.questions.set(questions);
+        this.loadingQuestions.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load questions:', err);
+        this.loadingQuestions.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load questions.' });
+      },
+    });
+  }
+
+  // @REVIEW: Helper to get option letter (A, B, C, D)
+  getOptionLetter(index: number): string {
+    return String.fromCharCode(65 + index);
+  }
+
+  // @REVIEW: Get option ID for form
+  getOptionId(index: number): string {
+    return `opt_${index}`;
+  }
+
+  // @REVIEW: Set correct option in form
+  setCorrectOption(index: number): void {
+    this.questionForm.patchValue({ correctOptionId: this.getOptionId(index) });
+  }
+
+  // @REVIEW: Check if a correct option is selected
+  hasCorrectOption(): boolean {
+    return !!this.questionForm.get('correctOptionId')?.value;
+  }
+
+  // @REVIEW: Show add question form
+  showAddQuestionForm(): void {
+    this.editingQuestion.set(null);
+    this.resetQuestionForm();
+    this.showQuestionForm.set(true);
+  }
+
+  // @REVIEW: Reset question form to defaults
+  private resetQuestionForm(): void {
+    this.questionForm.reset({
+      questionText: '',
+      correctOptionId: '',
+      marks: 1,
+      negativeMarks: 0,
+      timeLimitSeconds: null,
+      explanation: '',
+    });
+
+    // Reset options
+    const optionsArray = this.optionsFormArray;
+    for (let i = 0; i < 4; i++) {
+      optionsArray.at(i).patchValue({
+        id: `opt_${i}`,
+        text: '',
+        isCorrect: '',
+      });
+    }
+  }
+
+  // @REVIEW: Edit existing question
+  editQuestion(question: Question): void {
+    this.editingQuestion.set(question);
+
+    this.questionForm.patchValue({
+      questionText: question.questionText,
+      correctOptionId: question.correctOptionId,
+      marks: question.marks,
+      negativeMarks: question.negativeMarks,
+      timeLimitSeconds: question.timeLimitSeconds,
+      explanation: question.explanation ?? '',
+    });
+
+    // Populate options
+    const optionsArray = this.optionsFormArray;
+    question.options.forEach((opt, i) => {
+      if (i < 4) {
+        optionsArray.at(i).patchValue({
+          id: opt.id,
+          text: opt.text,
+          isCorrect: opt.id === question.correctOptionId ? opt.id : '',
+        });
+      }
+    });
+
+    this.showQuestionForm.set(true);
+  }
+
+  // @REVIEW: Cancel question form
+  cancelQuestionForm(): void {
+    this.showQuestionForm.set(false);
+    this.editingQuestion.set(null);
+    this.resetQuestionForm();
+  }
+
+  // @REVIEW: Save question (create or update)
+  saveQuestion(): void {
+    if (!this.questionForm.valid || !this.hasCorrectOption()) return;
+
+    const examId = this.selectedExamForQuestions()?.id;
+    if (!examId) return;
+
+    this.savingQuestion.set(true);
+    const formValue = this.questionForm.value;
+
+    // Build options array
+    // @REVIEW: Cast to proper type to handle nullable form values
+    const rawOptions = (formValue.options ?? []) as Array<{ id?: string | null; text?: string | null; isCorrect?: string | null }>;
+    const options: QuestionOption[] = rawOptions
+      .filter((opt) => opt?.text?.trim())
+      .map((opt, i) => ({
+        id: opt?.id ?? `opt_${i}`,
+        text: opt?.text ?? '',
+      }));
+
+    if (options.length < 2) {
+      this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Please provide at least 2 options.' });
+      this.savingQuestion.set(false);
+      return;
+    }
+
+    const editing = this.editingQuestion();
+    if (editing) {
+      // Update existing question
+      this.db.questions.update(editing.id, {
+        questionText: formValue.questionText || undefined,
+        options,
+        correctOptionId: formValue.correctOptionId || undefined,
+        marks: formValue.marks ?? undefined,
+        negativeMarks: formValue.negativeMarks ?? undefined,
+        timeLimitSeconds: formValue.timeLimitSeconds ?? undefined,
+        explanation: formValue.explanation || undefined,
+      }).subscribe({
+        next: () => {
+          this.savingQuestion.set(false);
+          this.showQuestionForm.set(false);
+          this.editingQuestion.set(null);
+          this.loadQuestions(examId);
+          this.loadExams(); // Refresh exam stats
+          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Question updated.' });
+        },
+        error: (err) => {
+          console.error('Failed to update question:', err);
+          this.savingQuestion.set(false);
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update question.' });
+        },
+      });
+    } else {
+      // Create new question
+      const nextSequence = this.questions().length + 1;
+      this.db.questions.create({
+        examId,
+        questionText: formValue.questionText!,
+        options,
+        correctOptionId: formValue.correctOptionId!,
+        marks: formValue.marks ?? 1,
+        negativeMarks: formValue.negativeMarks ?? 0,
+        timeLimitSeconds: formValue.timeLimitSeconds ?? undefined,
+        sequenceNumber: nextSequence,
+        explanation: formValue.explanation || undefined,
+      }).subscribe({
+        next: () => {
+          this.savingQuestion.set(false);
+          this.showQuestionForm.set(false);
+          this.resetQuestionForm();
+          this.loadQuestions(examId);
+          this.loadExams(); // Refresh exam stats
+          this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Question added.' });
+        },
+        error: (err) => {
+          console.error('Failed to create question:', err);
+          this.savingQuestion.set(false);
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to add question.' });
+        },
+      });
+    }
+  }
+
+  // @REVIEW: Confirm delete question
+  confirmDeleteQuestion(question: Question): void {
+    this.confirmationService.confirm({
+      message: 'Are you sure you want to delete this question?',
+      header: 'Confirm Delete',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        const examId = this.selectedExamForQuestions()?.id;
+        if (!examId) return;
+
+        this.db.questions.delete(question.id).subscribe({
+          next: () => {
+            this.loadQuestions(examId);
+            this.loadExams(); // Refresh exam stats
+            this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Question deleted.' });
+          },
+          error: (err) => {
+            console.error('Failed to delete question:', err);
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete question.' });
+          },
+        });
+      },
     });
   }
 }

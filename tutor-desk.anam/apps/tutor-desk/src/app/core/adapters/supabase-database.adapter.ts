@@ -180,6 +180,58 @@ const mapDbQuestionToModel = (row: Record<string, unknown>): Question => ({
   updatedAt: new Date(row['updated_at'] as string),
 });
 
+// @REVIEW: Submission mapper
+const mapDbSubmissionToModel = (row: Record<string, unknown>): ExamSubmission => ({
+  id: row['id'] as string,
+  examId: row['exam_id'] as string,
+  studentId: row['student_id'] as string,
+  status: row['status'] as ExamSubmission['status'],
+  startedAt: new Date(row['started_at'] as string),
+  submittedAt: row['submitted_at'] ? new Date(row['submitted_at'] as string) : null,
+  autoSubmitReason: row['auto_submit_reason'] as string | null,
+  totalAnswered: row['total_answered'] as number ?? 0,
+  totalCorrect: row['total_correct'] as number ?? 0,
+  totalWrong: row['total_wrong'] as number ?? 0,
+  totalSkipped: row['total_skipped'] as number ?? 0,
+  score: row['score'] as number ?? 0,
+  percentage: row['percentage'] as number ?? 0,
+  attemptNumber: row['attempt_number'] as number ?? 1,
+  evaluatedAt: row['evaluated_at'] ? new Date(row['evaluated_at'] as string) : null,
+  evaluatedBy: row['evaluated_by'] as string | null,
+  remarks: row['remarks'] as string | null,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: SubmissionWithDetails mapper
+const mapDbSubmissionWithDetailsToModel = (row: Record<string, unknown>): ExamSubmissionWithDetails => {
+  const examRow = row['exams'] as Record<string, unknown>;
+  const answersRows = (row['submission_answers'] ?? []) as Record<string, unknown>[];
+  return {
+    ...mapDbSubmissionToModel(row),
+    exam: mapDbExamToModel(examRow),
+    answers: answersRows.map(mapDbAnswerToModel),
+  };
+};
+
+// @REVIEW: SubmissionAnswer mapper
+const mapDbAnswerToModel = (row: Record<string, unknown>): SubmissionAnswer => ({
+  id: row['id'] as string,
+  submissionId: row['submission_id'] as string,
+  questionId: row['question_id'] as string,
+  selectedOptionId: row['selected_option_id'] as string | null,
+  isCorrect: row['is_correct'] as boolean | null,
+  marksObtained: row['marks_obtained'] as number ?? 0,
+  timeSpentSeconds: row['time_spent_seconds'] as number ?? 0,
+  timeRemainingSeconds: row['time_remaining_seconds'] as number | null,
+  wasSkipped: row['was_skipped'] as boolean ?? false,
+  returnedTo: row['returned_to'] as boolean ?? false,
+  answeredAt: row['answered_at'] ? new Date(row['answered_at'] as string) : null,
+  sequenceAnswered: row['sequence_answered'] as number | null,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
 // @REVIEW: Student mapper
 const mapDbStudentToModel = (row: Record<string, unknown>): Student => ({
   id: row['id'] as string,
@@ -1321,7 +1373,7 @@ class SupabaseExamAdapter implements IExamAdapter {
 // @REVIEW: Question Adapter - Full CRUD implementation
 @Injectable()
 class SupabaseQuestionAdapter implements IQuestionAdapter {
-  private readonly supabase = inject(SupabaseClientService).client;
+  private readonly supabase = inject(SupabaseClientService).supabase;
 
   getById(id: string): Observable<Question | null> {
     return from(
@@ -1520,23 +1572,402 @@ class SupabaseQuestionAdapter implements IQuestionAdapter {
   }
 }
 
+// @REVIEW: Submission Adapter - Full CRUD implementation for exam taking flow
 @Injectable()
 class SupabaseSubmissionAdapter implements ISubmissionAdapter {
-  getById(_id: string): Observable<ExamSubmissionWithDetails | null> { return of(null); }
-  getByExam(_examId: string, _params?: PaginationParams): Observable<PaginatedResponse<ExamSubmission>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  private readonly supabase = inject(SupabaseClientService).supabase;
+
+  getById(id: string): Observable<ExamSubmissionWithDetails | null> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select(`
+          *,
+          exams (*),
+          submission_answers (*)
+        `)
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) return null;
+        return mapDbSubmissionWithDetailsToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  getByStudent(_studentId: string, _params?: PaginationParams): Observable<PaginatedResponse<ExamSubmission>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+
+  getByExam(examId: string, params?: PaginationParams): Observable<PaginatedResponse<ExamSubmission>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const offset = (page - 1) * pageSize;
+
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select('*', { count: 'exact' })
+        .eq('exam_id', examId)
+        .order('started_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+    ).pipe(
+      map(({ data, count, error }) => {
+        if (error) throw new Error(error.message);
+        return {
+          items: (data ?? []).map((row) => mapDbSubmissionToModel(row as Record<string, unknown>)),
+          total: count ?? 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count ?? 0) / pageSize),
+        };
+      })
+    );
   }
-  getByStudentAndExam(_studentId: string, _examId: string): Observable<ExamSubmission | null> { return of(null); }
-  startExam(_examId: string, _studentId: string): Observable<ExamSubmission> { return throwError(() => new Error('Not implemented')); }
-  submitAnswer(_dto: CreateSubmissionAnswerDto): Observable<SubmissionAnswer> { return throwError(() => new Error('Not implemented')); }
-  updateAnswer(_id: string, _dto: UpdateSubmissionAnswerDto): Observable<SubmissionAnswer> { return throwError(() => new Error('Not implemented')); }
-  submitExam(_submissionId: string): Observable<ExamSubmission> { return throwError(() => new Error('Not implemented')); }
-  autoSubmitExam(_submissionId: string, _reason: string): Observable<ExamSubmission> { return throwError(() => new Error('Not implemented')); }
-  evaluate(_submissionId: string, _evaluatedBy: string, _remarks?: string): Observable<ExamSubmission> { return throwError(() => new Error('Not implemented')); }
-  allowRetake(_submissionId: string): Observable<ExamSubmission> { return throwError(() => new Error('Not implemented')); }
+
+  getByStudent(studentId: string, params?: PaginationParams): Observable<PaginatedResponse<ExamSubmission>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 10;
+    const offset = (page - 1) * pageSize;
+
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select('*', { count: 'exact' })
+        .eq('student_id', studentId)
+        .order('started_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+    ).pipe(
+      map(({ data, count, error }) => {
+        if (error) throw new Error(error.message);
+        return {
+          items: (data ?? []).map((row) => mapDbSubmissionToModel(row as Record<string, unknown>)),
+          total: count ?? 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count ?? 0) / pageSize),
+        };
+      })
+    );
+  }
+
+  getByStudentAndExam(studentId: string, examId: string): Observable<ExamSubmission | null> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('exam_id', examId)
+        .order('attempt_number', { ascending: false })
+        .limit(1)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) return null;
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Start exam - creates submission record with in_progress status
+  startExam(examId: string, studentId: string): Observable<ExamSubmission> {
+    // First check existing submissions to get attempt number
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select('attempt_number')
+        .eq('exam_id', examId)
+        .eq('student_id', studentId)
+        .order('attempt_number', { ascending: false })
+        .limit(1)
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const lastAttempt = data?.[0]?.attempt_number ?? 0;
+        const newAttemptNumber = lastAttempt + 1;
+
+        return from(
+          this.supabase
+            .from('exam_submissions')
+            .insert({
+              exam_id: examId,
+              student_id: studentId,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+              attempt_number: newAttemptNumber,
+              total_answered: 0,
+              total_correct: 0,
+              total_wrong: 0,
+              total_skipped: 0,
+              score: 0,
+              percentage: 0,
+            })
+            .select()
+            .single()
+        );
+      }),
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Submit answer - creates or returns existing answer for a question
+  submitAnswer(dto: CreateSubmissionAnswerDto): Observable<SubmissionAnswer> {
+    return from(
+      this.supabase
+        .from('submission_answers')
+        .insert({
+          submission_id: dto.submissionId,
+          question_id: dto.questionId,
+          selected_option_id: dto.selectedOptionId ?? null,
+          time_spent_seconds: dto.timeSpentSeconds,
+          time_remaining_seconds: dto.timeRemainingSeconds ?? null,
+          was_skipped: dto.wasSkipped ?? false,
+          returned_to: false,
+          sequence_answered: dto.sequenceAnswered,
+          answered_at: dto.selectedOptionId ? new Date().toISOString() : null,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAnswerToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Update answer - when student returns to a skipped question
+  updateAnswer(id: string, dto: UpdateSubmissionAnswerDto): Observable<SubmissionAnswer> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.selectedOptionId !== undefined) {
+      updateData['selected_option_id'] = dto.selectedOptionId;
+      updateData['answered_at'] = new Date().toISOString();
+    }
+    if (dto.timeSpentSeconds !== undefined) updateData['time_spent_seconds'] = dto.timeSpentSeconds;
+    if (dto.returnedTo !== undefined) updateData['returned_to'] = dto.returnedTo;
+
+    return from(
+      this.supabase
+        .from('submission_answers')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAnswerToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Submit exam - evaluates answers and calculates score
+  submitExam(submissionId: string): Observable<ExamSubmission> {
+    return this.evaluateAndSubmit(submissionId, 'submitted', null);
+  }
+
+  // @REVIEW: Auto-submit exam - same as submit but with reason (blur, timeout, etc.)
+  autoSubmitExam(submissionId: string, reason: string): Observable<ExamSubmission> {
+    return this.evaluateAndSubmit(submissionId, 'auto_submitted', reason);
+  }
+
+  // @REVIEW: Private helper to evaluate and submit exam
+  private evaluateAndSubmit(
+    submissionId: string, 
+    status: 'submitted' | 'auto_submitted',
+    reason: string | null
+  ): Observable<ExamSubmission> {
+    // Step 1: Get submission with answers and exam questions
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select(`
+          *,
+          submission_answers (*),
+          exams (
+            *,
+            questions (*)
+          )
+        `)
+        .eq('id', submissionId)
+        .single()
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        
+        const submission = data as Record<string, unknown>;
+        const answers = (submission['submission_answers'] ?? []) as Record<string, unknown>[];
+        const exam = submission['exams'] as Record<string, unknown>;
+        const questions = (exam['questions'] ?? []) as Record<string, unknown>[];
+
+        // Step 2: Build question lookup for evaluation
+        const questionMap = new Map<string, Record<string, unknown>>();
+        questions.forEach(q => questionMap.set(q['id'] as string, q));
+
+        // Step 3: Evaluate each answer
+        let totalCorrect = 0;
+        let totalWrong = 0;
+        let totalSkipped = 0;
+        let score = 0;
+
+        const answerUpdates = answers.map(answer => {
+          const questionId = answer['question_id'] as string;
+          const selectedOptionId = answer['selected_option_id'] as string | null;
+          const wasSkipped = answer['was_skipped'] as boolean;
+          const question = questionMap.get(questionId);
+
+          if (!question) return null;
+
+          const correctOptionId = question['correct_option_id'] as string;
+          const marks = question['marks'] as number;
+          const negativeMarks = parseFloat(question['negative_marks'] as string) || 0;
+
+          let isCorrect: boolean | null = null;
+          let marksObtained = 0;
+
+          if (wasSkipped || !selectedOptionId) {
+            totalSkipped++;
+            isCorrect = null;
+            marksObtained = 0;
+          } else if (selectedOptionId === correctOptionId) {
+            totalCorrect++;
+            isCorrect = true;
+            marksObtained = marks;
+            score += marks;
+          } else {
+            totalWrong++;
+            isCorrect = false;
+            marksObtained = -negativeMarks;
+            score -= negativeMarks;
+          }
+
+          return {
+            id: answer['id'] as string,
+            isCorrect,
+            marksObtained,
+          };
+        }).filter(Boolean);
+
+        // Step 4: Update all answers with evaluation results
+        const updatePromises = answerUpdates.map(update => 
+          this.supabase
+            .from('submission_answers')
+            .update({
+              is_correct: update!.isCorrect,
+              marks_obtained: update!.marksObtained,
+            })
+            .eq('id', update!.id)
+        );
+
+        return from(Promise.all(updatePromises)).pipe(
+          switchMap(() => {
+            // Step 5: Calculate final stats
+            const totalMarks = exam['total_marks'] as number;
+            const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100 * 100) / 100 : 0;
+            const totalAnswered = totalCorrect + totalWrong;
+
+            // Step 6: Update submission with final results
+            return from(
+              this.supabase
+                .from('exam_submissions')
+                .update({
+                  status,
+                  submitted_at: new Date().toISOString(),
+                  auto_submit_reason: reason,
+                  total_answered: totalAnswered,
+                  total_correct: totalCorrect,
+                  total_wrong: totalWrong,
+                  total_skipped: totalSkipped,
+                  score: Math.max(0, score), // Ensure non-negative score
+                  percentage,
+                })
+                .eq('id', submissionId)
+                .select()
+                .single()
+            );
+          })
+        );
+      }),
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      }),
+      // Step 7: Update exam stats (total_submissions, average_score)
+      switchMap(submission => this.updateExamStats(submission.examId).pipe(map(() => submission)))
+    );
+  }
+
+  // @REVIEW: Evaluate submission (for teacher review/override)
+  evaluate(submissionId: string, evaluatedBy: string, remarks?: string): Observable<ExamSubmission> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .update({
+          status: 'evaluated',
+          evaluated_at: new Date().toISOString(),
+          evaluated_by: evaluatedBy,
+          remarks: remarks ?? null,
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Allow retake - resets submission status
+  allowRetake(submissionId: string): Observable<ExamSubmission> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .update({
+          status: 'retake_allowed',
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSubmissionToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Update exam's submission stats after submission
+  private updateExamStats(examId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('exam_submissions')
+        .select('score')
+        .eq('exam_id', examId)
+        .in('status', ['submitted', 'auto_submitted', 'evaluated'])
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const submissions = data ?? [];
+        const totalSubmissions = submissions.length;
+        const averageScore = totalSubmissions > 0
+          ? Math.round(submissions.reduce((sum, s) => sum + (s.score ?? 0), 0) / totalSubmissions * 100) / 100
+          : 0;
+
+        return from(
+          this.supabase
+            .from('exams')
+            .update({ total_submissions: totalSubmissions, average_score: averageScore })
+            .eq('id', examId)
+        ).pipe(
+          map(({ error: updateError }) => {
+            if (updateError) throw new Error(updateError.message);
+          })
+        );
+      })
+    );
+  }
 }
 
 @Injectable()
