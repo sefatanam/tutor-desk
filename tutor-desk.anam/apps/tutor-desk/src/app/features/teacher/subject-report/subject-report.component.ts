@@ -1,5 +1,6 @@
 // @REVIEW: Subject Report - Comprehensive report of all students' exam performance in a subject
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -600,6 +601,8 @@ interface ExamPerformanceStats {
 export class SubjectReportComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly db = inject(SupabaseDatabaseAdapter);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -684,7 +687,8 @@ export class SubjectReportComponent implements OnInit {
             return of({ subject, exams: exams.items, students, submissions: allSubmissions });
           })
         );
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: ({ subject, exams, students, submissions }) => {
         if (!subject) {

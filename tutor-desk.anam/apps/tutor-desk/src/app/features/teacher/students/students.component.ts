@@ -1,5 +1,6 @@
 // @REVIEW: Teacher Students Management - Refactored to use navigation instead of dialogs
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Table } from 'primeng/table';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -317,6 +318,8 @@ export class StudentsComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // @REVIEW: Table reference for global filtering
   readonly dt = viewChild<Table>('dt');
@@ -366,7 +369,9 @@ export class StudentsComponent implements OnInit {
     }
 
     this.loading.set(true);
-    this.db.students.getByTeacher(teacherId, { page: 1, pageSize: 100 }).subscribe({
+    this.db.students.getByTeacher(teacherId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
         let filtered = response.items;
         if (this.selectedStatus) {
@@ -405,7 +410,9 @@ export class StudentsComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-warning',
       accept: () => {
-        this.db.students.disable(student.id).subscribe({
+        this.db.students.disable(student.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadStudents();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Student disabled successfully.' });
@@ -426,7 +433,9 @@ export class StudentsComponent implements OnInit {
       icon: 'pi pi-question-circle',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
-        this.db.students.enable(student.id).subscribe({
+        this.db.students.enable(student.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadStudents();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Student enabled successfully.' });
@@ -447,7 +456,9 @@ export class StudentsComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.db.students.delete(student.id).subscribe({
+        this.db.students.delete(student.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadStudents();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Student deleted successfully.' });

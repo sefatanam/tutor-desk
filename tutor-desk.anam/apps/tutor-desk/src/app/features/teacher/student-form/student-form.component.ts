@@ -1,5 +1,6 @@
 // @REVIEW: Student Form Page - Create/Edit student as dedicated page (replaces dialog)
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -404,6 +405,8 @@ export class StudentFormComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly messageService = inject(MessageService);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(false);
@@ -448,7 +451,9 @@ export class StudentFormComponent implements OnInit {
   private loadStudent(id: string): void {
     this.loading.set(true);
 
-    this.db.students.getById(id).subscribe({
+    this.db.students.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (student) => {
         // @REVIEW: Handle null case - student not found
         if (!student) {
@@ -519,7 +524,9 @@ export class StudentFormComponent implements OnInit {
         guardianName: formValue.guardianName || undefined,
         guardianPhone: formValue.guardianPhone || undefined,
         address: formValue.address || undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({
@@ -562,7 +569,9 @@ export class StudentFormComponent implements OnInit {
         guardianName: formValue.guardianName || undefined,
         guardianPhone: formValue.guardianPhone || undefined,
         address: formValue.address || undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({

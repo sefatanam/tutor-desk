@@ -1,6 +1,7 @@
-// @REVIEW: Teacher Dashboard - Connected to real Supabase data
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+// @REVIEW: Teacher Dashboard - Connected to real Supabase data with Charts
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, PLATFORM_ID, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -8,10 +9,12 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ToastModule } from 'primeng/toast';
+import { ChartModule } from 'primeng/chart';
 import { MessageService } from 'primeng/api';
+import { forkJoin } from 'rxjs';
 import { AuthStore } from '../../../core/store/auth.store';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
-import { TeacherDashboardStats, ExamWithSubject } from '../../../core/models';
+import { TeacherDashboardStats, ExamWithSubject, Subject, ChartData } from '../../../core/models';
 
 // @REVIEW: Teacher Dashboard - Connected to real Supabase data
 @Component({
@@ -25,6 +28,7 @@ import { TeacherDashboardStats, ExamWithSubject } from '../../../core/models';
     TagModule,
     SkeletonModule,
     ToastModule,
+    ChartModule,
   ],
   providers: [MessageService],
   template: `
@@ -81,6 +85,57 @@ import { TeacherDashboardStats, ExamWithSubject } from '../../../core/models';
           <button pButton label="New Subject" icon="pi pi-book" class="p-button-lg p-button-outlined" routerLink="/teacher/subjects"></button>
         </div>
       </p-card>
+
+      <!-- @REVIEW: Analytics Charts Section -->
+      <div class="dashboard__charts">
+        <!-- Exam Status Chart -->
+        <p-card styleClass="dashboard__card chart-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h2><i class="pi pi-chart-pie mr-2"></i>Exam Status Distribution</h2>
+            </div>
+          </ng-template>
+
+          @if (loadingCharts()) {
+            <div class="chart-loading">
+              <p-skeleton shape="circle" size="200px" />
+            </div>
+          } @else if (examStatusData()) {
+            <div class="chart-container">
+              <p-chart type="doughnut" [data]="examStatusData()!" [options]="doughnutOptions" />
+            </div>
+          } @else {
+            <div class="chart-empty">
+              <i class="pi pi-chart-pie"></i>
+              <p>No exam data available</p>
+            </div>
+          }
+        </p-card>
+
+        <!-- Subject Performance Chart -->
+        <p-card styleClass="dashboard__card chart-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h2><i class="pi pi-chart-bar mr-2"></i>Students per Subject</h2>
+            </div>
+          </ng-template>
+
+          @if (loadingCharts()) {
+            <div class="chart-loading">
+              <p-skeleton width="100%" height="200px" />
+            </div>
+          } @else if (subjectStudentsData()) {
+            <div class="chart-container">
+              <p-chart type="bar" [data]="subjectStudentsData()!" [options]="barOptions" />
+            </div>
+          } @else {
+            <div class="chart-empty">
+              <i class="pi pi-chart-bar"></i>
+              <p>No subject data available</p>
+            </div>
+          }
+        </p-card>
+      </div>
 
       <!-- Recent Exams -->
       <p-card styleClass="dashboard__card">
@@ -282,6 +337,55 @@ import { TeacherDashboardStats, ExamWithSubject } from '../../../core/models';
       color: var(--text-color-secondary);
       margin-bottom: 1.5rem;
     }
+
+    /* @REVIEW: Charts Section Styles */
+    .dashboard__charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    :host ::ng-deep .chart-card .p-card-body {
+      padding: 1rem 1.5rem;
+    }
+
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 250px;
+    }
+
+    .chart-loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+    }
+
+    .chart-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: var(--text-color-secondary);
+    }
+
+    .chart-empty i {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    .chart-empty p {
+      margin: 0;
+    }
+
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -289,12 +393,52 @@ export class DashboardComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly messageService = inject(MessageService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State signals
   readonly loadingStats = signal(true);
   readonly loadingExams = signal(true);
+  readonly loadingCharts = signal(true);
   readonly dashboardStats = signal<TeacherDashboardStats | null>(null);
   readonly recentExams = signal<ExamWithSubject[]>([]);
+  readonly subjects = signal<Subject[]>([]);
+
+  // @REVIEW: Chart data signals
+  readonly examStatusData = signal<ChartData | null>(null);
+  readonly subjectStudentsData = signal<ChartData | null>(null);
+
+  // Chart options
+  readonly doughnutOptions = {
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+        },
+      },
+    },
+  };
+
+  readonly barOptions = {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    aspectRatio: 1.2,
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
 
   // Computed
   readonly userName = computed(() => this.authStore.user()?.fullName ?? 'Teacher');
@@ -347,11 +491,14 @@ export class DashboardComponent implements OnInit {
       });
       this.loadingStats.set(false);
       this.loadingExams.set(false);
+      this.loadingCharts.set(false);
       return;
     }
 
     // Load dashboard stats
-    this.db.teachers.getDashboardStats(teacherId).subscribe({
+    this.db.teachers.getDashboardStats(teacherId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (stats) => {
         this.dashboardStats.set(stats);
         this.loadingStats.set(false);
@@ -367,11 +514,15 @@ export class DashboardComponent implements OnInit {
       },
     });
 
-    // Load recent exams
-    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 5 }).subscribe({
+    // Load recent exams and all exams for chart
+    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
-        this.recentExams.set(response.items);
+        this.recentExams.set(response.items.slice(0, 5));
         this.loadingExams.set(false);
+        // @REVIEW: Build exam status chart data
+        this.buildExamStatusChart(response.items);
       },
       error: (err) => {
         console.error('Failed to load recent exams:', err);
@@ -382,6 +533,104 @@ export class DashboardComponent implements OnInit {
           detail: 'Failed to load recent exams.',
         });
       },
+    });
+
+    // @REVIEW: Load subjects for chart
+    this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 50 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (response) => {
+        this.subjects.set(response.items);
+        this.buildSubjectStudentsChart(response.items);
+        this.loadingCharts.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load subjects:', err);
+        this.loadingCharts.set(false);
+      },
+    });
+  }
+
+  // @REVIEW: Build exam status distribution chart
+  private buildExamStatusChart(exams: ExamWithSubject[]): void {
+    if (!isPlatformBrowser(this.platformId) || exams.length === 0) {
+      this.examStatusData.set(null);
+      return;
+    }
+
+    const statusCounts: Record<string, number> = {
+      draft: 0,
+      scheduled: 0,
+      active: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    exams.forEach(exam => {
+      if (statusCounts[exam.status] !== undefined) {
+        statusCounts[exam.status]++;
+      }
+    });
+
+    // Filter out zero values
+    const labels: string[] = [];
+    const data: number[] = [];
+    const colors: string[] = [];
+
+    const colorMap: Record<string, string> = {
+      draft: '#6b7280',
+      scheduled: '#3b82f6',
+      active: '#10b981',
+      completed: '#f59e0b',
+      cancelled: '#ef4444',
+    };
+
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      if (count > 0) {
+        labels.push(status.charAt(0).toUpperCase() + status.slice(1));
+        data.push(count);
+        colors.push(colorMap[status]);
+      }
+    });
+
+    if (data.length === 0) {
+      this.examStatusData.set(null);
+      return;
+    }
+
+    this.examStatusData.set({
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors,
+          hoverBackgroundColor: colors.map(c => c + 'cc'),
+        },
+      ],
+    });
+  }
+
+  // @REVIEW: Build students per subject chart
+  private buildSubjectStudentsChart(subjectsList: Subject[]): void {
+    if (!isPlatformBrowser(this.platformId) || subjectsList.length === 0) {
+      this.subjectStudentsData.set(null);
+      return;
+    }
+
+    const sortedSubjects = [...subjectsList]
+      .sort((a, b) => b.totalStudents - a.totalStudents)
+      .slice(0, 6); // Top 6 subjects
+
+    this.subjectStudentsData.set({
+      labels: sortedSubjects.map(s => s.name.length > 15 ? s.name.slice(0, 15) + '...' : s.name),
+      datasets: [
+        {
+          label: 'Students',
+          data: sortedSubjects.map(s => s.totalStudents),
+          backgroundColor: sortedSubjects.map(s => s.color || '#3b82f6'),
+          borderRadius: 4,
+        },
+      ],
     });
   }
 

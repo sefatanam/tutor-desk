@@ -1,5 +1,6 @@
 // @REVIEW: Exam Results - View all student submissions for an exam
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
@@ -583,6 +584,7 @@ export class ExamResultsComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -640,7 +642,9 @@ export class ExamResultsComponent implements OnInit {
     forkJoin({
       exam: this.db.exams.getById(examId),
       submissions: this.db.submissions.getByExam(examId, { page: 1, pageSize: 500 }),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ exam, submissions }) => {
         this.exam.set(exam);
 
@@ -654,7 +658,9 @@ export class ExamResultsComponent implements OnInit {
         const studentIds = [...new Set(submissions.items.map(s => s.studentId))];
         const studentRequests = studentIds.map(id => this.db.students.getById(id));
 
-        forkJoin(studentRequests).subscribe({
+        forkJoin(studentRequests).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: (students) => {
             const studentMap = new Map<string, StudentWithUser | null>();
             studentIds.forEach((id, index) => {
@@ -752,6 +758,8 @@ export class ExamResultsComponent implements OnInit {
       row.submission.id,
       this.authStore.user()?.id ?? '',
       this.remarksInput || undefined
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (updated) => {
         // Update the submission in the list
@@ -794,7 +802,9 @@ export class ExamResultsComponent implements OnInit {
   }
 
   private allowRetake(row: SubmissionRow): void {
-    this.db.submissions.allowRetake(row.submission.id).subscribe({
+    this.db.submissions.allowRetake(row.submission.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (updated) => {
         this.submissions.update(list =>
           list.map(r =>
@@ -835,7 +845,9 @@ export class ExamResultsComponent implements OnInit {
 
   // @REVIEW: Cancel retake - reverts status back to evaluated
   private cancelRetake(row: SubmissionRow): void {
-    this.db.submissions.cancelRetake(row.submission.id).subscribe({
+    this.db.submissions.cancelRetake(row.submission.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (updated) => {
         this.submissions.update(list =>
           list.map(r =>

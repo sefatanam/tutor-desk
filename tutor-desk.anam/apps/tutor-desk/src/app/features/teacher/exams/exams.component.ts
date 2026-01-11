@@ -1,5 +1,6 @@
 // @REVIEW: Teacher Exams - Refactored to use navigation instead of dialogs
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, viewChild, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -297,6 +298,7 @@ export class ExamsComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   // @REVIEW: Table reference for global filtering
   readonly dt = viewChild<Table>('dt');
@@ -334,7 +336,9 @@ export class ExamsComponent implements OnInit {
     const teacherId = this.teacherId();
     if (!teacherId) return;
 
-    this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 100 }).subscribe({
+    this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => this.subjects.set(response.items.filter(s => s.isActive)),
       error: (err) => console.error('Failed to load subjects:', err),
     });
@@ -347,7 +351,9 @@ export class ExamsComponent implements OnInit {
     this.loading.set(true);
     this.loadingStats.set(true);
 
-    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 100 }).subscribe({
+    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
         this.exams.set(response.items);
         this.loading.set(false);
@@ -405,7 +411,9 @@ export class ExamsComponent implements OnInit {
       icon: 'pi pi-play',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
-        this.db.exams.publish(exam.id).subscribe({
+        this.db.exams.publish(exam.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadExams();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Exam published successfully.' });
@@ -426,7 +434,9 @@ export class ExamsComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-warning',
       accept: () => {
-        this.db.exams.cancel(exam.id).subscribe({
+        this.db.exams.cancel(exam.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadExams();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Exam cancelled.' });
@@ -447,7 +457,9 @@ export class ExamsComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.db.exams.delete(exam.id).subscribe({
+        this.db.exams.delete(exam.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadExams();
             this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Exam deleted.' });

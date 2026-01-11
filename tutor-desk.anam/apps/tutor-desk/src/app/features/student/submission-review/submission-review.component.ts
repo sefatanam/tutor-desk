@@ -1,5 +1,6 @@
 // @REVIEW: Student Submission Review - View own exam submission with visibility settings
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
@@ -613,6 +614,7 @@ export class SubmissionReviewComponent implements OnInit {
   // @REVIEW: Export services for PDF and CSV generation
   private readonly pdfExportService = inject(PdfExportService);
   private readonly csvExportService = inject(CsvExportService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -737,7 +739,9 @@ export class SubmissionReviewComponent implements OnInit {
   private loadSubmission(id: string): void {
     const studentId = this.authStore.studentId();
 
-    this.db.submissions.getById(id).subscribe({
+    this.db.submissions.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (submission) => {
         if (!submission) {
           this.loading.set(false);
@@ -763,7 +767,9 @@ export class SubmissionReviewComponent implements OnInit {
           student: studentId
             ? this.db.students.getById(studentId)
             : of(null),
-        }).subscribe({
+        }).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: ({ exam, questions, subject, student }) => {
             this.exam.set(exam);
             this.questions.set(questions);
@@ -792,7 +798,9 @@ export class SubmissionReviewComponent implements OnInit {
 
   // @REVIEW: Calculate student's rank among all submissions for this exam
   private loadRank(examId: string, studentScore: number): void {
-    this.db.submissions.getByExam(examId, { page: 1, pageSize: 1000 }).subscribe({
+    this.db.submissions.getByExam(examId, { page: 1, pageSize: 1000 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
         const completedSubmissions = response.items.filter(s =>
           s.status === 'submitted' || s.status === 'auto_submitted' || s.status === 'evaluated'

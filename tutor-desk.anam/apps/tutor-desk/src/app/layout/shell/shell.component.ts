@@ -1,7 +1,7 @@
 // @REVIEW: Main Application Shell Component
 // Provides the layout structure for authenticated pages
 
-import { Component, ChangeDetectionStrategy, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -13,17 +13,17 @@ import { FooterComponent } from '../footer/footer.component';
   template: `
     <!-- @REVIEW: Restructured shell layout - header now inside main area -->
     <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
-      <app-sidebar 
-        [collapsed]="sidebarCollapsed()" 
-        (collapsedChange)="sidebarCollapsed.set($event)" 
+      <app-sidebar
+        [collapsed]="sidebarCollapsed()"
+        (collapsedChange)="sidebarCollapsed.set($event)"
       />
-      
+
       <main class="shell__main">
-        <app-header 
-          [sidebarCollapsed]="sidebarCollapsed()" 
-          (toggleSidebar)="toggleSidebar()" 
+        <app-header
+          [sidebarCollapsed]="sidebarCollapsed()"
+          (toggleSidebar)="toggleSidebar()"
         />
-        
+
         <div class="shell__content">
           <div class="shell__content-inner">
             <router-outlet />
@@ -39,35 +39,35 @@ import { FooterComponent } from '../footer/footer.component';
       grid-template-columns: var(--td-sidebar-width) 1fr;
       min-height: 100vh;
       transition: grid-template-columns var(--td-transition-normal);
-      
+
       &.sidebar-collapsed {
         grid-template-columns: var(--td-sidebar-collapsed-width) 1fr;
       }
     }
-    
+
     .shell__main {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
       overflow-x: hidden;
     }
-    
+
     .shell__content {
       flex: 1;
       display: flex;
       flex-direction: column;
       background: var(--td-background);
     }
-    
+
     .shell__content-inner {
       flex: 1;
       padding: 1.5rem;
-      
+
       @media (max-width: 768px) {
         padding: 1rem;
       }
     }
-    
+
     /* Mobile: Sidebar becomes overlay/hidden */
     @media (max-width: 768px) {
       .shell {
@@ -79,7 +79,7 @@ import { FooterComponent } from '../footer/footer.component';
 })
 export class ShellComponent {
   readonly sidebarCollapsed = signal(false);
-  
+
   toggleSidebar(): void {
     this.sidebarCollapsed.update(collapsed => !collapsed);
   }

@@ -1,5 +1,6 @@
 // @REVIEW: Subject Form Page - Create/Edit subject as dedicated page (replaces dialog)
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -299,6 +300,8 @@ export class SubjectFormComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly messageService = inject(MessageService);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(false);
@@ -327,7 +330,9 @@ export class SubjectFormComponent implements OnInit {
   private loadSubject(id: string): void {
     this.loading.set(true);
 
-    this.db.subjects.getById(id).subscribe({
+    this.db.subjects.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (subject) => {
         // @REVIEW: Handle null case - subject not found
         if (!subject) {
@@ -386,7 +391,9 @@ export class SubjectFormComponent implements OnInit {
         description: formValue.description || undefined,
         color: formValue.color || undefined,
         icon: formValue.icon || undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({
@@ -414,7 +421,9 @@ export class SubjectFormComponent implements OnInit {
         description: formValue.description || undefined,
         color: formValue.color || undefined,
         icon: formValue.icon || undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({

@@ -19,6 +19,13 @@ export const superAdminRoutes: Routes = [
       import('./teachers/teachers.component').then(m => m.TeachersComponent),
     title: 'Manage Teachers - Tutor Desk',
   },
+  // @REVIEW: SuperAdmin browse teacher workspace
+  {
+    path: 'teachers/:id/workspace',
+    loadComponent: () =>
+      import('./teacher-workspace/teacher-workspace.component').then(m => m.TeacherWorkspaceComponent),
+    title: 'Teacher Workspace - Tutor Desk',
+  },
   {
     path: 'settings',
     loadComponent: () =>

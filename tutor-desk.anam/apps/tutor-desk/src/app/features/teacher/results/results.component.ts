@@ -1,5 +1,6 @@
 // @REVIEW: Teacher Results - View all student exam submissions with comprehensive filters
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, effect, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -480,6 +481,7 @@ export class TeacherResultsComponent implements OnInit {
   private readonly csvExportService = inject(CsvExportService);
   // @REVIEW: Report export service for PDF reports
   private readonly reportExportService = inject(ReportExportService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -730,7 +732,9 @@ export class TeacherResultsComponent implements OnInit {
     }
 
     // First get all teacher's exams
-    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 500 }).subscribe({
+    this.db.exams.getByTeacher(teacherId, { page: 1, pageSize: 500 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (examResponse) => {
         const exams = examResponse.items;
         this.exams.set(exams);
@@ -750,7 +754,9 @@ export class TeacherResultsComponent implements OnInit {
           this.db.submissions.getByExam(exam.id, { page: 1, pageSize: 500 })
         );
 
-        forkJoin(submissionRequests).subscribe({
+        forkJoin(submissionRequests).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: (submissionResponses) => {
             // Flatten all submissions
             const allSubmissions = submissionResponses.flatMap(r => r.items);
@@ -767,7 +773,9 @@ export class TeacherResultsComponent implements OnInit {
             // Fetch all students
             const studentRequests = studentIds.map(id => this.db.students.getById(id));
             
-            forkJoin(studentRequests).subscribe({
+            forkJoin(studentRequests).pipe(
+              takeUntilDestroyed(this.destroyRef)
+            ).subscribe({
               next: (students) => {
                 // Build student lookup map
                 const studentMap = new Map<string, StudentWithUser>();

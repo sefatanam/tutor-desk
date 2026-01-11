@@ -1,5 +1,6 @@
 // @REVIEW: Student Detail Page - View student info and manage subject enrollments
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -706,6 +707,8 @@ export class StudentDetailComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -755,7 +758,9 @@ export class StudentDetailComponent implements OnInit {
   }
 
   private loadStudent(id: string): void {
-    this.db.students.getById(id).subscribe({
+    this.db.students.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (student) => {
         this.student.set(student);
         this.loading.set(false);
@@ -777,7 +782,9 @@ export class StudentDetailComponent implements OnInit {
     forkJoin({
       all: this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 500 }),
       enrolled: this.db.subjects.getByStudent(studentId),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ all, enrolled }) => {
         this.allSubjects.set(all.items);
         this.enrolledSubjects.set(enrolled);
@@ -798,7 +805,9 @@ export class StudentDetailComponent implements OnInit {
     this.enrollingSubjectId.set(subject.id);
 
     // @REVIEW: Use userId (not teacherId) for enrolled_by - references users table
-    this.db.subjects.enrollStudent(student.id, subject.id, userId).subscribe({
+    this.db.subjects.enrollStudent(student.id, subject.id, userId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         // Move subject from available to enrolled
         this.enrolledSubjects.update(list => [...list, subject]);
@@ -838,7 +847,9 @@ export class StudentDetailComponent implements OnInit {
     const student = this.student();
     if (!student) return;
 
-    this.db.subjects.unenrollStudent(student.id, subject.id).subscribe({
+    this.db.subjects.unenrollStudent(student.id, subject.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         // Remove subject from enrolled list
         this.enrolledSubjects.update(list => list.filter(s => s.id !== subject.id));
@@ -893,7 +904,8 @@ export class StudentDetailComponent implements OnInit {
         );
 
         return forkJoin(examRequests);
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (items) => {
         const validItems = (items ?? []).filter((item): item is ExamHistoryItem => item !== null);

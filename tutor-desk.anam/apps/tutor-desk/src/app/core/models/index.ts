@@ -675,3 +675,102 @@ export interface SuperAdminDashboardStats {
   readonly totalStudents: number;
   readonly totalExams: number;
 }
+
+// @REVIEW: Chart data interface for PrimeNG charts
+export interface ChartDataset {
+  readonly data: number[];
+  readonly backgroundColor?: string | string[];
+  readonly hoverBackgroundColor?: string[];
+  readonly borderColor?: string | string[];
+  readonly borderWidth?: number;
+  readonly borderRadius?: number;
+  readonly label?: string;
+  readonly fill?: boolean;
+  readonly tension?: number;
+}
+
+export interface ChartData {
+  readonly labels: string[];
+  readonly datasets: ChartDataset[];
+}
+
+// =============================================
+// @REVIEW: SYSTEM SETTINGS MODELS
+// =============================================
+
+export type SettingValueType = 'text' | 'number' | 'boolean' | 'color' | 'url' | 'textarea' | 'select' | 'json';
+
+export interface SettingsCategory extends BaseEntity {
+  readonly name: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly description: string | null;
+  readonly sortOrder: number;
+}
+
+export interface SystemSetting extends BaseEntity {
+  readonly categoryId: string;
+  readonly key: string;
+  readonly label: string;
+  readonly value: string | null;
+  readonly valueType: SettingValueType;
+  readonly options: string[] | null;  // For 'select' type
+  readonly defaultValue: string | null;
+  readonly description: string | null;
+  readonly isRequired: boolean;
+  readonly sortOrder: number;
+}
+
+export interface SystemSettingWithCategory extends SystemSetting {
+  readonly category: SettingsCategory;
+}
+
+export interface CreateSettingsCategoryDto {
+  readonly name: string;
+  readonly label: string;
+  readonly icon?: string;
+  readonly description?: string;
+  readonly sortOrder?: number;
+}
+
+export interface UpdateSettingsCategoryDto {
+  readonly name?: string;
+  readonly label?: string;
+  readonly icon?: string;
+  readonly description?: string;
+  readonly sortOrder?: number;
+}
+
+export interface CreateSystemSettingDto {
+  readonly categoryId: string;
+  readonly key: string;
+  readonly label: string;
+  readonly value?: string;
+  readonly valueType?: SettingValueType;
+  readonly options?: string[];
+  readonly defaultValue?: string;
+  readonly description?: string;
+  readonly isRequired?: boolean;
+  readonly sortOrder?: number;
+}
+
+export interface UpdateSystemSettingDto {
+  readonly categoryId?: string;
+  readonly key?: string;
+  readonly label?: string;
+  readonly value?: string;
+  readonly valueType?: SettingValueType;
+  readonly options?: string[];
+  readonly defaultValue?: string;
+  readonly description?: string;
+  readonly isRequired?: boolean;
+  readonly sortOrder?: number;
+}
+
+// @REVIEW: Settings export/import format
+export interface SettingsExportData {
+  readonly version: string;
+  readonly exportedAt: string;
+  readonly categories: SettingsCategory[];
+  readonly settings: SystemSetting[];
+}

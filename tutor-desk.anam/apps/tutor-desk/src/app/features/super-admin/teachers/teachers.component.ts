@@ -1,7 +1,9 @@
 // @REVIEW: Teachers Management - Full Implementation
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -218,14 +220,16 @@ import { TeacherWithUser } from '../../../core/models';
                       (click)="confirmEnable(teacher)"
                     />
                   }
+                  <!-- @REVIEW: Navigate to teacher workspace -->
                   <p-button
                     icon="pi pi-eye"
                     severity="info"
                     [text]="true"
                     size="small"
                     [rounded]="true"
-                    pTooltip="View Details"
+                    pTooltip="View Workspace"
                     tooltipPosition="top"
+                    (click)="viewWorkspace(teacher)"
                   />
                 </div>
               </td>
@@ -482,6 +486,9 @@ export class TeachersComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly router = inject(Router);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State signals
   protected readonly teachers = signal<TeacherWithUser[]>([]);
@@ -543,7 +550,9 @@ export class TeachersComponent implements OnInit {
 
   protected loadTeachers(): void {
     this.loading.set(true);
-    this.db.teachers.getAll({ pageSize: 100 }).subscribe({
+    this.db.teachers.getAll({ pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
         let filtered = response.items;
         if (this.selectedStatus) {
@@ -636,7 +645,9 @@ export class TeachersComponent implements OnInit {
     const adminId = this.authStore.user()?.id;
     if (!adminId) return;
 
-    this.db.teachers.approve(teacher.id, adminId).subscribe({
+    this.db.teachers.approve(teacher.id, adminId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -658,7 +669,9 @@ export class TeachersComponent implements OnInit {
 
   private rejectTeacher(teacher: TeacherWithUser): void {
     // For rejection, we disable the user
-    this.db.users.updateStatus(teacher.user.id, 'disabled').subscribe({
+    this.db.users.updateStatus(teacher.user.id, 'disabled').pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -679,7 +692,9 @@ export class TeachersComponent implements OnInit {
   }
 
   private disableTeacher(teacher: TeacherWithUser): void {
-    this.db.teachers.disable(teacher.id).subscribe({
+    this.db.teachers.disable(teacher.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -700,7 +715,9 @@ export class TeachersComponent implements OnInit {
   }
 
   private enableTeacher(teacher: TeacherWithUser): void {
-    this.db.teachers.enable(teacher.id).subscribe({
+    this.db.teachers.enable(teacher.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -718,5 +735,10 @@ export class TeachersComponent implements OnInit {
         });
       },
     });
+  }
+
+  // @REVIEW: Navigate to teacher workspace to view their subjects, students, exams
+  protected viewWorkspace(teacher: TeacherWithUser): void {
+    this.router.navigate(['/admin/teachers', teacher.id, 'workspace']);
   }
 }

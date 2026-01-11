@@ -1,6 +1,7 @@
-// @REVIEW: Super Admin Dashboard - Connected to Real Data
-import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+// @REVIEW: Super Admin Dashboard - Connected to Real Data with Charts
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, PLATFORM_ID, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -12,10 +13,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ChartModule } from 'primeng/chart';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AuthStore } from '../../../core/store/auth.store';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
-import { TeacherWithUser, SuperAdminDashboardStats } from '../../../core/models';
+import { TeacherWithUser, SuperAdminDashboardStats, ChartData } from '../../../core/models';
 
 interface StatCard {
   readonly title: string;
@@ -41,6 +43,7 @@ interface StatCard {
     RippleModule,
     ToastModule,
     ConfirmDialogModule,
+    ChartModule,
   ],
   providers: [ConfirmationService, MessageService],
   template: `
@@ -91,6 +94,61 @@ interface StatCard {
           }
         }
       </section>
+
+      <!-- @REVIEW: Analytics Charts Section -->
+      <div class="dashboard__charts">
+        <!-- Teacher Status Chart -->
+        <p-card styleClass="dashboard__chart-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h2 class="card-header__title">
+                <i class="pi pi-chart-pie mr-2"></i>Teacher Status Distribution
+              </h2>
+            </div>
+          </ng-template>
+
+          @if (loadingStats()) {
+            <div class="chart-loading">
+              <p-skeleton shape="circle" size="180px" />
+            </div>
+          } @else if (teacherStatusData()) {
+            <div class="chart-container">
+              <p-chart type="doughnut" [data]="teacherStatusData()!" [options]="doughnutOptions" />
+            </div>
+          } @else {
+            <div class="chart-empty">
+              <i class="pi pi-chart-pie"></i>
+              <p>No teacher data available</p>
+            </div>
+          }
+        </p-card>
+
+        <!-- Students per Teacher Chart -->
+        <p-card styleClass="dashboard__chart-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h2 class="card-header__title">
+                <i class="pi pi-chart-bar mr-2"></i>Top Teachers by Students
+              </h2>
+            </div>
+          </ng-template>
+
+          @if (loadingTeachers()) {
+            <div class="chart-loading">
+              <p-skeleton width="100%" height="180px" />
+            </div>
+          } @else if (teacherStudentsData()) {
+            <div class="chart-container">
+              <p-chart type="bar" [data]="teacherStudentsData()!" [options]="barOptions" />
+            </div>
+          } @else {
+            <div class="chart-empty">
+              <i class="pi pi-chart-bar"></i>
+              <p>No student data available</p>
+            </div>
+          }
+        </p-card>
+      </div>
 
       <!-- Main Content Grid -->
       <div class="dashboard__content">
@@ -391,6 +449,65 @@ interface StatCard {
       color: var(--p-red-600);
     }
 
+    /* @REVIEW: Charts Section */
+    .dashboard__charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    :host ::ng-deep .dashboard__chart-card {
+      .p-card-body {
+        padding: 0;
+      }
+
+      .p-card-header {
+        padding: 0;
+      }
+
+      .p-card-content {
+        padding: 1rem 1.25rem;
+      }
+    }
+
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 220px;
+    }
+
+    .chart-loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 180px;
+    }
+
+    .chart-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      color: var(--p-text-muted-color);
+    }
+
+    .chart-empty i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    .chart-empty p {
+      margin: 0;
+    }
+
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+
     /* Main Content Grid */
     .dashboard__content {
       display: grid;
@@ -661,6 +778,8 @@ export class DashboardComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
 
   // Loading states
   protected readonly loadingStats = signal(true);
@@ -671,6 +790,42 @@ export class DashboardComponent implements OnInit {
   protected readonly dashboardStats = signal<SuperAdminDashboardStats | null>(null);
   protected readonly recentTeachers = signal<TeacherWithUser[]>([]);
   protected readonly pendingTeachers = signal<TeacherWithUser[]>([]);
+
+  // @REVIEW: Chart data signals
+  protected readonly teacherStatusData = signal<ChartData | null>(null);
+  protected readonly teacherStudentsData = signal<ChartData | null>(null);
+
+  // @REVIEW: Chart options
+  protected readonly doughnutOptions = {
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+        },
+      },
+    },
+  };
+
+  protected readonly barOptions = {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    aspectRatio: 1.5,
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
 
   // Computed signal for user name
   protected readonly userName = computed(() =>
@@ -719,10 +874,14 @@ export class DashboardComponent implements OnInit {
   private loadDashboardData(): void {
     // Load stats
     this.loadingStats.set(true);
-    this.db.admin.getDashboardStats().subscribe({
+    this.db.admin.getDashboardStats().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (stats) => {
         this.dashboardStats.set(stats);
         this.loadingStats.set(false);
+        // @REVIEW: Build teacher status chart after stats load
+        this.buildTeacherStatusChart(stats);
       },
       error: (err) => {
         console.error('Failed to load dashboard stats:', err);
@@ -730,12 +889,16 @@ export class DashboardComponent implements OnInit {
       },
     });
 
-    // Load recent teachers
+    // Load recent teachers (also used for chart)
     this.loadingTeachers.set(true);
-    this.db.teachers.getAll({ pageSize: 5, sortBy: 'created_at', sortOrder: 'desc' }).subscribe({
+    this.db.teachers.getAll({ pageSize: 10, sortBy: 'created_at', sortOrder: 'desc' }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
-        this.recentTeachers.set(response.items);
+        this.recentTeachers.set(response.items.slice(0, 5));
         this.loadingTeachers.set(false);
+        // @REVIEW: Build students per teacher chart
+        this.buildTeacherStudentsChart(response.items);
       },
       error: (err) => {
         console.error('Failed to load recent teachers:', err);
@@ -745,7 +908,9 @@ export class DashboardComponent implements OnInit {
 
     // Load pending teachers
     this.loadingPending.set(true);
-    this.db.teachers.getPendingApprovals().subscribe({
+    this.db.teachers.getPendingApprovals().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (teachers) => {
         this.pendingTeachers.set(teachers);
         this.loadingPending.set(false);
@@ -754,6 +919,84 @@ export class DashboardComponent implements OnInit {
         console.error('Failed to load pending teachers:', err);
         this.loadingPending.set(false);
       },
+    });
+  }
+
+  // @REVIEW: Build teacher status distribution chart
+  private buildTeacherStatusChart(stats: SuperAdminDashboardStats): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      this.teacherStatusData.set(null);
+      return;
+    }
+
+    const data: number[] = [];
+    const labels: string[] = [];
+    const colors: string[] = [];
+
+    if (stats.activeTeachers > 0) {
+      labels.push('Active');
+      data.push(stats.activeTeachers);
+      colors.push('#10b981');
+    }
+    if (stats.pendingTeachers > 0) {
+      labels.push('Pending');
+      data.push(stats.pendingTeachers);
+      colors.push('#f59e0b');
+    }
+    if (stats.disabledTeachers > 0) {
+      labels.push('Disabled');
+      data.push(stats.disabledTeachers);
+      colors.push('#ef4444');
+    }
+
+    if (data.length === 0) {
+      this.teacherStatusData.set(null);
+      return;
+    }
+
+    this.teacherStatusData.set({
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors,
+          hoverBackgroundColor: colors.map(c => c + 'cc'),
+        },
+      ],
+    });
+  }
+
+  // @REVIEW: Build students per teacher chart
+  private buildTeacherStudentsChart(teachers: TeacherWithUser[]): void {
+    if (!isPlatformBrowser(this.platformId) || teachers.length === 0) {
+      this.teacherStudentsData.set(null);
+      return;
+    }
+
+    // Sort by total students and take top 6
+    const sortedTeachers = [...teachers]
+      .sort((a, b) => b.totalStudents - a.totalStudents)
+      .slice(0, 6);
+
+    // Skip if no teachers have students
+    if (sortedTeachers.every(t => t.totalStudents === 0)) {
+      this.teacherStudentsData.set(null);
+      return;
+    }
+
+    this.teacherStudentsData.set({
+      labels: sortedTeachers.map(t => {
+        const name = t.user.fullName;
+        return name.length > 15 ? name.slice(0, 15) + '...' : name;
+      }),
+      datasets: [
+        {
+          label: 'Students',
+          data: sortedTeachers.map(t => t.totalStudents),
+          backgroundColor: this.avatarColors,
+          borderRadius: 4,
+        },
+      ],
     });
   }
 
@@ -804,7 +1047,9 @@ export class DashboardComponent implements OnInit {
     const adminId = this.authStore.user()?.id;
     if (!adminId) return;
 
-    this.db.teachers.approve(teacher.id, adminId).subscribe({
+    this.db.teachers.approve(teacher.id, adminId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -825,7 +1070,9 @@ export class DashboardComponent implements OnInit {
   }
 
   private rejectTeacher(teacher: TeacherWithUser): void {
-    this.db.users.updateStatus(teacher.user.id, 'disabled').subscribe({
+    this.db.users.updateStatus(teacher.user.id, 'disabled').pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',

@@ -1,5 +1,6 @@
 // @REVIEW: Student Available Exams - Full implementation
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -554,6 +555,7 @@ export class ExamsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly confirmService = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -626,7 +628,9 @@ export class ExamsComponent implements OnInit {
     forkJoin({
       exams: this.db.exams.getUpcomingForStudent(studentId),
       submissions: this.db.submissions.getByStudent(studentId, { page: 1, pageSize: 100 }),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ exams, submissions }) => {
         // Build submission map by exam ID
         const submissionMap = new Map<string, ExamSubmission>();
@@ -733,7 +737,9 @@ export class ExamsComponent implements OnInit {
       return;
     }
 
-    this.db.submissions.startExam(card.exam.id, studentId).subscribe({
+    this.db.submissions.startExam(card.exam.id, studentId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.showInstructionsDialog = false;
         this.starting.set(false);

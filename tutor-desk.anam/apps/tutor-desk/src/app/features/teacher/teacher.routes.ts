@@ -64,6 +64,13 @@ export const teacherRoutes: Routes = [
       import('./subject-report/subject-report.component').then(m => m.SubjectReportComponent),
     title: 'Subject Report - Tutor Desk',
   },
+  // @REVIEW: Subject assets route - manage learning materials
+  {
+    path: 'subjects/:subjectId/assets',
+    loadComponent: () =>
+      import('./assets/assets.component').then(m => m.AssetsComponent),
+    title: 'Subject Assets - Tutor Desk',
+  },
   {
     path: 'subjects/:id',
     loadComponent: () =>

@@ -37,6 +37,13 @@ export const studentRoutes: Routes = [
       import('./results/results.component').then(m => m.ResultsComponent),
     title: 'My Results - Tutor Desk',
   },
+  // @REVIEW: Student subject assets - view assets with comments
+  {
+    path: 'subjects/:subjectId/assets',
+    loadComponent: () =>
+      import('./subject-assets/subject-assets.component').then(m => m.SubjectAssetsComponent),
+    title: 'Subject Materials - Tutor Desk',
+  },
   // @REVIEW: Student submission review with visibility settings
   {
     path: 'results/:submissionId',

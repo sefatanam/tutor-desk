@@ -74,6 +74,14 @@ import {
   ExamAssignmentStatus,
   // @REVIEW: Result visibility type
   ResultVisibility,
+  // @REVIEW: Settings models
+  SettingsCategory,
+  SystemSetting,
+  CreateSettingsCategoryDto,
+  UpdateSettingsCategoryDto,
+  CreateSystemSettingDto,
+  UpdateSystemSettingDto,
+  SettingValueType,
 } from '../models';
 
 // =============================================
@@ -322,6 +330,52 @@ const mapDbStudentWithUserToModel = (row: Record<string, unknown>): StudentWithU
   return {
     ...mapDbStudentToModel(row),
     user: mapDbUserToModel(userRow),
+  };
+};
+
+// @REVIEW: Asset mapper
+const mapDbAssetToModel = (row: Record<string, unknown>): Asset => ({
+  id: row['id'] as string,
+  subjectId: row['subject_id'] as string,
+  teacherId: row['teacher_id'] as string,
+  title: row['title'] as string,
+  description: row['description'] as string | null,
+  assetType: row['asset_type'] as Asset['assetType'],
+  fileUrl: row['file_url'] as string | null,
+  fileName: row['file_name'] as string | null,
+  fileSizeBytes: row['file_size_bytes'] as number | null,
+  mimeType: row['mime_type'] as string | null,
+  externalUrl: row['external_url'] as string | null,
+  thumbnailUrl: row['thumbnail_url'] as string | null,
+  sequenceNumber: row['sequence_number'] as number ?? 0,
+  isPublished: row['is_published'] as boolean ?? true,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: AssetComment mapper
+const mapDbAssetCommentToModel = (row: Record<string, unknown>): AssetComment => ({
+  id: row['id'] as string,
+  assetId: row['asset_id'] as string,
+  userId: row['user_id'] as string,
+  parentId: row['parent_id'] as string | null,
+  content: row['content'] as string,
+  isVisible: row['is_visible'] as boolean ?? true,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+// @REVIEW: AssetCommentWithUser mapper
+const mapDbAssetCommentWithUserToModel = (row: Record<string, unknown>): AssetCommentWithUser => {
+  const userRow = row['users'] as Record<string, unknown>;
+  return {
+    ...mapDbAssetCommentToModel(row),
+    user: {
+      id: userRow['id'] as string,
+      fullName: userRow['full_name'] as string,
+      avatarUrl: userRow['avatar_url'] as string | null,
+      role: userRow['role'] as User['role'],
+    },
   };
 };
 
@@ -2134,28 +2188,296 @@ class SupabaseSubmissionAdapter implements ISubmissionAdapter {
   }
 }
 
+// @REVIEW: Full Asset Adapter Implementation
 @Injectable()
 class SupabaseAssetAdapter implements IAssetAdapter {
-  getById(_id: string): Observable<Asset | null> { return of(null); }
-  getBySubject(_subjectId: string, _params?: PaginationParams): Observable<PaginatedResponse<Asset>> {
-    return of({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  private readonly supabase = inject(SupabaseClientService).supabase;
+
+  getById(id: string): Observable<Asset | null> {
+    return from(
+      this.supabase
+        .from('assets')
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) {
+          if (error.code === 'PGRST116') return null; // Not found
+          throw new Error(error.message);
+        }
+        return mapDbAssetToModel(data as Record<string, unknown>);
+      })
+    );
   }
-  create(_dto: CreateAssetDto): Observable<Asset> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _dto: UpdateAssetDto): Observable<Asset> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  uploadFile(_file: File, _path: string): Observable<{ url: string; fileName: string; size: number }> {
-    return throwError(() => new Error('Not implemented'));
+
+  getBySubject(subjectId: string, params?: PaginationParams): Observable<PaginatedResponse<Asset>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+    const offset = (page - 1) * pageSize;
+
+    return from(
+      this.supabase
+        .from('assets')
+        .select('*', { count: 'exact' })
+        .eq('subject_id', subjectId)
+        .order('sequence_number', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+    ).pipe(
+      map(({ data, count, error }) => {
+        if (error) throw new Error(error.message);
+        const items = (data ?? []).map(row => mapDbAssetToModel(row as Record<string, unknown>));
+        const total = count ?? 0;
+        return {
+          items,
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      })
+    );
   }
-  deleteFile(_path: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
+
+  create(dto: CreateAssetDto): Observable<Asset> {
+    return from(
+      this.supabase
+        .from('assets')
+        .insert({
+          subject_id: dto.subjectId,
+          teacher_id: dto.teacherId,
+          title: dto.title,
+          description: dto.description ?? null,
+          asset_type: dto.assetType,
+          file_url: dto.fileUrl ?? null,
+          file_name: dto.fileName ?? null,
+          file_size_bytes: dto.fileSizeBytes ?? null,
+          mime_type: dto.mimeType ?? null,
+          external_url: dto.externalUrl ?? null,
+          thumbnail_url: dto.thumbnailUrl ?? null,
+          sequence_number: dto.sequenceNumber ?? 0,
+        })
+        .select()
+        .single()
+    ).pipe(
+      switchMap(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        // Update subject's total_assets count
+        return this.updateSubjectAssetCount(dto.subjectId).pipe(
+          map(() => mapDbAssetToModel(data as Record<string, unknown>))
+        );
+      })
+    );
+  }
+
+  update(id: string, dto: UpdateAssetDto): Observable<Asset> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.title !== undefined) updateData['title'] = dto.title;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.assetType !== undefined) updateData['asset_type'] = dto.assetType;
+    if (dto.externalUrl !== undefined) updateData['external_url'] = dto.externalUrl;
+    if (dto.thumbnailUrl !== undefined) updateData['thumbnail_url'] = dto.thumbnailUrl;
+    if (dto.sequenceNumber !== undefined) updateData['sequence_number'] = dto.sequenceNumber;
+    if (dto.isPublished !== undefined) updateData['is_published'] = dto.isPublished;
+
+    return from(
+      this.supabase
+        .from('assets')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAssetToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    // First get the asset to know the subject_id for count update
+    return this.getById(id).pipe(
+      switchMap(asset => {
+        if (!asset) return of(undefined);
+        return from(
+          this.supabase
+            .from('assets')
+            .delete()
+            .eq('id', id)
+        ).pipe(
+          switchMap(({ error }) => {
+            if (error) throw new Error(error.message);
+            return this.updateSubjectAssetCount(asset.subjectId);
+          })
+        );
+      })
+    );
+  }
+
+  uploadFile(file: File, path: string): Observable<{ url: string; fileName: string; size: number }> {
+    const filePath = `${path}/${Date.now()}_${file.name}`;
+    return from(
+      this.supabase.storage
+        .from('assets')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const { data: urlData } = this.supabase.storage
+          .from('assets')
+          .getPublicUrl(data.path);
+        return {
+          url: urlData.publicUrl,
+          fileName: file.name,
+          size: file.size,
+        };
+      })
+    );
+  }
+
+  deleteFile(path: string): Observable<void> {
+    return from(
+      this.supabase.storage
+        .from('assets')
+        .remove([path])
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+        return undefined;
+      })
+    );
+  }
+
+  private updateSubjectAssetCount(subjectId: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('assets')
+        .select('id', { count: 'exact', head: true })
+        .eq('subject_id', subjectId)
+    ).pipe(
+      switchMap(({ count, error }) => {
+        if (error) throw new Error(error.message);
+        return from(
+          this.supabase
+            .from('subjects')
+            .update({ total_assets: count ?? 0 })
+            .eq('id', subjectId)
+        );
+      }),
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+        return undefined;
+      })
+    );
+  }
 }
 
+// @REVIEW: Full Comment Adapter Implementation
 @Injectable()
 class SupabaseCommentAdapter implements ICommentAdapter {
-  getByAsset(_assetId: string): Observable<AssetCommentWithUser[]> { return of([]); }
-  create(_dto: CreateAssetCommentDto): Observable<AssetComment> { return throwError(() => new Error('Not implemented')); }
-  update(_id: string, _content: string): Observable<AssetComment> { return throwError(() => new Error('Not implemented')); }
-  delete(_id: string): Observable<void> { return throwError(() => new Error('Not implemented')); }
-  toggleVisibility(_id: string, _isVisible: boolean): Observable<AssetComment> { return throwError(() => new Error('Not implemented')); }
+  private readonly supabase = inject(SupabaseClientService).supabase;
+
+  getByAsset(assetId: string): Observable<AssetCommentWithUser[]> {
+    return from(
+      this.supabase
+        .from('asset_comments')
+        .select(`
+          *,
+          users!asset_comments_user_id_fkey (
+            id,
+            full_name,
+            avatar_url,
+            role
+          )
+        `)
+        .eq('asset_id', assetId)
+        .order('created_at', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        const comments = (data ?? []).map(row => mapDbAssetCommentWithUserToModel(row as Record<string, unknown>));
+        // Build threaded structure - separate parent comments and replies
+        const parentComments = comments.filter(c => !c.parentId);
+        const replies = comments.filter(c => c.parentId);
+        
+        return parentComments.map(parent => ({
+          ...parent,
+          replies: replies.filter(r => r.parentId === parent.id),
+        }));
+      })
+    );
+  }
+
+  create(dto: CreateAssetCommentDto): Observable<AssetComment> {
+    return from(
+      this.supabase
+        .from('asset_comments')
+        .insert({
+          asset_id: dto.assetId,
+          user_id: dto.userId,
+          parent_id: dto.parentId ?? null,
+          content: dto.content,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAssetCommentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  update(id: string, content: string): Observable<AssetComment> {
+    return from(
+      this.supabase
+        .from('asset_comments')
+        .update({ content })
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAssetCommentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  delete(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('asset_comments')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+        return undefined;
+      })
+    );
+  }
+
+  toggleVisibility(id: string, isVisible: boolean): Observable<AssetComment> {
+    return from(
+      this.supabase
+        .from('asset_comments')
+        .update({ is_visible: isVisible })
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbAssetCommentToModel(data as Record<string, unknown>);
+      })
+    );
+  }
 }
 
 // =============================================
@@ -2468,6 +2790,318 @@ export class SupabaseExamSubjectAssignmentAdapter {
 }
 
 // =============================================
+// @REVIEW: SETTINGS ADAPTER
+// =============================================
+
+// Helper mappers for settings
+const mapDbSettingsCategoryToModel = (row: Record<string, unknown>): SettingsCategory => ({
+  id: row['id'] as string,
+  name: row['name'] as string,
+  label: row['label'] as string,
+  icon: row['icon'] as string,
+  description: row['description'] as string | null,
+  sortOrder: row['sort_order'] as number ?? 0,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+const mapDbSystemSettingToModel = (row: Record<string, unknown>): SystemSetting => ({
+  id: row['id'] as string,
+  categoryId: row['category_id'] as string,
+  key: row['key'] as string,
+  label: row['label'] as string,
+  value: row['value'] as string | null,
+  valueType: (row['value_type'] as SettingValueType) ?? 'text',
+  options: row['options'] as string[] | null,
+  defaultValue: row['default_value'] as string | null,
+  description: row['description'] as string | null,
+  isRequired: row['is_required'] as boolean ?? false,
+  sortOrder: row['sort_order'] as number ?? 0,
+  createdAt: new Date(row['created_at'] as string),
+  updatedAt: new Date(row['updated_at'] as string),
+});
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseSettingsAdapter {
+  private readonly supabase = inject(SupabaseClientService);
+
+  // ===== CATEGORIES =====
+
+  getAllCategories(): Observable<SettingsCategory[]> {
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .select('*')
+        .order('sort_order', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map(row => mapDbSettingsCategoryToModel(row as Record<string, unknown>));
+      })
+    );
+  }
+
+  getCategoryById(id: string): Observable<SettingsCategory | null> {
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .select('*')
+        .eq('id', id)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) return null;
+        return mapDbSettingsCategoryToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  createCategory(dto: CreateSettingsCategoryDto): Observable<SettingsCategory> {
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .insert({
+          name: dto.name,
+          label: dto.label,
+          icon: dto.icon ?? 'pi-cog',
+          description: dto.description ?? null,
+          sort_order: dto.sortOrder ?? 0,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSettingsCategoryToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  updateCategory(id: string, dto: UpdateSettingsCategoryDto): Observable<SettingsCategory> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData['name'] = dto.name;
+    if (dto.label !== undefined) updateData['label'] = dto.label;
+    if (dto.icon !== undefined) updateData['icon'] = dto.icon;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.sortOrder !== undefined) updateData['sort_order'] = dto.sortOrder;
+
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSettingsCategoryToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  // ===== SETTINGS =====
+
+  getAllSettings(): Observable<SystemSetting[]> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .select('*')
+        .order('sort_order', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map(row => mapDbSystemSettingToModel(row as Record<string, unknown>));
+      })
+    );
+  }
+
+  getSettingsByCategory(categoryId: string): Observable<SystemSetting[]> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('sort_order', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map(row => mapDbSystemSettingToModel(row as Record<string, unknown>));
+      })
+    );
+  }
+
+  getSettingByKey(key: string): Observable<SystemSetting | null> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .select('*')
+        .eq('key', key)
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) return null;
+        return mapDbSystemSettingToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  createSetting(dto: CreateSystemSettingDto): Observable<SystemSetting> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .insert({
+          category_id: dto.categoryId,
+          key: dto.key,
+          label: dto.label,
+          value: dto.value ?? null,
+          value_type: dto.valueType ?? 'text',
+          options: dto.options ?? null,
+          default_value: dto.defaultValue ?? null,
+          description: dto.description ?? null,
+          is_required: dto.isRequired ?? false,
+          sort_order: dto.sortOrder ?? 0,
+        })
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSystemSettingToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  updateSetting(id: string, dto: UpdateSystemSettingDto): Observable<SystemSetting> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.categoryId !== undefined) updateData['category_id'] = dto.categoryId;
+    if (dto.key !== undefined) updateData['key'] = dto.key;
+    if (dto.label !== undefined) updateData['label'] = dto.label;
+    if (dto.value !== undefined) updateData['value'] = dto.value;
+    if (dto.valueType !== undefined) updateData['value_type'] = dto.valueType;
+    if (dto.options !== undefined) updateData['options'] = dto.options;
+    if (dto.defaultValue !== undefined) updateData['default_value'] = dto.defaultValue;
+    if (dto.description !== undefined) updateData['description'] = dto.description;
+    if (dto.isRequired !== undefined) updateData['is_required'] = dto.isRequired;
+    if (dto.sortOrder !== undefined) updateData['sort_order'] = dto.sortOrder;
+
+    return from(
+      this.supabase
+        .from('system_settings')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSystemSettingToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  // @REVIEW: Quick update just the value (for inline editing)
+  updateSettingValue(id: string, value: string | null): Observable<SystemSetting> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .update({ value })
+        .eq('id', id)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return mapDbSystemSettingToModel(data as Record<string, unknown>);
+      })
+    );
+  }
+
+  deleteSetting(id: string): Observable<void> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .delete()
+        .eq('id', id)
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  // @REVIEW: Bulk operations for import/export
+  bulkCreateSettings(settings: CreateSystemSettingDto[]): Observable<SystemSetting[]> {
+    if (settings.length === 0) return of([]);
+
+    const insertData = settings.map(dto => ({
+      category_id: dto.categoryId,
+      key: dto.key,
+      label: dto.label,
+      value: dto.value ?? null,
+      value_type: dto.valueType ?? 'text',
+      options: dto.options ?? null,
+      default_value: dto.defaultValue ?? null,
+      description: dto.description ?? null,
+      is_required: dto.isRequired ?? false,
+      sort_order: dto.sortOrder ?? 0,
+    }));
+
+    return from(
+      this.supabase
+        .from('system_settings')
+        .insert(insertData)
+        .select()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data ?? []).map(row => mapDbSystemSettingToModel(row as Record<string, unknown>));
+      })
+    );
+  }
+
+  // @REVIEW: Delete all settings (for clean import)
+  deleteAllSettings(): Observable<void> {
+    return from(
+      this.supabase
+        .from('system_settings')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all (workaround for "delete all")
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+
+  deleteAllCategories(): Observable<void> {
+    return from(
+      this.supabase
+        .from('settings_categories')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+    ).pipe(
+      map(({ error }) => {
+        if (error) throw new Error(error.message);
+      })
+    );
+  }
+}
+
+// =============================================
 // MAIN DATABASE ADAPTER
 // =============================================
 
@@ -2489,6 +3123,8 @@ export class SupabaseDatabaseAdapter implements IDatabaseAdapter {
   // @REVIEW: New adapters for flexible exam assignments
   readonly examAssignments = inject(SupabaseExamAssignmentAdapter);
   readonly examSubjectAssignments = inject(SupabaseExamSubjectAssignmentAdapter);
+  // @REVIEW: Settings adapter for dynamic configuration
+  readonly settings = inject(SupabaseSettingsAdapter);
 }
 
 // =============================================
@@ -2510,5 +3146,7 @@ export const provideSupabaseDatabaseAdapter = () => [
   // @REVIEW: New adapters for flexible exam assignments
   SupabaseExamAssignmentAdapter,
   SupabaseExamSubjectAssignmentAdapter,
+  // @REVIEW: Settings adapter for dynamic configuration
+  SupabaseSettingsAdapter,
   SupabaseDatabaseAdapter,
 ];

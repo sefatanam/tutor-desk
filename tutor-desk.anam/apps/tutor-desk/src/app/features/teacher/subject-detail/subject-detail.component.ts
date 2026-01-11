@@ -1,5 +1,6 @@
 // @REVIEW: Subject Detail Page - View subject info and manage student enrollments
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -92,6 +93,13 @@ interface ExamStats {
             </div>
           </div>
           <div class="subject-header__actions">
+            <!-- @REVIEW: Manage learning materials -->
+            <p-button 
+              icon="pi pi-folder-open" 
+              label="Assets" 
+              severity="secondary"
+              [routerLink]="['/teacher/subjects', subject()!.id, 'assets']"
+            />
             <!-- @REVIEW: View comprehensive subject report -->
             <p-button 
               icon="pi pi-chart-bar" 
@@ -473,6 +481,8 @@ export class SubjectDetailComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -524,7 +534,9 @@ export class SubjectDetailComponent implements OnInit {
   }
 
   private loadSubject(id: string): void {
-    this.db.subjects.getById(id).subscribe({
+    this.db.subjects.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (subject) => {
         this.subject.set(subject);
         this.loading.set(false);
@@ -546,7 +558,9 @@ export class SubjectDetailComponent implements OnInit {
     forkJoin({
       all: this.db.students.getByTeacher(teacherId, { page: 1, pageSize: 500 }),
       enrolled: this.db.subjects.getEnrolledStudents(subjectId),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ all, enrolled }) => {
         this.allStudents.set(all.items);
         this.enrolledStudents.set(enrolled);
@@ -561,7 +575,9 @@ export class SubjectDetailComponent implements OnInit {
 
   private loadExams(subjectId: string): void {
     this.loadingExams.set(true);
-    this.db.exams.getBySubject(subjectId, { page: 1, pageSize: 100 }).subscribe({
+    this.db.exams.getBySubject(subjectId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => {
         this.exams.set(response.items);
         this.loadingExams.set(false);
@@ -583,7 +599,9 @@ export class SubjectDetailComponent implements OnInit {
       this.db.submissions.getByExam(exam.id, { page: 1, pageSize: 500 }).pipe()
     );
 
-    forkJoin(statRequests).subscribe({
+    forkJoin(statRequests).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (responses) => {
         const statsMap: Record<string, ExamStats> = {};
         
@@ -620,7 +638,9 @@ export class SubjectDetailComponent implements OnInit {
     this.enrollingStudentId.set(student.id);
 
     // @REVIEW: Use userId (not teacherId) for enrolled_by - references users table
-    this.db.subjects.enrollStudent(student.id, subject.id, userId).subscribe({
+    this.db.subjects.enrollStudent(student.id, subject.id, userId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         // Move student from available to enrolled
         this.enrolledStudents.update(list => [...list, student]);
@@ -660,7 +680,9 @@ export class SubjectDetailComponent implements OnInit {
     const subject = this.subject();
     if (!subject) return;
 
-    this.db.subjects.unenrollStudent(student.id, subject.id).subscribe({
+    this.db.subjects.unenrollStudent(student.id, subject.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         // Remove student from enrolled list
         this.enrolledStudents.update(list => list.filter(s => s.id !== student.id));

@@ -1,5 +1,6 @@
 // @REVIEW: Submission Detail - View individual student's exam answers with full question details
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -599,6 +600,8 @@ export class SubmissionDetailComponent implements OnInit {
   // @REVIEW: Export services for PDF and CSV generation
   private readonly pdfExportService = inject(PdfExportService);
   private readonly csvExportService = inject(CsvExportService);
+  // @REVIEW: DestroyRef for subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -690,7 +693,9 @@ export class SubmissionDetailComponent implements OnInit {
   }
 
   private loadSubmission(id: string): void {
-    this.db.submissions.getById(id).subscribe({
+    this.db.submissions.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (submission) => {
         if (!submission) {
           this.loading.set(false);
@@ -707,7 +712,9 @@ export class SubmissionDetailComponent implements OnInit {
           subject: submission.exam.subjectId
             ? this.db.subjects.getById(submission.exam.subjectId)
             : of(null),
-        }).subscribe({
+        }).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: ({ questions, student, subject }) => {
             this.questions.set(questions);
             this.student.set(student);
@@ -737,6 +744,8 @@ export class SubmissionDetailComponent implements OnInit {
       sub.id,
       this.authStore.user()?.id ?? '',
       this.remarksInput || undefined
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (updated) => {
         this.submission.update(s => s ? { ...s, ...updated } : null);
@@ -775,7 +784,9 @@ export class SubmissionDetailComponent implements OnInit {
     const sub = this.submission();
     if (!sub) return;
 
-    this.db.submissions.allowRetake(sub.id).subscribe({
+    this.db.submissions.allowRetake(sub.id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (updated) => {
         this.submission.update(s => s ? { ...s, ...updated } : null);
         this.messageService.add({

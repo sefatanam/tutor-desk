@@ -45,6 +45,13 @@ import {
   StudentDashboardStats,
   SuperAdminDashboardStats,
   UserStatus,
+  // @REVIEW: Settings models for dynamic configuration
+  SettingsCategory,
+  SystemSetting,
+  CreateSettingsCategoryDto,
+  UpdateSettingsCategoryDto,
+  CreateSystemSettingDto,
+  UpdateSystemSettingDto,
 } from '../models';
 
 // =============================================
@@ -228,6 +235,32 @@ export interface IAdminAdapter {
 }
 
 // =============================================
+// SETTINGS ADAPTER INTERFACE
+// =============================================
+
+// @REVIEW: Dynamic settings system for unlimited customization
+export interface ISettingsAdapter {
+  // Categories
+  getAllCategories(): Observable<SettingsCategory[]>;
+  getCategoryById(id: string): Observable<SettingsCategory | null>;
+  createCategory(dto: CreateSettingsCategoryDto): Observable<SettingsCategory>;
+  updateCategory(id: string, dto: UpdateSettingsCategoryDto): Observable<SettingsCategory>;
+  deleteCategory(id: string): Observable<void>;
+  // Settings
+  getAllSettings(): Observable<SystemSetting[]>;
+  getSettingsByCategory(categoryId: string): Observable<SystemSetting[]>;
+  getSettingByKey(key: string): Observable<SystemSetting | null>;
+  createSetting(dto: CreateSystemSettingDto): Observable<SystemSetting>;
+  updateSetting(id: string, dto: UpdateSystemSettingDto): Observable<SystemSetting>;
+  updateSettingValue(id: string, value: string | null): Observable<SystemSetting>;
+  deleteSetting(id: string): Observable<void>;
+  // Bulk operations
+  bulkCreateSettings(settings: CreateSystemSettingDto[]): Observable<SystemSetting[]>;
+  deleteAllSettings(): Observable<void>;
+  deleteAllCategories(): Observable<void>;
+}
+
+// =============================================
 // COMBINED DATABASE ADAPTER
 // =============================================
 
@@ -243,4 +276,6 @@ export interface IDatabaseAdapter {
   readonly assets: IAssetAdapter;
   readonly comments: ICommentAdapter;
   readonly admin: IAdminAdapter;
+  // @REVIEW: Settings adapter for dynamic configuration
+  readonly settings: ISettingsAdapter;
 }

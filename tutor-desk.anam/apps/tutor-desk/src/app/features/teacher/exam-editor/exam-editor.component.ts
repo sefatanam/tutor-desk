@@ -1,5 +1,6 @@
 // @REVIEW: Exam Editor - Full implementation for create/edit exam with questions
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormArray, FormControl, Validators } from '@angular/forms';
@@ -1130,6 +1131,7 @@ export class ExamEditorComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(false);
@@ -1274,7 +1276,9 @@ export class ExamEditorComponent implements OnInit {
     const teacherId = this.teacherId();
     if (!teacherId) return;
 
-    this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 100 }).subscribe({
+    this.db.subjects.getByTeacher(teacherId, { page: 1, pageSize: 100 }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (response) => this.subjects.set(response.items.filter(s => s.isActive)),
       error: (err) => console.error('Failed to load subjects:', err),
     });
@@ -1283,7 +1287,9 @@ export class ExamEditorComponent implements OnInit {
   private loadExam(id: string): void {
     this.loading.set(true);
 
-    this.db.exams.getById(id).subscribe({
+    this.db.exams.getById(id).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (exam) => {
         if (!exam) {
           this.loading.set(false);
@@ -1347,7 +1353,9 @@ export class ExamEditorComponent implements OnInit {
   private loadQuestions(examId: string): void {
     this.loadingQuestions.set(true);
 
-    this.db.questions.getByExam(examId).subscribe({
+    this.db.questions.getByExam(examId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (questions) => {
         this.questions.set(questions);
         this.loadingQuestions.set(false);
@@ -1406,7 +1414,9 @@ export class ExamEditorComponent implements OnInit {
         showImmediateFeedback: formValue.showImmediateFeedback ?? undefined,
         shuffleQuestions: formValue.shuffleQuestions ?? undefined,
         shuffleOptions: formValue.shuffleOptions ?? undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.savingExam.set(false);
           // @REVIEW: Update status signal after save
@@ -1460,7 +1470,9 @@ export class ExamEditorComponent implements OnInit {
         showImmediateFeedback: formValue.showImmediateFeedback ?? false,
         shuffleQuestions: formValue.shuffleQuestions ?? false,
         shuffleOptions: formValue.shuffleOptions ?? false,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: (exam) => {
           this.savingExam.set(false);
           this.examId.set(exam.id);
@@ -1597,7 +1609,9 @@ export class ExamEditorComponent implements OnInit {
         marks: formValue.marks ?? undefined,
         negativeMarks: formValue.negativeMarks ?? undefined,
         explanation: formValue.explanation || undefined,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.savingQuestion.set(false);
           this.showQuestionForm.set(false);
@@ -1632,7 +1646,9 @@ export class ExamEditorComponent implements OnInit {
         negativeMarks: formValue.negativeMarks ?? 0,
         explanation: formValue.explanation || undefined,
         sequenceNumber,
-      }).subscribe({
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
         next: () => {
           this.savingQuestion.set(false);
           this.showQuestionForm.set(false);
@@ -1663,7 +1679,9 @@ export class ExamEditorComponent implements OnInit {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.db.questions.delete(question.id).subscribe({
+        this.db.questions.delete(question.id).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.loadQuestions(this.examId()!);
             this.messageService.add({
@@ -1692,7 +1710,9 @@ export class ExamEditorComponent implements OnInit {
       icon: 'pi pi-play',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
-        this.db.exams.publish(this.examId()!).subscribe({
+        this.db.exams.publish(this.examId()!).pipe(
+          takeUntilDestroyed(this.destroyRef)
+        ).subscribe({
           next: () => {
             this.examStatus.set('active');
             this.messageService.add({
@@ -1719,7 +1739,9 @@ export class ExamEditorComponent implements OnInit {
     if (!this.examId()) return;
     
     this.releasingResults.set(true);
-    this.db.exams.update(this.examId()!, { isResultReleased: true }).subscribe({
+    this.db.exams.update(this.examId()!, { isResultReleased: true }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         this.releasingResults.set(false);
         this.examForm.patchValue({ isResultReleased: true });

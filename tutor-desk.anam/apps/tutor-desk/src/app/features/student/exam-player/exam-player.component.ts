@@ -9,7 +9,9 @@ import {
   computed,
   effect,
   HostListener,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +24,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { Subject, interval, takeUntil, switchMap, forkJoin, of, tap, Observable, Subscription } from 'rxjs';
+import { interval, switchMap, forkJoin, of, tap, Observable, Subscription } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import {
@@ -699,7 +701,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   private readonly messageService = inject(MessageService);
   private readonly confirmService = inject(ConfirmationService);
 
-  private readonly destroy$ = new Subject<void>();
+  // @REVIEW: Using DestroyRef for automatic subscription cleanup
+  private readonly destroyRef = inject(DestroyRef);
   private timerSubscription: Subscription | null = null;
 
   // State
@@ -767,8 +770,6 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
     this.stopTimer();
     
     // Exit fullscreen on destroy
@@ -790,7 +791,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       exam: this.db.exams.getById(examId),
       questions: this.db.questions.getByExam(examId),
       existingSubmission: this.db.submissions.getByStudentAndExam(studentId, examId),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ exam, questions, existingSubmission }) => {
         if (!exam) {
           this.phase.set('error');
@@ -842,7 +845,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
   // @REVIEW: Load existing answers for resumed exam
   private loadExistingAnswers(submissionId: string): void {
-    this.db.submissions.getById(submissionId).subscribe({
+    this.db.submissions.getById(submissionId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (submission) => {
         if (!submission) {
           this.phase.set('ready');
@@ -896,11 +901,11 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     this.startTimer();
   }
 
-  // @REVIEW: Timer management
+  // @REVIEW: Timer management with takeUntilDestroyed
   private startTimer(): void {
     this.stopTimer();
     this.timerSubscription = interval(1000)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         const remaining = this.timeRemaining();
         if (remaining <= 1) {
@@ -941,7 +946,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     if (!exam) return;
 
     // Save current answer (even if not selected)
-    this.saveCurrentAnswer().subscribe(() => {
+    this.saveCurrentAnswer().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       if (this.isLastQuestion()) {
         // Auto-submit on last question timeout
         this.autoSubmit('Time expired on last question');
@@ -972,7 +979,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
   // @REVIEW: Navigation
   goToNext(): void {
-    this.saveCurrentAnswer().subscribe(() => {
+    this.saveCurrentAnswer().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       if (!this.isLastQuestion()) {
         this.currentIndex.update(i => i + 1);
         this.resetQuestionTimer();
@@ -982,7 +991,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
   goToPrevious(): void {
     if (this.currentIndex() > 0 && this.exam()?.allowSkipReturn) {
-      this.saveCurrentAnswer().subscribe(() => {
+      this.saveCurrentAnswer().pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(() => {
         this.currentIndex.update(i => i - 1);
         // Mark as returned
         const idx = this.currentIndex();
@@ -999,7 +1010,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   goToQuestion(index: number): void {
     if (!this.exam()?.allowSkipReturn && index !== this.currentIndex()) return;
     
-    this.saveCurrentAnswer().subscribe(() => {
+    this.saveCurrentAnswer().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       const oldIdx = this.currentIndex();
       this.currentIndex.set(index);
       
@@ -1026,7 +1039,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.questionStates.set(states);
     }
     
-    this.saveCurrentAnswer().subscribe(() => {
+    this.saveCurrentAnswer().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       if (!this.isLastQuestion()) {
         this.currentIndex.update(i => i + 1);
         this.resetQuestionTimer();
@@ -1103,7 +1118,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
     // Save final answer first
     this.saveCurrentAnswer().pipe(
-      switchMap(() => this.db.submissions.submitExam(submission.id))
+      switchMap(() => this.db.submissions.submitExam(submission.id)),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (result: ExamSubmission) => {
         this.submission.set(result);
@@ -1136,7 +1152,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     this.phase.set('submitting');
 
     this.saveCurrentAnswer().pipe(
-      switchMap(() => this.db.submissions.autoSubmitExam(submission.id, reason))
+      switchMap(() => this.db.submissions.autoSubmitExam(submission.id, reason)),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (result: ExamSubmission) => {
         this.submission.set(result);

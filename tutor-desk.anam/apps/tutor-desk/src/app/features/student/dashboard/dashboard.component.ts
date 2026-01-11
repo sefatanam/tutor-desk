@@ -1,5 +1,6 @@
 // @REVIEW: Student Dashboard - Real data from database
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
@@ -320,6 +321,7 @@ interface RecentResult {
 export class DashboardComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loadingStats = signal(true);
@@ -358,7 +360,9 @@ export class DashboardComponent implements OnInit {
     }
 
     // Load stats
-    this.db.students.getDashboardStats(studentId).subscribe({
+    this.db.students.getDashboardStats(studentId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (stats) => {
         this.stats.set(stats);
         this.loadingStats.set(false);
@@ -373,7 +377,9 @@ export class DashboardComponent implements OnInit {
     forkJoin({
       exams: this.db.exams.getUpcomingForStudent(studentId),
       submissions: this.db.submissions.getByStudent(studentId, { page: 1, pageSize: 100 }),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: ({ exams, submissions }) => {
         // @REVIEW: Build submission status map - tracks latest status for each exam
         const submissionStatusMap = new Map<string, UpcomingExam['status']>();
@@ -442,7 +448,8 @@ export class DashboardComponent implements OnInit {
         );
 
         return forkJoin(requests);
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (items) => {
         const valid = (items ?? []).filter((i): i is RecentResult => i !== null);

@@ -1,5 +1,6 @@
 // @REVIEW: Student Results - View exam results and scores
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -299,6 +300,7 @@ export class ResultsComponent implements OnInit {
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   // State
   readonly loading = signal(true);
@@ -377,7 +379,8 @@ export class ResultsComponent implements OnInit {
         );
 
         return forkJoin(examRequests);
-      })
+      }),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (items) => {
         const validItems = (items ?? []).filter((item): item is ResultItem => item !== null);
