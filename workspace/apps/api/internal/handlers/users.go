@@ -18,7 +18,16 @@ func NewUsersHandler(db *pgxpool.Pool) *UsersHandler {
 	return &UsersHandler{db: db}
 }
 
-// GET /api/v1/users/{id}
+// GetByID returns a user by ID.
+//
+//	@Summary		Get user by ID
+//	@Tags			Users
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"User UUID"
+//	@Success		200	{object}	models.User
+//	@Failure		404	{object}	map[string]string
+//	@Router			/users/{id} [get]
 func (h *UsersHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -38,7 +47,19 @@ func (h *UsersHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, u)
 }
 
-// PATCH /api/v1/users/{id}
+// Update updates a user's profile fields.
+//
+//	@Summary		Update user
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string						true	"User UUID"
+//	@Param			body	body		models.UpdateUserRequest	true	"Fields to update"
+//	@Success		200		{object}	models.User
+//	@Failure		400		{object}	map[string]string
+//	@Failure		403		{object}	map[string]string
+//	@Router			/users/{id} [patch]
 func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	callerID := middleware.GetUserID(r)
@@ -73,7 +94,19 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// PATCH /api/v1/users/{id}/status  [super_admin only]
+// UpdateStatus sets a user's status (super_admin only).
+//
+//	@Summary		Update user status
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"User UUID"
+//	@Param			body	body		models.UpdateUserStatusRequest	true	"New status"
+//	@Success		200		{object}	models.User
+//	@Failure		400		{object}	map[string]string
+//	@Failure		404		{object}	map[string]string
+//	@Router			/users/{id}/status [patch]
 func (h *UsersHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var req models.UpdateUserStatusRequest

@@ -96,6 +96,18 @@ type authSuccessResponse struct {
 // POST /api/v1/auth/login
 // =============================================
 
+// Login authenticates a user and returns JWT tokens.
+//
+//	@Summary		Login
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		loginRequest		true	"Login credentials"
+//	@Success		200		{object}	authSuccessResponse
+//	@Failure		400		{object}	map[string]string
+//	@Failure		401		{object}	map[string]string
+//	@Failure		429		{object}	map[string]interface{}
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := middleware.DecodeBody(r, &req); err != nil {
@@ -215,6 +227,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/signup (teachers only)
 // =============================================
 
+// Signup registers a new teacher (pending admin approval).
+//
+//	@Summary		Teacher signup
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		signupRequest		true	"Signup details"
+//	@Success		201		{object}	map[string]interface{}
+//	@Failure		400		{object}	map[string]string
+//	@Failure		409		{object}	map[string]string
+//	@Router			/auth/signup [post]
 func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req signupRequest
 	if err := middleware.DecodeBody(r, &req); err != nil {
@@ -286,6 +309,17 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/refresh
 // =============================================
 
+// Refresh rotates a refresh token and returns a new access token.
+//
+//	@Summary		Refresh token
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		refreshRequest		true	"Refresh token"
+//	@Success		200		{object}	authSuccessResponse
+//	@Failure		400		{object}	map[string]string
+//	@Failure		401		{object}	map[string]string
+//	@Router			/auth/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := middleware.DecodeBody(r, &req); err != nil || req.RefreshToken == "" {
@@ -391,6 +425,15 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/logout
 // =============================================
 
+// Logout revokes the refresh token.
+//
+//	@Summary		Logout
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		logoutRequest		false	"Refresh token (optional)"
+//	@Success		200		{object}	map[string]string
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var req logoutRequest
 	_ = middleware.DecodeBody(r, &req)
@@ -409,6 +452,18 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/reset-password  [super_admin only]
 // =============================================
 
+// ResetPassword resets a user password (super_admin only).
+//
+//	@Summary		Reset password
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			body	body		resetPasswordRequest	true	"User ID and new password"
+//	@Success		200		{object}	map[string]string
+//	@Failure		400		{object}	map[string]string
+//	@Failure		404		{object}	map[string]string
+//	@Router			/auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req resetPasswordRequest
 	if err := middleware.DecodeBody(r, &req); err != nil {
@@ -447,6 +502,18 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/create-student  [teacher only]
 // =============================================
 
+// CreateStudent creates a student account (teacher only).
+//
+//	@Summary		Create student account
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			body	body		createStudentRequest	true	"Student details"
+//	@Success		201		{object}	map[string]interface{}
+//	@Failure		400		{object}	map[string]string
+//	@Failure		409		{object}	map[string]string
+//	@Router			/auth/create-student [post]
 func (h *AuthHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	var req createStudentRequest
 	if err := middleware.DecodeBody(r, &req); err != nil {

@@ -16,7 +16,12 @@
     "db:migrate": "echo 'Use Supabase MCP: supabase_apply_migration'",
     "db:seed": "node scripts/seed-database.mjs",
     "db:seed:help": "echo 'Usage: SUPABASE_SERVICE_ROLE_KEY=your_key pnpm db:seed'",
-    "db:reset": "echo 'WARNING: Drops all tables. Use Supabase dashboard or MCP carefully'"
+    "db:reset": "echo 'WARNING: Drops all tables. Use Supabase dashboard or MCP carefully'",
+    "api:dev": "bash apps/api/dev.sh",
+    "api:prod": "bash apps/api/prod.sh",
+    "api:down": "docker compose --profile full down",
+    "api:logs": "docker compose --profile full logs -f",
+    "api:docs": "cd apps/api && /Users/sefat/go/bin/swag init -g main.go -o ./docs --parseDependency --parseInternal"
   },
   "private": true,
   "dependencies": {

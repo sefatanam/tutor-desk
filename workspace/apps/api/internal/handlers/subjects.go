@@ -19,7 +19,17 @@ func NewSubjectsHandler(db *pgxpool.Pool) *SubjectsHandler {
 	return &SubjectsHandler{db: db}
 }
 
-// GET /api/v1/subjects  [teacher — returns own subjects]
+// GetAll returns a paginated list of the calling teacher's subjects.
+//
+//	@Summary		List subjects
+//	@Tags			Subjects
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			page		query		int	false	"Page number"
+//	@Param			page_size	query		int	false	"Page size"
+//	@Success		200		{object}	models.PaginatedResponse[models.Subject]
+//	@Failure		404		{object}	map[string]string
+//	@Router			/subjects [get]
 func (h *SubjectsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	teacherUserID := middleware.GetUserID(r)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -54,7 +64,16 @@ func (h *SubjectsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/v1/subjects/{id}
+// GetByID returns a subject by ID.
+//
+//	@Summary		Get subject by ID
+//	@Tags			Subjects
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Subject UUID"
+//	@Success		200	{object}	models.Subject
+//	@Failure		404	{object}	map[string]string
+//	@Router			/subjects/{id} [get]
 func (h *SubjectsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	s, err := h.getSubject(r, id)
@@ -65,7 +84,17 @@ func (h *SubjectsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, s)
 }
 
-// POST /api/v1/subjects  [teacher]
+// Create creates a new subject for the calling teacher.
+//
+//	@Summary		Create subject
+//	@Tags			Subjects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			body	body		models.CreateSubjectRequest	true	"Subject details"
+//	@Success		201		{object}	models.Subject
+//	@Failure		400		{object}	map[string]string
+//	@Router			/subjects [post]
 func (h *SubjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	teacherUserID := middleware.GetUserID(r)
 	var req models.CreateSubjectRequest
@@ -106,7 +135,18 @@ func (h *SubjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusCreated, s)
 }
 
-// PATCH /api/v1/subjects/{id}  [teacher]
+// Update updates a subject's fields.
+//
+//	@Summary		Update subject
+//	@Tags			Subjects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string						true	"Subject UUID"
+//	@Param			body	body		models.UpdateSubjectRequest	true	"Fields to update"
+//	@Success		200		{object}	models.Subject
+//	@Failure		400		{object}	map[string]string
+//	@Router			/subjects/{id} [patch]
 func (h *SubjectsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var req models.UpdateSubjectRequest
@@ -134,7 +174,15 @@ func (h *SubjectsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// DELETE /api/v1/subjects/{id}  [teacher]
+// Delete deletes a subject.
+//
+//	@Summary		Delete subject
+//	@Tags			Subjects
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Subject UUID"
+//	@Success		204
+//	@Failure		500	{object}	map[string]string
+//	@Router			/subjects/{id} [delete]
 func (h *SubjectsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	_, err := h.db.Exec(r.Context(), `DELETE FROM subjects WHERE id = $1`, id)
@@ -145,7 +193,16 @@ func (h *SubjectsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GET /api/v1/subjects/{id}/students
+// GetStudents returns all students enrolled in a subject.
+//
+//	@Summary		Get enrolled students
+//	@Tags			Subjects
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Subject UUID"
+//	@Success		200	{array}		models.StudentWithUser
+//	@Failure		500	{object}	map[string]string
+//	@Router			/subjects/{id}/students [get]
 func (h *SubjectsHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -169,7 +226,18 @@ func (h *SubjectsHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, scanStudentsWithUser(rows))
 }
 
-// POST /api/v1/subjects/{id}/enroll  [teacher]
+// Enroll enrolls a student in a subject.
+//
+//	@Summary		Enroll student in subject
+//	@Tags			Subjects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"Subject UUID"
+//	@Param			body	body		models.EnrollStudentRequest		true	"Student to enroll"
+//	@Success		201		{object}	models.SubjectEnrollment
+//	@Failure		400		{object}	map[string]string
+//	@Router			/subjects/{id}/enroll [post]
 func (h *SubjectsHandler) Enroll(w http.ResponseWriter, r *http.Request) {
 	subjectID := r.PathValue("id")
 	callerID := middleware.GetUserID(r)
@@ -204,7 +272,15 @@ func (h *SubjectsHandler) Enroll(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusCreated, enrollment)
 }
 
-// DELETE /api/v1/subjects/{id}/students/{studentId}  [teacher]
+// Unenroll removes a student from a subject.
+//
+//	@Summary		Unenroll student from subject
+//	@Tags			Subjects
+//	@Security		BearerAuth
+//	@Param			id			path	string	true	"Subject UUID"
+//	@Param			studentId	path	string	true	"Student UUID"
+//	@Success		204
+//	@Router			/subjects/{id}/students/{studentId} [delete]
 func (h *SubjectsHandler) Unenroll(w http.ResponseWriter, r *http.Request) {
 	subjectID := r.PathValue("id")
 	studentID := r.PathValue("studentId")

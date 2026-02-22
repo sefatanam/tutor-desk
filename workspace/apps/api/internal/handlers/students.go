@@ -19,7 +19,17 @@ func NewStudentsHandler(db *pgxpool.Pool) *StudentsHandler {
 	return &StudentsHandler{db: db}
 }
 
-// GET /api/v1/students  [teacher — returns own students]
+// GetAll returns a paginated list of the calling teacher's students.
+//
+//	@Summary		List students
+//	@Tags			Students
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			page		query		int	false	"Page number"
+//	@Param			page_size	query		int	false	"Page size"
+//	@Success		200		{object}	models.PaginatedResponse[models.StudentWithUser]
+//	@Failure		404		{object}	map[string]string
+//	@Router			/students [get]
 func (h *StudentsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	teacherUserID := middleware.GetUserID(r)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -59,7 +69,16 @@ func (h *StudentsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/v1/students/{id}
+// GetByID returns a student by ID.
+//
+//	@Summary		Get student by ID
+//	@Tags			Students
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Student UUID"
+//	@Success		200	{object}	models.StudentWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/students/{id} [get]
 func (h *StudentsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	sw, err := scanStudentWithUser(h.db, r, "s.id = $1", id)
@@ -70,7 +89,15 @@ func (h *StudentsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, sw)
 }
 
-// GET /api/v1/students/{id}/stats
+// GetStats returns dashboard statistics for a student.
+//
+//	@Summary		Get student stats
+//	@Tags			Students
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Student UUID"
+//	@Success		200	{object}	models.StudentDashboardStats
+//	@Router			/students/{id}/stats [get]
 func (h *StudentsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -86,7 +113,18 @@ func (h *StudentsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, stats)
 }
 
-// PATCH /api/v1/students/{id}
+// Update updates a student's profile fields.
+//
+//	@Summary		Update student
+//	@Tags			Students
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"Student UUID"
+//	@Param			body	body		models.UpdateStudentRequest		true	"Fields to update"
+//	@Success		200		{object}	models.StudentWithUser
+//	@Failure		400		{object}	map[string]string
+//	@Router			/students/{id} [patch]
 func (h *StudentsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var req models.UpdateStudentRequest
@@ -116,12 +154,30 @@ func (h *StudentsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/students/{id}/disable
+// Disable disables a student account.
+//
+//	@Summary		Disable student
+//	@Tags			Students
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Student UUID"
+//	@Success		200	{object}	models.StudentWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/students/{id}/disable [post]
 func (h *StudentsHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	h.setStatus(w, r, "disabled")
 }
 
-// POST /api/v1/students/{id}/enable
+// Enable re-enables a disabled student account.
+//
+//	@Summary		Enable student
+//	@Tags			Students
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Student UUID"
+//	@Success		200	{object}	models.StudentWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/students/{id}/enable [post]
 func (h *StudentsHandler) Enable(w http.ResponseWriter, r *http.Request) {
 	h.setStatus(w, r, "active")
 }
@@ -138,7 +194,15 @@ func (h *StudentsHandler) setStatus(w http.ResponseWriter, r *http.Request, stat
 	h.GetByID(w, r)
 }
 
-// DELETE /api/v1/students/{id}
+// Delete deletes a student and their user account.
+//
+//	@Summary		Delete student
+//	@Tags			Students
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Student UUID"
+//	@Success		204
+//	@Failure		404	{object}	map[string]string
+//	@Router			/students/{id} [delete]
 func (h *StudentsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()

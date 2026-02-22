@@ -19,7 +19,17 @@ func NewTeachersHandler(db *pgxpool.Pool) *TeachersHandler {
 	return &TeachersHandler{db: db}
 }
 
-// GET /api/v1/teachers  [super_admin]
+// GetAll returns a paginated list of all teachers (super_admin).
+//
+//	@Summary		List all teachers
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			page		query		int	false	"Page number"
+//	@Param			page_size	query		int	false	"Page size"
+//	@Success		200		{object}	models.PaginatedResponse[models.TeacherWithUser]
+//	@Failure		500		{object}	map[string]string
+//	@Router			/teachers [get]
 func (h *TeachersHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
@@ -75,7 +85,15 @@ func (h *TeachersHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/v1/teachers/pending  [super_admin]
+// GetPending returns all teachers awaiting approval (super_admin).
+//
+//	@Summary		List pending teachers
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200		{array}		models.TeacherWithUser
+//	@Failure		500		{object}	map[string]string
+//	@Router			/teachers/pending [get]
 func (h *TeachersHandler) GetPending(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.Query(ctx,
@@ -99,7 +117,16 @@ func (h *TeachersHandler) GetPending(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, items)
 }
 
-// GET /api/v1/teachers/{id}
+// GetByID returns a teacher by their teacher record ID.
+//
+//	@Summary		Get teacher by ID
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Teacher UUID"
+//	@Success		200	{object}	models.TeacherWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/teachers/{id} [get]
 func (h *TeachersHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	tw, err := h.getTeacherWithUser(r.Context(), "t.id = $1", id)
@@ -110,7 +137,15 @@ func (h *TeachersHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, tw)
 }
 
-// GET /api/v1/teachers/{id}/stats
+// GetStats returns dashboard statistics for a teacher.
+//
+//	@Summary		Get teacher stats
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Teacher UUID"
+//	@Success		200	{object}	models.TeacherDashboardStats
+//	@Router			/teachers/{id}/stats [get]
 func (h *TeachersHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -129,7 +164,18 @@ func (h *TeachersHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, stats)
 }
 
-// PATCH /api/v1/teachers/{id}
+// Update updates a teacher's profile.
+//
+//	@Summary		Update teacher
+//	@Tags			Teachers
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"Teacher UUID"
+//	@Param			body	body		models.UpdateTeacherRequest		true	"Fields to update"
+//	@Success		200		{object}	models.TeacherWithUser
+//	@Failure		400		{object}	map[string]string
+//	@Router			/teachers/{id} [patch]
 func (h *TeachersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var req models.UpdateTeacherRequest
@@ -157,7 +203,16 @@ func (h *TeachersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/teachers/{id}/approve  [super_admin]
+// Approve approves a pending teacher account (super_admin).
+//
+//	@Summary		Approve teacher
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Teacher UUID"
+//	@Success		200	{object}	models.TeacherWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/teachers/{id}/approve [post]
 func (h *TeachersHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	callerID := middleware.GetUserID(r)
@@ -176,7 +231,16 @@ func (h *TeachersHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/teachers/{id}/disable  [super_admin]
+// Disable disables a teacher account (super_admin).
+//
+//	@Summary		Disable teacher
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Teacher UUID"
+//	@Success		200	{object}	models.TeacherWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/teachers/{id}/disable [post]
 func (h *TeachersHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -189,7 +253,16 @@ func (h *TeachersHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/teachers/{id}/enable  [super_admin]
+// Enable re-enables a disabled teacher account (super_admin).
+//
+//	@Summary		Enable teacher
+//	@Tags			Teachers
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Teacher UUID"
+//	@Success		200	{object}	models.TeacherWithUser
+//	@Failure		404	{object}	map[string]string
+//	@Router			/teachers/{id}/enable [post]
 func (h *TeachersHandler) Enable(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -202,7 +275,15 @@ func (h *TeachersHandler) Enable(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// DELETE /api/v1/teachers/{id}  [super_admin]
+// Delete deletes a teacher and their user account (super_admin).
+//
+//	@Summary		Delete teacher
+//	@Tags			Teachers
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Teacher UUID"
+//	@Success		204
+//	@Failure		404	{object}	map[string]string
+//	@Router			/teachers/{id} [delete]
 func (h *TeachersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()

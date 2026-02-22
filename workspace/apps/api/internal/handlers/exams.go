@@ -34,7 +34,17 @@ const examSelectCols = `
 	e.shuffle_questions, e.shuffle_options,
 	e.total_submissions, e.average_score, e.published_at, e.created_at, e.updated_at`
 
-// GET /api/v1/exams  [teacher]
+// GetAll returns a paginated list of the calling teacher's exams.
+//
+//	@Summary		List exams
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			page		query		int	false	"Page number"
+//	@Param			page_size	query		int	false	"Page size"
+//	@Success		200		{object}	models.PaginatedResponse[models.ExamWithSubject]
+//	@Failure		404		{object}	map[string]string
+//	@Router			/exams [get]
 func (h *ExamsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	teacherUserID := middleware.GetUserID(r)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -71,7 +81,15 @@ func (h *ExamsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/v1/exams/upcoming  [student]
+// GetUpcoming returns active exams for the calling student's enrolled subjects.
+//
+//	@Summary		List upcoming exams
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200		{array}		models.ExamWithSubject
+//	@Failure		404		{object}	map[string]string
+//	@Router			/exams/upcoming [get]
 func (h *ExamsHandler) GetUpcoming(w http.ResponseWriter, r *http.Request) {
 	studentUserID := middleware.GetUserID(r)
 	ctx := r.Context()
@@ -102,7 +120,16 @@ func (h *ExamsHandler) GetUpcoming(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, scanExamsWithSubject(rows))
 }
 
-// GET /api/v1/exams/{id}
+// GetByID returns an exam by ID.
+//
+//	@Summary		Get exam by ID
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Exam UUID"
+//	@Success		200	{object}	models.ExamWithSubject
+//	@Failure		404	{object}	map[string]string
+//	@Router			/exams/{id} [get]
 func (h *ExamsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ctx := r.Context()
@@ -121,7 +148,17 @@ func (h *ExamsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, e)
 }
 
-// POST /api/v1/exams  [teacher]
+// Create creates a new exam.
+//
+//	@Summary		Create exam
+//	@Tags			Exams
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			body	body		models.CreateExamRequest	true	"Exam details"
+//	@Success		201		{object}	models.ExamWithSubject
+//	@Failure		400		{object}	map[string]string
+//	@Router			/exams [post]
 func (h *ExamsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	teacherUserID := middleware.GetUserID(r)
 	var req models.CreateExamRequest
@@ -213,7 +250,18 @@ func (h *ExamsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusCreated, e)
 }
 
-// PATCH /api/v1/exams/{id}  [teacher]
+// Update updates an exam's fields.
+//
+//	@Summary		Update exam
+//	@Tags			Exams
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string						true	"Exam UUID"
+//	@Param			body	body		models.UpdateExamRequest	true	"Fields to update"
+//	@Success		200		{object}	models.ExamWithSubject
+//	@Failure		400		{object}	map[string]string
+//	@Router			/exams/{id} [patch]
 func (h *ExamsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var req models.UpdateExamRequest
@@ -277,7 +325,16 @@ func (h *ExamsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/exams/{id}/publish  [teacher]
+// Publish publishes a draft exam (sets status to active).
+//
+//	@Summary		Publish exam
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Exam UUID"
+//	@Success		200	{object}	models.ExamWithSubject
+//	@Failure		500	{object}	map[string]string
+//	@Router			/exams/{id}/publish [post]
 func (h *ExamsHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	publishedAt := time.Now()
@@ -291,7 +348,16 @@ func (h *ExamsHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// POST /api/v1/exams/{id}/cancel  [teacher]
+// Cancel cancels a published exam.
+//
+//	@Summary		Cancel exam
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Exam UUID"
+//	@Success		200	{object}	models.ExamWithSubject
+//	@Failure		500	{object}	map[string]string
+//	@Router			/exams/{id}/cancel [post]
 func (h *ExamsHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	_, err := h.db.Exec(r.Context(),
@@ -303,7 +369,15 @@ func (h *ExamsHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	h.GetByID(w, r)
 }
 
-// DELETE /api/v1/exams/{id}  [teacher]
+// Delete deletes an exam.
+//
+//	@Summary		Delete exam
+//	@Tags			Exams
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Exam UUID"
+//	@Success		204
+//	@Failure		500	{object}	map[string]string
+//	@Router			/exams/{id} [delete]
 func (h *ExamsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	_, err := h.db.Exec(r.Context(), `DELETE FROM exams WHERE id = $1`, id)
@@ -314,7 +388,16 @@ func (h *ExamsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GET /api/v1/exams/{id}/assignments
+// GetAssignments returns all student assignments for an exam.
+//
+//	@Summary		List exam assignments
+//	@Tags			Exams
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		string	true	"Exam UUID"
+//	@Success		200	{array}		models.ExamAssignment
+//	@Failure		500	{object}	map[string]string
+//	@Router			/exams/{id}/assignments [get]
 func (h *ExamsHandler) GetAssignments(w http.ResponseWriter, r *http.Request) {
 	examID := r.PathValue("id")
 	ctx := r.Context()
@@ -341,7 +424,18 @@ func (h *ExamsHandler) GetAssignments(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, items)
 }
 
-// POST /api/v1/exams/{id}/assign-student  [teacher]
+// AssignStudent assigns an exam to an individual student.
+//
+//	@Summary		Assign exam to student
+//	@Tags			Exams
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string								true	"Exam UUID"
+//	@Param			body	body		models.CreateExamAssignmentRequest	true	"Assignment details"
+//	@Success		201		{object}	models.ExamAssignment
+//	@Failure		400		{object}	map[string]string
+//	@Router			/exams/{id}/assign-student [post]
 func (h *ExamsHandler) AssignStudent(w http.ResponseWriter, r *http.Request) {
 	examID := r.PathValue("id")
 	callerID := middleware.GetUserID(r)
@@ -383,7 +477,18 @@ func (h *ExamsHandler) AssignStudent(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusCreated, a)
 }
 
-// POST /api/v1/exams/{id}/assign-subject  [teacher]
+// AssignSubject assigns an exam to all students in a subject.
+//
+//	@Summary		Assign exam to subject
+//	@Tags			Exams
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string										true	"Exam UUID"
+//	@Param			body	body		models.CreateExamSubjectAssignmentRequest	true	"Subject assignment details"
+//	@Success		201		{object}	models.ExamSubjectAssignment
+//	@Failure		400		{object}	map[string]string
+//	@Router			/exams/{id}/assign-subject [post]
 func (h *ExamsHandler) AssignSubject(w http.ResponseWriter, r *http.Request) {
 	examID := r.PathValue("id")
 	callerID := middleware.GetUserID(r)
@@ -421,7 +526,14 @@ func (h *ExamsHandler) AssignSubject(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusCreated, a)
 }
 
-// DELETE /api/v1/assignments/{id}
+// DeleteAssignment removes a student exam assignment.
+//
+//	@Summary		Delete exam assignment
+//	@Tags			Exams
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Assignment UUID"
+//	@Success		204
+//	@Router			/assignments/{id} [delete]
 func (h *ExamsHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	_, _ = h.db.Exec(r.Context(), `DELETE FROM exam_assignments WHERE id = $1`, id)
