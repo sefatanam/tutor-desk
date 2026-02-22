@@ -17,15 +17,15 @@ import {
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideServiceWorker } from '@angular/service-worker';
 
-// @REVIEW: PrimeNG Configuration
+// PrimeNG
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 
-// @REVIEW: HTTP Interceptors
+// Auth interceptor (attaches JWT to Go API requests)
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 
-// @REVIEW: Database Adapter
-import { provideSupabaseDatabaseAdapter } from './core/adapters/supabase-database.adapter';
+// Go API Database Adapter
+import { provideGoApiDatabaseAdapter } from './core/adapters/go-api-database.adapter';
 
 import { appRoutes } from './app.routes';
 
@@ -34,11 +34,11 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(appRoutes),
+    provideRouter(appRoutes, withViewTransitions()),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
 
-    // @REVIEW: PrimeNG with Aura Green theme
+    // PrimeNG with Aura Green theme
     providePrimeNG({
       theme: {
         preset: Aura,
@@ -54,13 +54,13 @@ export const appConfig: ApplicationConfig = {
       ripple: true,
     }),
 
-    // @REVIEW: PWA Service Worker
+    // PWA Service Worker
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
 
-    // @REVIEW: Supabase Database Adapter
-    ...provideSupabaseDatabaseAdapter(),
+    // Go REST API Database Adapter (replaces Supabase)
+    ...provideGoApiDatabaseAdapter(),
   ],
 };

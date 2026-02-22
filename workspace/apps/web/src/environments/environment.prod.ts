@@ -1,14 +1,8 @@
-// @REVIEW: Production environment configuration
-// These values should be set via CI/CD environment variables
-
 export const environment = {
   production: true,
 
-  // Supabase Configuration
-  supabase: {
-    url: 'YOUR_PRODUCTION_SUPABASE_URL',
-    anonKey: 'YOUR_PRODUCTION_SUPABASE_ANON_KEY',
-  },
+  // Go API Configuration
+  apiBaseUrl: '/api/v1',
 
   // App Configuration
   app: {
@@ -17,14 +11,14 @@ export const environment = {
     description: 'A modern platform for teachers to manage students and exams',
   },
 
-  // SuperAdmin Credentials (Hardcoded)
+  // SuperAdmin Credentials
   superAdmin: {
-    email: 'admin@tutordesk.com',
+    email: 'admin@tutordesk.app',
   },
 
   // Feature Flags
   features: {
-    googleAuth: true,
+    googleAuth: false,
     darkMode: true,
     pwa: true,
   },
@@ -32,6 +26,6 @@ export const environment = {
   // API Configuration
   api: {
     timeout: 30000,
-    retryAttempts: 3,
+    retryAttempts: 1,
   },
 };

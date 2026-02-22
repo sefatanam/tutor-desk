@@ -155,6 +155,9 @@ type CreateSubjectRequest struct {
 	Code        *string `json:"code"`
 	Color       *string `json:"color"`
 	Icon        *string `json:"icon"`
+	// TeacherID is optional; if provided (e.g. by super_admin), the subject is created for that teacher.
+	// Otherwise the caller's own teacher profile is used.
+	TeacherID *string `json:"teacher_id"`
 }
 
 type UpdateSubjectRequest struct {

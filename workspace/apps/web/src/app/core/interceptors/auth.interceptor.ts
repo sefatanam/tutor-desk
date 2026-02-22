@@ -1,30 +1,32 @@
-// @REVIEW: Auth HTTP Interceptor
-// Automatically adds Supabase anon key to all requests to the Supabase domain
-// This ensures Edge Functions receive proper authentication
-
 import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../services/auth.service';
 
+/**
+ * Attaches the stored JWT access token as a Bearer header to all
+ * requests targeting the Go API base URL.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // Only add headers for Supabase requests
-  if (req.url.includes(environment.supabase.url)) {
-    // Check if Authorization header is already set (for authenticated requests)
-    const hasAuthHeader = req.headers.has('Authorization');
-
-    // Clone request with additional headers
-    const modifiedReq = req.clone({
-      setHeaders: {
-        // Always include apikey
-        apikey: environment.supabase.anonKey,
-        // Only set Authorization if not already set
-        ...(!hasAuthHeader && {
-          Authorization: `Bearer ${environment.supabase.anonKey}`,
-        }),
-      },
-    });
-
-    return next(modifiedReq);
+  if (!req.url.startsWith(environment.apiBaseUrl)) {
+    return next(req);
   }
 
-  return next(req);
+  // Don't override if caller already set Authorization (e.g. refresh flow)
+  if (req.headers.has('Authorization')) {
+    return next(req);
+  }
+
+  const authService = inject(AuthService);
+  const token = authService.getStoredAccessToken();
+
+  if (!token) {
+    return next(req);
+  }
+
+  const authReq = req.clone({
+    setHeaders: { Authorization: `Bearer ${token}` },
+  });
+
+  return next(authReq);
 };

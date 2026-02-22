@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -44,7 +45,7 @@ func (h *TeachersHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		        t.allow_student_comments, t.show_exam_results_immediately,
 		        t.total_students, t.total_subjects, t.total_exams,
 		        t.approved_at, t.approved_by, t.created_at, t.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM teachers t
 		 JOIN users u ON u.id = t.user_id
@@ -101,7 +102,7 @@ func (h *TeachersHandler) GetPending(w http.ResponseWriter, r *http.Request) {
 		        t.allow_student_comments, t.show_exam_results_immediately,
 		        t.total_students, t.total_subjects, t.total_exams,
 		        t.approved_at, t.approved_by, t.created_at, t.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM teachers t
 		 JOIN users u ON u.id = t.user_id
@@ -301,21 +302,19 @@ func (h *TeachersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // HELPERS
 // =============================================
 
-func (h *TeachersHandler) getTeacherWithUser(ctx interface{ Value(any) any }, where, arg string) (*models.TeacherWithUser, error) {
-	// Use a concrete context
-	return nil, nil // placeholder — see actual implementation below
+func (h *TeachersHandler) getTeacherWithUser(ctx context.Context, where, arg string) (*models.TeacherWithUser, error) {
+	return getTeacherRow(h.db, ctx, where, arg)
 }
 
-// getTeacher is the real implementation
-func getTeacherRow(db *pgxpool.Pool, r *http.Request, condition, arg string) (*models.TeacherWithUser, error) {
-	ctx := r.Context()
+// getTeacherRow fetches a single TeacherWithUser by an arbitrary WHERE condition.
+func getTeacherRow(db *pgxpool.Pool, ctx context.Context, condition, arg string) (*models.TeacherWithUser, error) {
 	var tw models.TeacherWithUser
 	err := db.QueryRow(ctx,
 		`SELECT t.id, t.user_id, t.qualification, t.specialization, t.bio,
 		        t.allow_student_comments, t.show_exam_results_immediately,
 		        t.total_students, t.total_subjects, t.total_exams,
 		        t.approved_at, t.approved_by, t.created_at, t.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM teachers t
 		 JOIN users u ON u.id = t.user_id

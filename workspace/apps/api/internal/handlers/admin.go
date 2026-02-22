@@ -31,9 +31,9 @@ func (h *AdminHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	var stats models.SuperAdminDashboardStats
 
 	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers`).Scan(&stats.TotalTeachers)
-	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers WHERE status = 'pending'`).Scan(&stats.PendingTeachers)
-	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers WHERE status = 'active'`).Scan(&stats.ActiveTeachers)
-	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers WHERE status = 'disabled'`).Scan(&stats.DisabledTeachers)
+	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.status = 'pending'`).Scan(&stats.PendingTeachers)
+	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.status = 'active'`).Scan(&stats.ActiveTeachers)
+	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.status = 'disabled'`).Scan(&stats.DisabledTeachers)
 	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM students`).Scan(&stats.TotalStudents)
 	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM exams`).Scan(&stats.TotalExams)
 

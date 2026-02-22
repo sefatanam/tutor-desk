@@ -122,8 +122,19 @@ Form fields:
 - Guardian Name, Guardian Phone
 - Date of Birth (DatePicker)
 
-## Pending
-- Implement Teacher Subjects management page
-- Implement Teacher Exams list page
-- Implement Exam Editor (create/edit exams with questions)
-- Build Student Portal
+## Additional Go API fixes (Feb 23 2026)
+
+### Fixed admin.go — GetStats
+- `teachers.status` column does not exist; status lives on `users`.
+- Replaced bare `WHERE status = '...'` with `JOIN users u ON u.id = t.user_id WHERE u.status = '...'`.
+
+### Fixed students.go — GetAll for super_admin
+- `super_admin` has no teacher record, so the old `SELECT id FROM teachers WHERE user_id = $1` always returned 404 for them.
+- Added role check: if `super_admin`, skip teacher lookup and return all students (or filter by optional `?teacher_id=` query param).
+
+### Fixed subjects.go — GetAll + Create for super_admin
+- Same root cause: teacher lookup 404 for super_admin.
+- `GetAll`: same pattern as students — super_admin gets all subjects (or filter by `?teacher_id=`).
+- `Create`: super_admin must supply `teacher_id` in the request body (added `TeacherID *string` field to `CreateSubjectRequest` in models.go).
+
+All three endpoints verified working with admin token after rebuild/restart.

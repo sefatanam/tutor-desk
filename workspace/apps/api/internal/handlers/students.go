@@ -31,14 +31,64 @@ func NewStudentsHandler(db *pgxpool.Pool) *StudentsHandler {
 //	@Failure		404		{object}	map[string]string
 //	@Router			/students [get]
 func (h *StudentsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	teacherUserID := middleware.GetUserID(r)
+	callerUserID := middleware.GetUserID(r)
+	callerRole := middleware.GetUserRole(r)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 	p := models.NewPaginationParams(page, pageSize)
 	ctx := r.Context()
 
+	// super_admin can optionally filter by teacher_id query param; if omitted, returns all students.
+	// teachers must be filtered to their own students only.
+	filterTeacherID := r.URL.Query().Get("teacher_id")
+
+	if callerRole == "super_admin" {
+		var total int
+		var rows interface {
+			Next() bool
+			Scan(dest ...any) error
+			Close()
+		}
+		var err error
+
+		if filterTeacherID != "" {
+			_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM students WHERE teacher_id = $1`, filterTeacherID).Scan(&total)
+			rows, err = h.db.Query(ctx,
+				`SELECT s.id, s.user_id, s.teacher_id, s.roll_number, s.class_name, s.section,
+				        s.guardian_name, s.guardian_phone, s.address, s.date_of_birth,
+				        s.total_exams_taken, s.average_score, s.created_at, s.updated_at,
+				        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
+				        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
+				 FROM students s JOIN users u ON u.id = s.user_id
+				 WHERE s.teacher_id = $1
+				 ORDER BY s.created_at DESC LIMIT $2 OFFSET $3`, filterTeacherID, p.PageSize, p.Offset())
+		} else {
+			_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM students`).Scan(&total)
+			rows, err = h.db.Query(ctx,
+				`SELECT s.id, s.user_id, s.teacher_id, s.roll_number, s.class_name, s.section,
+				        s.guardian_name, s.guardian_phone, s.address, s.date_of_birth,
+				        s.total_exams_taken, s.average_score, s.created_at, s.updated_at,
+				        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
+				        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
+				 FROM students s JOIN users u ON u.id = s.user_id
+				 ORDER BY s.created_at DESC LIMIT $1 OFFSET $2`, p.PageSize, p.Offset())
+		}
+		if err != nil {
+			middleware.WriteError(w, http.StatusInternalServerError, "failed to fetch students")
+			return
+		}
+		defer rows.Close()
+		items := scanStudentsWithUser(rows)
+		totalPages := (total + p.PageSize - 1) / p.PageSize
+		middleware.WriteJSON(w, http.StatusOK, models.PaginatedResponse[models.StudentWithUser]{
+			Items: items, Total: total, Page: p.Page, PageSize: p.PageSize, TotalPages: totalPages,
+		})
+		return
+	}
+
+	// For teacher role: resolve teacher profile from caller user ID.
 	var teacherID string
-	if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, teacherUserID).Scan(&teacherID); err != nil {
+	if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, callerUserID).Scan(&teacherID); err != nil {
 		middleware.WriteError(w, http.StatusNotFound, "teacher profile not found")
 		return
 	}
@@ -50,7 +100,7 @@ func (h *StudentsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		`SELECT s.id, s.user_id, s.teacher_id, s.roll_number, s.class_name, s.section,
 		        s.guardian_name, s.guardian_phone, s.address, s.date_of_birth,
 		        s.total_exams_taken, s.average_score, s.created_at, s.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM students s JOIN users u ON u.id = s.user_id
 		 WHERE s.teacher_id = $1
@@ -227,7 +277,7 @@ func scanStudentWithUser(db *pgxpool.Pool, r *http.Request, condition, arg strin
 		`SELECT s.id, s.user_id, s.teacher_id, s.roll_number, s.class_name, s.section,
 		        s.guardian_name, s.guardian_phone, s.address, s.date_of_birth,
 		        s.total_exams_taken, s.average_score, s.created_at, s.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM students s JOIN users u ON u.id = s.user_id
 		 WHERE `+condition, arg).Scan(

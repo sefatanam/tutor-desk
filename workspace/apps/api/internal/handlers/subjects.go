@@ -31,14 +31,56 @@ func NewSubjectsHandler(db *pgxpool.Pool) *SubjectsHandler {
 //	@Failure		404		{object}	map[string]string
 //	@Router			/subjects [get]
 func (h *SubjectsHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	teacherUserID := middleware.GetUserID(r)
+	callerUserID := middleware.GetUserID(r)
+	callerRole := middleware.GetUserRole(r)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 	p := models.NewPaginationParams(page, pageSize)
 	ctx := r.Context()
 
+	// super_admin can optionally filter by teacher_id query param; if omitted, returns all subjects.
+	filterTeacherID := r.URL.Query().Get("teacher_id")
+
+	if callerRole == "super_admin" {
+		var total int
+		var rows interface {
+			Next() bool
+			Scan(dest ...any) error
+			Close()
+		}
+		var err error
+
+		if filterTeacherID != "" {
+			_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM subjects WHERE teacher_id = $1`, filterTeacherID).Scan(&total)
+			rows, err = h.db.Query(ctx,
+				`SELECT id, teacher_id, name, description, code, color, icon, is_active,
+				        total_students, total_exams, total_assets, created_at, updated_at
+				 FROM subjects WHERE teacher_id = $1
+				 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, filterTeacherID, p.PageSize, p.Offset())
+		} else {
+			_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM subjects`).Scan(&total)
+			rows, err = h.db.Query(ctx,
+				`SELECT id, teacher_id, name, description, code, color, icon, is_active,
+				        total_students, total_exams, total_assets, created_at, updated_at
+				 FROM subjects
+				 ORDER BY created_at DESC LIMIT $1 OFFSET $2`, p.PageSize, p.Offset())
+		}
+		if err != nil {
+			middleware.WriteError(w, http.StatusInternalServerError, "failed to fetch subjects")
+			return
+		}
+		defer rows.Close()
+		items := scanSubjects(rows)
+		totalPages := (total + p.PageSize - 1) / p.PageSize
+		middleware.WriteJSON(w, http.StatusOK, models.PaginatedResponse[models.Subject]{
+			Items: items, Total: total, Page: p.Page, PageSize: p.PageSize, TotalPages: totalPages,
+		})
+		return
+	}
+
+	// For teacher role: resolve teacher profile from caller user ID.
 	var teacherID string
-	if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, teacherUserID).Scan(&teacherID); err != nil {
+	if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, callerUserID).Scan(&teacherID); err != nil {
 		middleware.WriteError(w, http.StatusNotFound, "teacher profile not found")
 		return
 	}
@@ -96,7 +138,8 @@ func (h *SubjectsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400		{object}	map[string]string
 //	@Router			/subjects [post]
 func (h *SubjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
-	teacherUserID := middleware.GetUserID(r)
+	callerUserID := middleware.GetUserID(r)
+	callerRole := middleware.GetUserRole(r)
 	var req models.CreateSubjectRequest
 	if err := middleware.DecodeBody(r, &req); err != nil || req.Name == "" {
 		middleware.WriteError(w, http.StatusBadRequest, "name is required")
@@ -105,9 +148,19 @@ func (h *SubjectsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	var teacherID string
-	if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, teacherUserID).Scan(&teacherID); err != nil {
-		middleware.WriteError(w, http.StatusNotFound, "teacher profile not found")
-		return
+
+	if callerRole == "super_admin" {
+		// super_admin must supply teacher_id in the request body to assign the subject to a teacher.
+		if req.TeacherID == nil || *req.TeacherID == "" {
+			middleware.WriteError(w, http.StatusBadRequest, "teacher_id is required for super_admin")
+			return
+		}
+		teacherID = *req.TeacherID
+	} else {
+		if err := h.db.QueryRow(ctx, `SELECT id FROM teachers WHERE user_id = $1`, callerUserID).Scan(&teacherID); err != nil {
+			middleware.WriteError(w, http.StatusNotFound, "teacher profile not found")
+			return
+		}
 	}
 
 	color := "#4CAF50"
@@ -211,7 +264,7 @@ func (h *SubjectsHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 		`SELECT s.id, s.user_id, s.teacher_id, s.roll_number, s.class_name, s.section,
 		        s.guardian_name, s.guardian_phone, s.address, s.date_of_birth,
 		        s.total_exams_taken, s.average_score, s.created_at, s.updated_at,
-		        u.id, u.email, u.full_name, u.avatar_url, u.role, u.status, u.phone,
+		        u.id, u.email, u.full_name, u.avatar_url, u.user_role, u.status, u.phone,
 		        u.auth_provider, u.auth_provider_id, u.last_login_at, u.created_by, u.created_at, u.updated_at
 		 FROM students s
 		 JOIN users u ON u.id = s.user_id
