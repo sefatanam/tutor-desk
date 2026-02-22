@@ -113,7 +113,7 @@ INSERT INTO users (
     'admin@tutordesk.app',
     -- bcrypt hash of 'adminoftutordesk@app' at cost 12
     -- Generated via: Go bcrypt.GenerateFromPassword([]byte("adminoftutordesk@app"), 12)
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0O.BjQLCom',
+    '$2a$12$YN5Q2z9fCWLtNEfNlnmDmOcIlOH7IJiEfqy9jKUUF32ZCth4WTzyi',
     'Super Admin',
     'super_admin',
     'active'

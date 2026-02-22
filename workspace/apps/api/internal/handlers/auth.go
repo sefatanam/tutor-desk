@@ -6,7 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -146,7 +148,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Phone        *string
 	}
 	err := h.db.QueryRow(ctx,
-		`SELECT id, email, password_hash, full_name, role, status, avatar_url, phone
+		`SELECT id, email, password_hash, full_name, user_role, status, avatar_url, phone
 		 FROM users WHERE email = $1`, req.Email).
 		Scan(&user.ID, &user.Email, &user.PasswordHash, &user.FullName,
 			&user.Role, &user.Status, &user.AvatarURL, &user.Phone)
@@ -286,9 +288,9 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		Status   string
 	}
 	err = h.db.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, full_name, role, status, auth_provider)
+		`INSERT INTO users (email, password_hash, full_name, user_role, status, auth_provider)
 		 VALUES ($1, $2, $3, 'teacher', 'pending', 'email')
-		 RETURNING id, email, full_name, role, status`,
+		 RETURNING id, email, full_name, user_role, status`,
 		req.Email, string(hash), req.FullName).
 		Scan(&newUser.ID, &newUser.Email, &newUser.FullName, &newUser.Role, &newUser.Status)
 	if err != nil {
@@ -373,7 +375,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		Phone     *string
 	}
 	err = h.db.QueryRow(ctx,
-		`SELECT id, email, full_name, role, status, avatar_url, phone FROM users WHERE id = $1`, rt.UserID).
+		`SELECT id, email, full_name, user_role, status, avatar_url, phone FROM users WHERE id = $1`, rt.UserID).
 		Scan(&user.ID, &user.Email, &user.FullName, &user.Role, &user.Status, &user.AvatarURL, &user.Phone)
 	if err != nil || user.Status == "disabled" || user.Status == "suspended" {
 		_, _ = h.db.Exec(ctx, `UPDATE refresh_tokens SET is_revoked = true, revoked_reason = 'user_invalid' WHERE id = $1`, rt.ID)
@@ -554,9 +556,9 @@ func (h *AuthHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	// Create user
 	var newUserID, newEmail, newFullName, newRole, newStatus string
 	err = h.db.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, full_name, role, status, auth_provider, created_by)
+		`INSERT INTO users (email, password_hash, full_name, user_role, status, auth_provider, created_by)
 		 VALUES ($1, $2, $3, 'student', 'active', 'email', $4)
-		 RETURNING id, email, full_name, role, status`,
+		 RETURNING id, email, full_name, user_role, status`,
 		req.Email, string(hash), req.FullName, teacherUserID).
 		Scan(&newUserID, &newEmail, &newFullName, &newRole, &newStatus)
 	if err != nil {
@@ -682,20 +684,18 @@ func extractIP(r *http.Request) string {
 		// Take the first IP in the list
 		for i, c := range fwd {
 			if c == ',' {
-				return fwd[:i]
+				return strings.TrimSpace(fwd[:i])
 			}
 		}
-		return fwd
+		return strings.TrimSpace(fwd)
 	}
 	if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
 		return cf
 	}
-	// Strip port from RemoteAddr
+	// Use net package to properly parse host:port or [::1]:port
 	addr := r.RemoteAddr
-	for i := len(addr) - 1; i >= 0; i-- {
-		if addr[i] == ':' {
-			return addr[:i]
-		}
+	if host, _, err := net.SplitHostPort(addr); err == nil {
+		return host
 	}
 	return addr
 }

@@ -35,7 +35,7 @@ func (h *UsersHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	var u models.User
 	var ph *string
 	err := h.db.QueryRow(ctx,
-		`SELECT id, email, password_hash, full_name, avatar_url, role, status, phone,
+		`SELECT id, email, password_hash, full_name, avatar_url, user_role, status, phone,
 		        auth_provider, auth_provider_id, last_login_at, created_by, created_at, updated_at
 		 FROM users WHERE id = $1`, id).
 		Scan(&u.ID, &u.Email, &ph, &u.FullName, &u.AvatarURL, &u.Role, &u.Status, &u.Phone,
