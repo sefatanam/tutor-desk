@@ -10,7 +10,7 @@ import {
   PLATFORM_ID,
   inject,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -19,9 +19,8 @@ import { DividerModule } from 'primeng/divider';
 
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink, ButtonModule, CardModule, RippleModule, DividerModule],
+  imports: [RouterLink, ButtonModule, CardModule, RippleModule, DividerModule, NgClass],
   templateUrl: './landing.component.html',
-  styleUrl: './landing.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LandingComponent implements OnInit, OnDestroy {
@@ -43,42 +42,42 @@ export class LandingComponent implements OnInit, OnDestroy {
       title: 'Student Management',
       description:
         'Easily manage student profiles, track progress, and organize classes efficiently.',
-      color: 'linear-gradient(135deg, #10b981, #059669)',
+      color: 'td-gradient-success',
     },
     {
       icon: 'pi-file-edit',
       title: 'Exam Creation',
       description:
         'Create MCQ exams with configurable timers, anti-cheat measures, and auto-grading.',
-      color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      color: 'td-gradient-info',
     },
     {
       icon: 'pi-clock',
       title: 'Smart Timer',
       description:
         'Per-question timers with skip-and-return functionality for flexible exam taking.',
-      color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      color: 'td-gradient-warning',
     },
     {
       icon: 'pi-shield',
       title: 'Anti-Cheat System',
       description:
         'Fullscreen lock, tab detection, and auto-submit on window blur.',
-      color: 'linear-gradient(135deg, #ef4444, #dc2626)',
+      color: 'td-gradient-danger',
     },
     {
       icon: 'pi-chart-bar',
       title: 'Analytics Dashboard',
       description:
         'Comprehensive statistics and insights for better teaching decisions.',
-      color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+      color: 'td-gradient-accent',
     },
     {
       icon: 'pi-mobile',
       title: 'Mobile First',
       description:
         'Progressive Web App designed for seamless mobile experience.',
-      color: 'linear-gradient(135deg, #ec4899, #db2777)',
+      color: 'td-gradient-accent',
     },
   ];
 
@@ -96,6 +95,10 @@ export class LandingComponent implements OnInit, OnDestroy {
   ];
 
   private scrollHandler: (() => void) | null = null;
+
+  getStaggerClass(index: number): string {
+    return index > 0 ? `stagger-${Math.min(index, 5)}` : '';
+  }
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {

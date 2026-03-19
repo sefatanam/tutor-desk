@@ -24,7 +24,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -191,7 +191,7 @@
           <th pSortableColumn="submission.submittedAt">
             Submitted <p-sortIcon field="submission.submittedAt" />
           </th>
-          <th style="width: 100px">Actions</th>
+          <th class="w-[100px]">Actions</th>
         </tr>
       </ng-template>
       <ng-template #body let-result>
@@ -215,7 +215,7 @@
           <td>
             <span
               class="subject-badge"
-              [style.background]="result.subjectColor"
+              [ngClass]="getThemeToneClass(result.subjectColor)"
             >
               {{ result.subjectName }}
             </span>
@@ -236,8 +236,7 @@
               <p-progressBar
                 [value]="result.submission.percentage"
                 [showValue]="false"
-                styleClass="percentage-bar"
-                [style]="{ height: '6px', width: '60px' }"
+                styleClass="percentage-bar h-[6px] w-[60px]"
               />
               <span>{{ result.submission.percentage }}%</span>
             </div>
@@ -246,7 +245,7 @@
             <p-tag
               [value]="result.passed ? 'Passed' : 'Failed'"
               [severity]="result.passed ? 'success' : 'danger'"
-              [style]="{ minWidth: '60px' }"
+              styleClass="min-w-[60px]"
             />
           </td>
           <td>

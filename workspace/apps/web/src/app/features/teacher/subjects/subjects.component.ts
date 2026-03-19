@@ -27,6 +27,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import { Subject } from '../../../core/models';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 
 @Component({
   selector: 'app-subjects',
@@ -48,38 +50,10 @@ import { Subject } from '../../../core/models';
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './subjects.component.html',
-  styles: `
-    .subjects-page { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
-    .page-header__title { margin: 0 0 0.5rem; font-size: 1.75rem; font-weight: 600; }
-    .page-header__subtitle { margin: 0; color: var(--text-color-secondary); }
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    .stat-card__content { display: flex; align-items: center; gap: 1rem; }
-    .stat-card__icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; color: white; font-size: 1.25rem; }
-    .stat-card__text { display: flex; flex-direction: column; }
-    .stat-card__value { font-size: 1.5rem; font-weight: 700; }
-    .stat-card__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .table-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--surface-border); }
-    .table-header__title { margin: 0; font-size: 1.125rem; font-weight: 600; }
-    .table-header__filters { display: flex; gap: 1rem; }
-    .subject-color { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; color: white; font-size: 0.875rem; }
-    .subject-cell { display: flex; flex-direction: column; }
-    .subject-cell__name { font-weight: 500; }
-    .subject-cell__desc { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .action-buttons { display: flex; justify-content: center; gap: 0.25rem; }
-    .text-center { text-align: center; }
-    .skeleton-table { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
-    .skeleton-row { display: flex; align-items: center; gap: 2rem; padding: 0.75rem 0; border-bottom: 1px solid var(--surface-border); }
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; }
-    .empty-state__icon { font-size: 4rem; color: var(--text-color-secondary); opacity: 0.5; margin-bottom: 1rem; }
-    .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
-    .empty-state__text { margin: 0 0 1.5rem; color: var(--text-color-secondary); }
-    /* @NOT-NEED: Form/dialog styles removed - now using dedicated pages */
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubjectsComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly authStore = inject(AuthStore);
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly confirmationService = inject(ConfirmationService);
@@ -111,19 +85,19 @@ export class SubjectsComponent implements OnInit {
         icon: 'pi pi-book',
         label: 'Total Subjects',
         value: allSubjects.length.toString(),
-        color: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+        color: 'td-gradient-accent',
       },
       {
         icon: 'pi pi-check-circle',
         label: 'Active',
         value: activeCount.toString(),
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: 'td-gradient-success',
       },
       {
         icon: 'pi pi-users',
         label: 'Total Enrollments',
         value: totalStudents.toString(),
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: 'td-gradient-info',
       },
     ];
   });

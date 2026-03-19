@@ -24,7 +24,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -124,13 +124,13 @@
         @if (card.exam.subject) {
         <span
           class="exam-card__subject"
-          [style.color]="card.exam.subject.color"
+          [ngClass]="getThemeTextToneClass(card.exam.subject.color)"
         >
           <i [class]="'pi ' + card.exam.subject.icon"></i>
           {{ card.exam.subject.name }}
         </span>
         } @else {
-        <span class="exam-card__subject" style="color: #6b7280">
+        <span class="exam-card__subject td-text-neutral">
           <i class="pi pi-file-edit"></i>
           Independent Exam
         </span>
@@ -250,7 +250,7 @@
     [(visible)]="showInstructionsDialog"
     [modal]="true"
     [closable]="true"
-    [style]="{ width: '600px' }"
+    styleClass="w-[600px] max-w-[95vw]"
     header="Exam Instructions"
   >
     @if (selectedExam()) {
@@ -261,12 +261,12 @@
         @if (selectedExam()!.exam.subject) {
         <p-tag
           [value]="selectedExam()!.exam.subject!.name"
-          [style]="{ background: selectedExam()!.exam.subject!.color }"
+          [styleClass]="'td-tag '+ getThemeToneClass(selectedExam()!.exam.subject!.color)"
         />
         } @else {
         <p-tag
           value="Independent Exam"
-          [style]="{ background: '#6b7280' }"
+          styleClass="td-tag td-tone-neutral"
         />
         }
       </div>

@@ -26,7 +26,7 @@
   } @else {
   <!-- Subject Header -->
   <header class="subject-header">
-    <div class="subject-badge" [style.background]="subject()!.color">
+    <div class="subject-badge" [ngClass]="getThemeToneClass(subject()!.color)">
       <i [class]="'pi ' + subject()!.icon"></i>
     </div>
     <div>
@@ -89,10 +89,7 @@
           <p-avatar
             [label]="getInitials(currentUserName())"
             shape="circle"
-            [style]="{
-              background: getAvatarColor(currentUserName()),
-              color: 'white'
-            }"
+            [styleClass]="'td-avatar ' + getAvatarColor(currentUserName())"
           />
           <div class="comment-input__field">
             <textarea
@@ -123,10 +120,7 @@
             <p-avatar
               [label]="getInitials(comment.user.fullName)"
               shape="circle"
-              [style]="{
-                background: getAvatarColor(comment.user.fullName),
-                color: 'white'
-              }"
+              [styleClass]="'td-avatar ' + getAvatarColor(comment.user.fullName)"
             />
             <div class="comment__content">
               <div class="comment__header">
@@ -161,10 +155,7 @@
                     [label]="getInitials(reply.user.fullName)"
                     shape="circle"
                     size="normal"
-                    [style]="{
-                      background: getAvatarColor(reply.user.fullName),
-                      color: 'white'
-                    }"
+                    [styleClass]="'td-avatar ' + getAvatarColor(reply.user.fullName)"
                   />
                   <div class="comment__content">
                     <div class="comment__header">

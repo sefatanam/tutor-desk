@@ -31,7 +31,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -116,17 +116,17 @@
     >
       <ng-template #header>
         <tr>
-          <th pSortableColumn="user.fullName" style="min-width: 220px">
+          <th pSortableColumn="user.fullName" class="min-w-[220px]">
             Student <p-sortIcon field="user.fullName" />
           </th>
-          <th style="min-width: 100px">Roll No.</th>
-          <th style="min-width: 120px">Class</th>
-          <th style="min-width: 100px" class="text-center">Exams</th>
-          <th style="min-width: 100px" class="text-center">Avg Score</th>
-          <th pSortableColumn="user.status" style="min-width: 100px">
+          <th class="min-w-[100px]">Roll No.</th>
+          <th class="min-w-[120px]">Class</th>
+          <th class="min-w-[100px] text-center">Exams</th>
+          <th class="min-w-[100px] text-center">Avg Score</th>
+          <th pSortableColumn="user.status" class="min-w-[100px]">
             Status <p-sortIcon field="user.status" />
           </th>
-          <th style="width: 140px" class="text-center">Actions</th>
+          <th class="w-[140px] text-center">Actions</th>
         </tr>
       </ng-template>
 
@@ -137,11 +137,7 @@
               <p-avatar
                 [label]="getInitials(student.user.fullName)"
                 shape="circle"
-                [style]="{
-                  background: getAvatarColor(student.id),
-                  color: '#ffffff',
-                  fontWeight: '600'
-                }"
+                [styleClass]="'td-avatar '+ getAvatarColor(student.id)"
               />
               <div class="student-cell__info">
                 <span class="student-cell__name">{{

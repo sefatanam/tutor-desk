@@ -24,7 +24,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -123,7 +123,7 @@
           <td>
             <span
               class="subject-badge"
-              [style.background]="result.subjectColor"
+              [ngClass]="getThemeToneClass(result.subjectColor)"
             >
               {{ result.subjectName }}
             </span>
@@ -144,8 +144,7 @@
               <p-progressBar
                 [value]="result.submission.percentage"
                 [showValue]="false"
-                styleClass="percentage-bar"
-                [style]="{ height: '8px', width: '80px' }"
+                styleClass="percentage-bar h-[8px] w-[80px]"
               />
               <span>{{ result.submission.percentage }}%</span>
             </div>

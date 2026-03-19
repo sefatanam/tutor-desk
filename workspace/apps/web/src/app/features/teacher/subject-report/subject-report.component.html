@@ -30,7 +30,7 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-info">
-      <div class="subject-icon" [style.background]="subject()!.color">
+      <div class="subject-icon" [ngClass]="getThemeToneClass(subject()!.color)">
         <i [class]="'pi ' + subject()!.icon"></i>
       </div>
       <div class="subject-details">
@@ -175,7 +175,7 @@
                   <div class="student-cell">
                     <div
                       class="student-avatar"
-                      [style.background]="
+                      [ngClass]="
                         getAvatarColor(perf.student.user.fullName)
                       "
                     >

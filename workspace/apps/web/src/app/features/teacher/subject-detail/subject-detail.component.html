@@ -25,7 +25,7 @@
   <!-- Subject Header -->
   <header class="subject-header">
     <div class="subject-header__info">
-      <div class="subject-icon" [style.background]="subject()!.color">
+      <div class="subject-icon" [ngClass]="getThemeToneClass(subject()!.color)">
         <i [class]="'pi ' + subject()!.icon"></i>
       </div>
       <div class="subject-details">
@@ -71,7 +71,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)"
+          class="stat-card__icon td-gradient-info"
         >
           <i class="pi pi-users"></i>
         </div>
@@ -87,7 +87,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #8b5cf6, #6d28d9)"
+          class="stat-card__icon td-gradient-accent"
         >
           <i class="pi pi-file-edit"></i>
         </div>
@@ -101,7 +101,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #10b981, #059669)"
+          class="stat-card__icon td-gradient-success"
         >
           <i class="pi pi-check-circle"></i>
         </div>
@@ -143,7 +143,7 @@
         <div class="enrolled-item">
           <div
             class="enrolled-item__avatar"
-            [style.background]="getAvatarColor(student.user.fullName)"
+            [ngClass]="getAvatarColor(student.user.fullName)"
           >
             {{ getInitials(student.user.fullName) }}
           </div>
@@ -213,7 +213,7 @@
         <div class="available-item">
           <div
             class="available-item__avatar"
-            [style.background]="getAvatarColor(student.user.fullName)"
+            [ngClass]="getAvatarColor(student.user.fullName)"
           >
             {{ getInitials(student.user.fullName) }}
           </div>

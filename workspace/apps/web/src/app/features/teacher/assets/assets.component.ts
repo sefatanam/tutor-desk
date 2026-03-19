@@ -33,6 +33,8 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 import {
   Subject,
   Asset,
@@ -69,64 +71,10 @@ interface AssetTypeOption {
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './assets.component.html',
-  styles: `
-    .assets-page { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-    
-    .page-nav { margin-bottom: 1rem; }
-    
-    .loading-container { padding: 2rem; }
-    .skeleton-container { padding: 1rem; }
-    
-    .not-found { 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      padding: 4rem 2rem; text-align: center;
-    }
-    .not-found i { font-size: 4rem; color: var(--text-color-secondary); margin-bottom: 1rem; }
-    .not-found h2 { margin: 0 0 0.5rem; }
-    .not-found p { color: var(--text-color-secondary); margin-bottom: 1.5rem; }
-    
-    .page-header { 
-      display: flex; justify-content: space-between; align-items: center; 
-      margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
-    }
-    .page-header__info { display: flex; align-items: center; gap: 1rem; }
-    .subject-badge { 
-      width: 48px; height: 48px; border-radius: 12px; 
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.25rem;
-    }
-    .page-title { margin: 0; font-size: 1.5rem; font-weight: 600; }
-    .page-subtitle { margin: 0.25rem 0 0; color: var(--text-color-secondary); font-size: 0.875rem; }
-    
-    .empty-state { 
-      display: flex; flex-direction: column; align-items: center; 
-      padding: 4rem 2rem; text-align: center;
-    }
-    .empty-state i { font-size: 4rem; color: var(--primary-color); opacity: 0.5; margin-bottom: 1rem; }
-    .empty-state h2 { margin: 0 0 0.5rem; font-size: 1.25rem; }
-    .empty-state p { margin: 0 0 1.5rem; color: var(--text-color-secondary); }
-    
-    .asset-info { display: flex; align-items: center; gap: 0.75rem; }
-    .asset-icon { font-size: 1.25rem; color: var(--primary-color); }
-    .asset-title { font-weight: 500; display: block; }
-    .asset-desc { font-size: 0.75rem; color: var(--text-color-secondary); display: block; }
-    
-    .action-buttons { display: flex; gap: 0.25rem; }
-    
-    .form-field { margin-bottom: 1.25rem; }
-    .form-field label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-    .form-field input, .form-field textarea { width: 100%; }
-    .error-text { color: var(--red-500); margin-top: 0.25rem; display: block; }
-    .file-info { color: var(--primary-color); margin-top: 0.5rem; display: block; }
-    
-    .dialog-footer { 
-      display: flex; justify-content: flex-end; gap: 0.5rem; 
-      margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--surface-border);
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssetsComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly db = inject(SupabaseDatabaseAdapter);

@@ -29,11 +29,7 @@
         [label]="getInitials(teacher()!.user.fullName)"
         size="xlarge"
         shape="circle"
-        [style]="{
-          background: getAvatarColor(teacher()!.id),
-          color: 'white',
-          fontSize: '1.5rem'
-        }"
+        [styleClass]="'td-avatar text-2xl ' + getAvatarColor(teacher()!.id)"
       />
       <div class="teacher-details">
         <h1 class="teacher-name">{{ teacher()!.user.fullName }}</h1>
@@ -62,7 +58,7 @@
     @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -114,7 +110,7 @@
           >
             <ng-template #header>
               <tr>
-                <th style="width: 50px"></th>
+                <th class="w-[50px]"></th>
                 <th>Subject</th>
                 <th>Code</th>
                 <th class="text-center">Students</th>
@@ -127,7 +123,7 @@
                 <td>
                   <div
                     class="subject-color"
-                    [style.background]="subject.color"
+                    [ngClass]="getThemeToneClass(subject.color)"
                   >
                     <i [class]="'pi ' + subject.icon"></i>
                   </div>
@@ -198,10 +194,7 @@
                     <p-avatar
                       [label]="getInitials(student.user.fullName)"
                       shape="circle"
-                      [style]="{
-                        background: getAvatarColor(student.id),
-                        color: 'white'
-                      }"
+                      [styleClass]="'td-avatar '+ getAvatarColor(student.id)"
                     />
                     <div class="cell-info">
                       <span class="cell-title">{{
@@ -265,7 +258,7 @@
           >
             <ng-template #header>
               <tr>
-                <th style="min-width: 200px">Exam</th>
+                <th class="min-w-[200px]">Exam</th>
                 <th>Subject</th>
                 <th class="text-center">Questions</th>
                 <th class="text-center">Marks</th>

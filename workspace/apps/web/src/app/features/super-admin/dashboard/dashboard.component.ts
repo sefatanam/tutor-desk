@@ -60,428 +60,6 @@ interface StatCard {
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './dashboard.component.html',
-  styles: `
-    .dashboard {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    /* Header */
-    .dashboard__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .dashboard__title {
-      margin: 0;
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    .dashboard__subtitle {
-      margin: 0.25rem 0 0;
-      font-size: 0.9rem;
-      color: var(--p-text-muted-color);
-    }
-
-    /* Stats Grid */
-    .dashboard__stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-    }
-
-    :host ::ng-deep .dashboard__stat-card {
-      .p-card-body {
-        padding: 1.25rem;
-      }
-    }
-
-    .stat-card {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-card__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
-      color: white;
-      font-size: 1.35rem;
-      flex-shrink: 0;
-    }
-
-    .stat-card__content {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .stat-card__value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--p-text-color);
-      line-height: 1.2;
-    }
-
-    .stat-card__title {
-      font-size: 0.85rem;
-      color: var(--p-text-muted-color);
-      margin-top: 0.125rem;
-    }
-
-    .stat-card__trend {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
-    }
-
-    .stat-card__trend--up {
-      background: var(--p-green-50);
-      color: var(--p-green-600);
-    }
-
-    .stat-card__trend--down {
-      background: var(--p-red-50);
-      color: var(--p-red-600);
-    }
-
-    /* @REVIEW: Charts Section */
-    .dashboard__charts {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    :host ::ng-deep .dashboard__chart-card {
-      .p-card-body {
-        padding: 0;
-      }
-
-      .p-card-header {
-        padding: 0;
-      }
-
-      .p-card-content {
-        padding: 1rem 1.25rem;
-      }
-    }
-
-    .chart-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 220px;
-    }
-
-    .chart-loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 180px;
-    }
-
-    .chart-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 180px;
-      color: var(--p-text-muted-color);
-    }
-
-    .chart-empty i {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-      opacity: 0.5;
-    }
-
-    .chart-empty p {
-      margin: 0;
-    }
-
-    .mr-2 {
-      margin-right: 0.5rem;
-    }
-
-    /* Main Content Grid */
-    .dashboard__content {
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 1100px) {
-      .dashboard__content {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Table Card */
-    :host ::ng-deep .dashboard__table-card {
-      .p-card-body {
-        padding: 0;
-      }
-
-      .p-card-header {
-        padding: 0;
-      }
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--p-surface-200);
-    }
-
-    .card-header__title {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    /* Table Styling */
-    :host ::ng-deep .p-datatable {
-      .p-datatable-thead > tr > th {
-        background: transparent;
-        padding: 0.875rem 1rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--p-text-muted-color);
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        border-color: var(--p-surface-200);
-      }
-
-      .p-datatable-tbody > tr > td {
-        padding: 0.875rem 1rem;
-        border-color: var(--p-surface-200);
-      }
-
-      .p-datatable-tbody > tr:last-child > td {
-        border-bottom: none;
-      }
-    }
-
-    .teacher-info {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .teacher-info__text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .teacher-info__name {
-      font-weight: 500;
-      color: var(--p-text-color);
-    }
-
-    .teacher-info__email {
-      font-size: 0.8rem;
-      color: var(--p-text-muted-color);
-    }
-
-    .student-count {
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    .date-text {
-      font-size: 0.85rem;
-      color: var(--p-text-muted-color);
-    }
-
-    .empty-message {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--p-text-muted-color);
-
-      i {
-        font-size: 2rem;
-        opacity: 0.5;
-      }
-
-      p {
-        margin: 0;
-      }
-    }
-
-    /* Sidebar */
-    .dashboard__sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    :host ::ng-deep .dashboard__sidebar-card {
-      .p-card-body {
-        padding: 0;
-      }
-
-      .p-card-header {
-        padding: 0;
-      }
-
-      .p-card-content {
-        padding: 0;
-      }
-    }
-
-    /* Empty State */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-      text-align: center;
-    }
-
-    .empty-state__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      margin-bottom: 0.75rem;
-
-      i {
-        font-size: 1.75rem;
-      }
-    }
-
-    .empty-state__icon--success {
-      background: var(--p-green-50);
-      color: var(--p-green-500);
-    }
-
-    .empty-state__title {
-      margin: 0;
-      font-weight: 500;
-      color: var(--p-text-color);
-    }
-
-    .empty-state__text {
-      font-size: 0.85rem;
-      color: var(--p-text-muted-color);
-      margin-top: 0.25rem;
-    }
-
-    /* Approval List */
-    .approval-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .approval-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.875rem 1.25rem;
-      border-bottom: 1px solid var(--p-surface-200);
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .approval-item:last-child {
-      border-bottom: none;
-    }
-
-    .approval-item:hover {
-      background: var(--p-surface-50);
-    }
-
-    .approval-item__user {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .approval-item__info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .approval-item__name {
-      font-weight: 500;
-      color: var(--p-text-color);
-    }
-
-    .approval-item__email {
-      font-size: 0.8rem;
-      color: var(--p-text-muted-color);
-    }
-
-    .approval-item__actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    /* Quick Actions */
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-      padding: 1rem 1.25rem;
-    }
-
-    .quick-action {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 1.25rem 1rem;
-      background: var(--p-surface-50);
-      border: 1px solid var(--p-surface-200);
-      border-radius: 10px;
-      text-decoration: none;
-      color: inherit;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .quick-action:hover {
-      background: var(--p-surface-100);
-      border-color: var(--p-primary-color);
-    }
-
-    .quick-action i {
-      font-size: 1.35rem;
-      color: var(--p-primary-color);
-    }
-
-    .quick-action span {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--p-text-color);
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit {
@@ -555,30 +133,39 @@ export class DashboardComponent implements OnInit {
         title: 'Total Teachers',
         value: stats.totalTeachers.toString(),
         icon: 'pi-users',
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: 'td-gradient-info',
       },
       {
         title: 'Total Students',
         value: stats.totalStudents.toLocaleString(),
         icon: 'pi-graduation-cap',
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: 'td-gradient-success',
       },
       {
         title: 'Active Exams',
         value: stats.totalExams.toString(),
         icon: 'pi-file-edit',
-        color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+        color: 'td-gradient-warning',
       },
       {
         title: 'Pending Approvals',
         value: stats.pendingTeachers.toString(),
         icon: 'pi-clock',
-        color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+        color: 'td-gradient-accent',
       },
     ];
   });
 
-  private readonly avatarColors = [
+  private readonly avatarToneClasses = [
+    'td-tone-info',
+    'td-tone-success',
+    'td-tone-warning',
+    'td-tone-accent',
+    'td-tone-accent',
+    'td-tone-info',
+  ];
+
+  private readonly teacherChartColors = [
     '#3b82f6',
     '#10b981',
     '#f59e0b',
@@ -659,17 +246,17 @@ export class DashboardComponent implements OnInit {
     if (stats.activeTeachers > 0) {
       labels.push('Active');
       data.push(stats.activeTeachers);
-      colors.push('#10b981');
+      colors.push('td-tone-success');
     }
     if (stats.pendingTeachers > 0) {
       labels.push('Pending');
       data.push(stats.pendingTeachers);
-      colors.push('#f59e0b');
+      colors.push('td-tone-warning');
     }
     if (stats.disabledTeachers > 0) {
       labels.push('Disabled');
       data.push(stats.disabledTeachers);
-      colors.push('#ef4444');
+      colors.push('td-tone-danger');
     }
 
     if (data.length === 0) {
@@ -716,7 +303,7 @@ export class DashboardComponent implements OnInit {
         {
           label: 'Students',
           data: sortedTeachers.map((t) => t.totalStudents),
-          backgroundColor: this.avatarColors,
+          backgroundColor: this.teacherChartColors,
           borderRadius: 4,
         },
       ],
@@ -733,8 +320,8 @@ export class DashboardComponent implements OnInit {
   }
 
   protected getAvatarColor(id: string): string {
-    const index = id.charCodeAt(0) % this.avatarColors.length;
-    return this.avatarColors[index];
+    const index = id.charCodeAt(0) % this.avatarToneClasses.length;
+    return this.avatarToneClasses[index];
   }
 
   protected getStatusSeverity(

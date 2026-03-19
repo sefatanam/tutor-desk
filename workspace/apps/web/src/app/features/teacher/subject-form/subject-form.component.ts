@@ -23,6 +23,8 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService } from 'primeng/api';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 
 @Component({
   selector: 'app-subject-form',
@@ -40,139 +42,10 @@ import { AuthStore } from '../../../core/store/auth.store';
   ],
   providers: [MessageService],
   templateUrl: './subject-form.component.html',
-  styles: `
-    .subject-form-page {
-      padding: 1.5rem;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .page-header {
-      margin-bottom: 2rem;
-    }
-
-    .page-header__nav {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    .page-header__content {
-      flex: 1;
-    }
-
-    .page-header__title {
-      margin: 0 0 0.25rem;
-      font-size: 1.75rem;
-      font-weight: 600;
-    }
-
-    .page-header__subtitle {
-      margin: 0;
-      color: var(--text-color-secondary);
-    }
-
-    :host ::ng-deep .form-card .p-card-body {
-      padding: 2rem;
-    }
-
-    .form-skeleton {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .form-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .form-field {
-      width: 100%;
-    }
-
-    .form-field--small {
-      width: auto;
-    }
-
-    .form-field--grow {
-      flex: 1;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 1.5rem;
-      align-items: flex-start;
-    }
-
-    .field-label {
-      display: block;
-      font-size: 0.875rem;
-      color: var(--text-color-secondary);
-      margin-bottom: 0.5rem;
-    }
-
-    .form-error {
-      display: block;
-      color: var(--red-500);
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-
-    .form-hint {
-      display: block;
-      color: var(--text-color-secondary);
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-
-    .w-full {
-      width: 100%;
-    }
-
-    .icon-preview-section {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: var(--surface-50);
-      border-radius: 8px;
-    }
-
-    .icon-preview__label {
-      font-size: 0.875rem;
-      color: var(--text-color-secondary);
-    }
-
-    .icon-preview__box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 8px;
-      color: white;
-      font-size: 1.5rem;
-    }
-
-    .icon-preview__text {
-      font-weight: 500;
-      font-size: 1.125rem;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 1rem;
-      margin-top: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--surface-border);
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubjectFormComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);

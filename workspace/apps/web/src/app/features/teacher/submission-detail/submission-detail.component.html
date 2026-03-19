@@ -44,7 +44,7 @@
       <div class="student-section">
         <div
           class="student-avatar"
-          [style.background]="
+          [ngClass]="
             getAvatarColor(student()?.user?.fullName ?? 'S')
           "
         >
@@ -62,7 +62,7 @@
       <div class="exam-info">
         <h2 class="exam-title">{{ submission()!.exam.title }}</h2>
         @if (subject()) {
-        <span class="subject-badge" [style.background]="subject()!.color">
+        <span class="subject-badge" [ngClass]="getThemeToneClass(subject()!.color)">
           {{ subject()!.name }}
         </span>
         }

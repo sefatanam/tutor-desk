@@ -26,6 +26,8 @@ import { forkJoin, of, switchMap } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import { ExamSubmission } from '../../../core/models';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 
 // @REVIEW: Result item with exam details
 interface ResultItem {
@@ -55,91 +57,10 @@ interface ResultItem {
     ProgressBarModule,
   ],
   templateUrl: './results.component.html',
-  styles: `
-    .results-page { padding: 1.5rem; }
-
-    /* Page Header */
-    .page-header { margin-bottom: 1.5rem; }
-    .page-header__title { margin: 0 0 0.25rem; font-size: 1.75rem; font-weight: 600; }
-    .page-header__subtitle { margin: 0; color: var(--text-color-secondary); }
-
-    /* Stats Row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    :host ::ng-deep .stat-card { height: 100%; }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    .stat-card__content { display: flex; align-items: center; gap: 1rem; }
-    .stat-card__icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.25rem;
-    }
-    .stat-card__text { display: flex; flex-direction: column; }
-    .stat-card__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
-    .stat-card__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-
-    /* Table */
-    :host ::ng-deep .results-table-card .p-card-body { padding: 0; }
-    :host ::ng-deep .results-table-card .p-card-content { padding: 0; }
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--surface-200);
-    }
-    .table-header__title { margin: 0; font-size: 1.125rem; font-weight: 600; }
-
-    .skeleton-table { padding: 1rem; }
-    .skeleton-row {
-      display: flex;
-      gap: 2rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--surface-100);
-    }
-
-    /* Table Cells */
-    .exam-cell { display: flex; flex-direction: column; gap: 0.25rem; }
-    .exam-title { font-weight: 500; }
-    .attempt-badge {
-      font-size: 0.75rem;
-      color: var(--text-color-secondary);
-      background: var(--surface-100);
-      padding: 0.125rem 0.5rem;
-      border-radius: 4px;
-      width: fit-content;
-    }
-    .subject-badge {
-      display: inline-block;
-      padding: 0.25rem 0.625rem;
-      border-radius: 16px;
-      color: white;
-      font-size: 0.8125rem;
-      font-weight: 500;
-    }
-    .score-cell { display: flex; align-items: baseline; gap: 0.25rem; }
-    .score-value { font-weight: 600; color: var(--red-500); }
-    .score-value--pass { color: var(--green-500); }
-    .score-total { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .percentage-cell { display: flex; align-items: center; gap: 0.5rem; }
-    :host ::ng-deep .percentage-bar .p-progressbar-value { background: var(--primary-color); }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-    }
-    .empty-state__icon { font-size: 4rem; color: var(--primary-color); opacity: 0.5; margin-bottom: 1rem; }
-    .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
-    .empty-state__text { margin: 0; color: var(--text-color-secondary); }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultsComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);

@@ -17,7 +17,7 @@
         @if (exam()!.subject) {
         <span
           class="subject-badge"
-          [style.background]="exam()!.subject!.color"
+          [ngClass]="getThemeToneClass(exam()!.subject!.color)"
         >
           {{ exam()!.subject!.name }}
         </span>
@@ -43,7 +43,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -134,7 +134,7 @@
             <div class="student-cell">
               <div
                 class="student-avatar"
-                [style.background]="
+                [ngClass]="
                   getAvatarColor(row.student?.user?.fullName ?? 'S')
                 "
               >
@@ -177,8 +177,7 @@
               <p-progressBar
                 [value]="row.submission.percentage"
                 [showValue]="false"
-                styleClass="percentage-bar"
-                [style]="{ height: '8px', width: '80px' }"
+                styleClass="percentage-bar h-[8px] w-[80px]"
               />
               <span>{{ row.submission.percentage }}%</span>
             </div>
@@ -256,7 +255,7 @@
     [(visible)]="showDetailsDialog"
     [modal]="true"
     [closable]="true"
-    [style]="{ width: '700px' }"
+    styleClass="w-[700px] max-w-[95vw]"
     header="Submission Details"
   >
     @if (selectedRow()) {
@@ -265,7 +264,7 @@
         <div class="student-cell">
           <div
             class="student-avatar large"
-            [style.background]="
+            [ngClass]="
               getAvatarColor(selectedRow()!.student?.user?.fullName ?? 'S')
             "
           >

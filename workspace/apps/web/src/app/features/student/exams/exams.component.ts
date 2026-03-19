@@ -28,6 +28,8 @@ import { forkJoin } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import { ExamWithSubject, ExamSubmission } from '../../../core/models';
+import { getThemeToneClass, getThemeTextToneClass } from '../../../core/utils/theme-tone.util';
+
 
 // @REVIEW: Exam card data with submission status
 interface ExamCard {
@@ -60,187 +62,11 @@ interface ExamCard {
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './exams.component.html',
-  styles: `
-    .exams-page { padding: 1.5rem; }
-    
-    /* Page Header */
-    .page-header { margin-bottom: 1.5rem; }
-    .page-header__title { margin: 0 0 0.25rem; font-size: 1.75rem; font-weight: 600; }
-    .page-header__subtitle { margin: 0; color: var(--text-color-secondary); }
-    
-    /* Stats Row */
-    .stats-row { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-      gap: 1rem; 
-      margin-bottom: 1.5rem; 
-    }
-    :host ::ng-deep .stat-card { height: 100%; }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    .stat-card__content { display: flex; align-items: center; gap: 1rem; }
-    .stat-card__icon { 
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.25rem;
-    }
-    .stat-card__text { display: flex; flex-direction: column; }
-    .stat-card__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
-    .stat-card__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-    
-    /* Filter Section */
-    .filter-section { 
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 1rem; 
-      align-items: center; 
-      margin-bottom: 1.5rem; 
-    }
-    .filter-input { min-width: 280px; }
-    .filter-tabs { display: flex; gap: 0.25rem; background: var(--surface-100); padding: 0.25rem; border-radius: 8px; }
-    .filter-tab { 
-      padding: 0.5rem 1rem; 
-      border: none; 
-      background: transparent; 
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-      color: var(--text-color-secondary);
-      transition: all 0.2s;
-    }
-    .filter-tab:hover { background: var(--surface-200); }
-    .filter-tab--active { background: var(--primary-color); color: white; }
-    
-    /* Exams Grid */
-    .exams-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); 
-      gap: 1.5rem; 
-    }
-    :host ::ng-deep .exam-card { height: 100%; }
-    :host ::ng-deep .exam-card .p-card-body { padding: 0; display: flex; flex-direction: column; height: 100%; }
-    :host ::ng-deep .exam-card .p-card-content { flex: 1; display: flex; flex-direction: column; }
-    
-    .exam-card__header { padding: 1.25rem 1.25rem 0; }
-    .exam-card__title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .exam-card__title { margin: 0; font-size: 1.125rem; font-weight: 600; }
-    .exam-card__subject { 
-      display: inline-flex; 
-      align-items: center; 
-      gap: 0.375rem; 
-      font-size: 0.875rem; 
-      font-weight: 500;
-    }
-    
-    .exam-card__body { padding: 1rem 1.25rem; flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
-    .exam-card__description { 
-      margin: 0; 
-      font-size: 0.875rem; 
-      color: var(--text-color-secondary);
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    
-    .exam-card__meta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-    .meta-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 0.375rem; 
-      font-size: 0.8125rem;
-      color: var(--text-color-secondary);
-    }
-    .meta-item i { font-size: 0.875rem; }
-    
-    .exam-card__schedule { font-size: 0.8125rem; color: var(--text-color-secondary); }
-    .schedule-item { display: flex; gap: 0.5rem; }
-    .schedule-label { font-weight: 500; }
-    
-    .exam-card__result { 
-      display: flex; 
-      align-items: center; 
-      gap: 1rem;
-      padding: 0.75rem;
-      background: var(--surface-100);
-      border-radius: 8px;
-    }
-    .result-score { display: flex; align-items: baseline; gap: 0.25rem; }
-    .result-score__value { font-size: 1.5rem; font-weight: 700; color: var(--red-500); }
-    .result-score--pass .result-score__value { color: var(--green-500); }
-    .result-score__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .result-percentage { font-size: 1.125rem; font-weight: 600; color: var(--text-color-secondary); }
-    
-    .exam-card__attempts { 
-      font-size: 0.8125rem; 
-      color: var(--text-color-secondary);
-    }
-    .attempts-remaining { color: var(--primary-color); }
-    
-    .exam-card__footer { 
-      padding: 1rem 1.25rem; 
-      border-top: 1px solid var(--surface-200);
-      display: flex;
-      justify-content: flex-end;
-    }
-    
-    /* Empty State */
-    .empty-state { 
-      grid-column: 1 / -1;
-      text-align: center; 
-      padding: 4rem 2rem;
-      background: var(--surface-card);
-      border-radius: 12px;
-    }
-    .empty-state__icon { font-size: 4rem; color: var(--primary-color); opacity: 0.5; margin-bottom: 1rem; }
-    .empty-state__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
-    .empty-state__text { margin: 0 0 1.5rem; color: var(--text-color-secondary); }
-    
-    /* Instructions Dialog */
-    .instructions-dialog { display: flex; flex-direction: column; gap: 1.5rem; }
-    .instructions-header { display: flex; justify-content: space-between; align-items: center; }
-    .instructions-header h3 { margin: 0; font-size: 1.25rem; }
-    
-    .instructions-stats { 
-      display: grid; 
-      grid-template-columns: repeat(2, 1fr); 
-      gap: 1rem;
-      padding: 1rem;
-      background: var(--surface-100);
-      border-radius: 8px;
-    }
-    .instructions-stats .stat { display: flex; align-items: center; gap: 0.5rem; }
-    .instructions-stats .stat i { color: var(--primary-color); }
-    
-    .instructions-content h4, .instructions-rules h4 { margin: 0 0 0.75rem; font-size: 1rem; }
-    .instructions-content p { margin: 0; color: var(--text-color-secondary); }
-    
-    .instructions-rules ul { 
-      margin: 0; 
-      padding: 0; 
-      list-style: none; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 0.5rem;
-    }
-    .instructions-rules li { 
-      display: flex; 
-      align-items: center; 
-      gap: 0.75rem;
-      color: var(--text-color-secondary);
-    }
-    .instructions-rules li i { color: var(--primary-color); width: 1rem; }
-    
-    .instructions-actions { 
-      display: flex; 
-      justify-content: flex-end; 
-      gap: 0.75rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--surface-200);
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExamsComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
+  readonly getThemeTextToneClass = getThemeTextToneClass;
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);

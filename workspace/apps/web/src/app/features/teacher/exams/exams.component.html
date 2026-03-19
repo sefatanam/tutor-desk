@@ -30,7 +30,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -115,17 +115,17 @@
     >
       <ng-template #header>
         <tr>
-          <th pSortableColumn="title" style="min-width: 200px">
+          <th pSortableColumn="title" class="min-w-[200px]">
             Exam Title <p-sortIcon field="title" />
           </th>
-          <th style="min-width: 140px">Subject</th>
-          <th style="min-width: 100px" class="text-center">Questions</th>
-          <th style="min-width: 100px" class="text-center">Time/Q</th>
-          <th style="min-width: 120px" class="text-center">Submissions</th>
-          <th pSortableColumn="status" style="min-width: 100px">
+          <th class="min-w-[140px]">Subject</th>
+          <th class="min-w-[100px] text-center">Questions</th>
+          <th class="min-w-[100px] text-center">Time/Q</th>
+          <th class="min-w-[120px] text-center">Submissions</th>
+          <th pSortableColumn="status" class="min-w-[100px]">
             Status <p-sortIcon field="status" />
           </th>
-          <th style="width: 160px" class="text-center">Actions</th>
+          <th class="w-[160px] text-center">Actions</th>
         </tr>
       </ng-template>
 
@@ -145,7 +145,7 @@
           <td>
             <div
               class="subject-badge"
-              [style.background]="exam.subject.color"
+              [ngClass]="getThemeToneClass(exam.subject.color)"
             >
               <i [class]="'pi ' + exam.subject.icon"></i>
               <span>{{ exam.subject.name }}</span>

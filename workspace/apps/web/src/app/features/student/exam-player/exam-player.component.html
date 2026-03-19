@@ -36,12 +36,12 @@
         @if (exam()!.subject) {
         <span
           class="subject-badge"
-          [style.background]="exam()!.subject!.color"
+          [ngClass]="getThemeToneClass(exam()!.subject!.color)"
         >
           {{ exam()!.subject!.name }}
         </span>
         } @else {
-        <span class="subject-badge" style="background: #6b7280">
+        <span class="subject-badge td-tone-neutral">
           Independent Exam
         </span>
         }
@@ -115,12 +115,12 @@
         @if (exam()!.subject) {
         <span
           class="subject-badge"
-          [style.background]="exam()!.subject!.color"
+          [ngClass]="getThemeToneClass(exam()!.subject!.color)"
         >
           {{ exam()!.subject!.name }}
         </span>
         } @else {
-        <span class="subject-badge" style="background: #6b7280">
+        <span class="subject-badge td-tone-neutral">
           Independent Exam
         </span>
         }

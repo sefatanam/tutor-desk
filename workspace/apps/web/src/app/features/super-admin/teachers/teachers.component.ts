@@ -50,216 +50,6 @@ import { TeacherWithUser } from '../../../core/models';
     SkeletonModule,
   ],
   templateUrl: './teachers.component.html',
-  styles: `
-    .teachers-page {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    /* Page Header */
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .page-header__title {
-      margin: 0;
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    .page-header__subtitle {
-      margin: 0.25rem 0 0;
-      font-size: 0.9rem;
-      color: var(--p-text-muted-color);
-    }
-
-    /* Stats Row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-
-    :host ::ng-deep .stat-card .p-card-body {
-      padding: 1rem;
-    }
-
-    .stat-card__content {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-card__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
-      color: white;
-      font-size: 1.25rem;
-    }
-
-    .stat-card__text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .stat-card__value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--p-text-color);
-      line-height: 1.2;
-    }
-
-    .stat-card__label {
-      font-size: 0.8rem;
-      color: var(--p-text-muted-color);
-    }
-
-    /* Table Card */
-    :host ::ng-deep .teachers-table-card {
-      .p-card-body {
-        padding: 0;
-      }
-      .p-card-header {
-        padding: 0;
-      }
-    }
-
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--p-surface-200);
-    }
-
-    .table-header__title {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    .table-header__filters {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    :host ::ng-deep .status-filter {
-      min-width: 160px;
-    }
-
-    /* Table Styles */
-    :host ::ng-deep .p-datatable {
-      .p-datatable-thead > tr > th {
-        background: transparent;
-        padding: 0.875rem 1rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--p-text-muted-color);
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        border-color: var(--p-surface-200);
-      }
-
-      .p-datatable-tbody > tr > td {
-        padding: 0.875rem 1rem;
-        border-color: var(--p-surface-200);
-      }
-
-      .p-datatable-tbody > tr:last-child > td {
-        border-bottom: none;
-      }
-    }
-
-    .teacher-cell {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .teacher-cell__info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .teacher-cell__name {
-      font-weight: 500;
-      color: var(--p-text-color);
-    }
-
-    .teacher-cell__email {
-      font-size: 0.8rem;
-      color: var(--p-text-muted-color);
-    }
-
-    .qualification-text {
-      font-size: 0.9rem;
-      color: var(--p-text-color);
-    }
-
-    .student-count {
-      font-weight: 600;
-      color: var(--p-text-color);
-    }
-
-    .date-text {
-      font-size: 0.85rem;
-      color: var(--p-text-muted-color);
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-    }
-
-    /* Empty State */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1rem;
-      text-align: center;
-
-      i {
-        font-size: 3rem;
-        color: var(--p-text-muted-color);
-        opacity: 0.5;
-        margin-bottom: 1rem;
-      }
-
-      h3 {
-        margin: 0 0 0.5rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--p-text-color);
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.9rem;
-        color: var(--p-text-muted-color);
-      }
-    }
-
-    .text-center {
-      text-align: center;
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ConfirmationService, MessageService],
 })
@@ -290,25 +80,25 @@ export class TeachersComponent implements OnInit {
         label: 'Total Teachers',
         value: all.length,
         icon: 'pi pi-users',
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: 'td-gradient-info',
       },
       {
         label: 'Pending Approval',
         value: pending,
         icon: 'pi pi-clock',
-        color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+        color: 'td-gradient-warning',
       },
       {
         label: 'Active',
         value: active,
         icon: 'pi pi-check-circle',
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: 'td-gradient-success',
       },
       {
         label: 'Disabled',
         value: disabled,
         icon: 'pi pi-ban',
-        color: 'linear-gradient(135deg, #ef4444, #dc2626)',
+        color: 'td-gradient-danger',
       },
     ];
   });
@@ -325,12 +115,12 @@ export class TeachersComponent implements OnInit {
 
   // Avatar colors
   private readonly avatarColors = [
-    '#3b82f6',
-    '#10b981',
-    '#f59e0b',
-    '#8b5cf6',
-    '#ec4899',
-    '#06b6d4',
+    'td-tone-info',
+    'td-tone-success',
+    'td-tone-warning',
+    'td-tone-accent',
+    'td-tone-accent',
+    'td-tone-info',
   ];
 
   ngOnInit(): void {

@@ -140,15 +140,13 @@
         <span>Exam Completed</span>
       </div>
       <div
-        class="landing__floating-card landing__floating-card--2 animate-float"
-        style="animation-delay: 0.5s"
+        class="landing__floating-card landing__floating-card--2 animate-float stagger-5"
       >
         <i class="pi pi-chart-line"></i>
         <span>95% Score</span>
       </div>
       <div
-        class="landing__floating-card landing__floating-card--3 animate-float"
-        style="animation-delay: 1s"
+        class="landing__floating-card landing__floating-card--3 animate-float stagger-10"
       >
         <i class="pi pi-users"></i>
         <span>+50 Students</span>
@@ -170,11 +168,11 @@
       @for (feature of features; track feature.title; let i = $index) {
       <div
         class="landing__feature-card"
-        [style.animation-delay.ms]="i * 100"
+        [ngClass]="getStaggerClass(i)"
       >
         <div
           class="landing__feature-icon"
-          [style.background]="feature.color"
+          [ngClass]="feature.color"
         >
           <i [class]="'pi ' + feature.icon"></i>
         </div>

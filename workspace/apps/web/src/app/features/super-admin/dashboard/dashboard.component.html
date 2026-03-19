@@ -30,7 +30,7 @@
     } } @else { @for (stat of statsCards(); track stat.title) {
     <p-card styleClass="dashboard__stat-card">
       <div class="stat-card">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="'pi ' + stat.icon"></i>
         </div>
         <div class="stat-card__content">
@@ -136,7 +136,7 @@
             <th class="text-center">Students</th>
             <th>Status</th>
             <th>Joined</th>
-            <th style="width: 60px"></th>
+            <th class="w-[60px]"></th>
           </tr>
         </ng-template>
         <ng-template #body let-teacher>
@@ -146,11 +146,7 @@
                 <p-avatar
                   [label]="getInitials(teacher.user.fullName)"
                   shape="circle"
-                  [style]="{
-                    background: getAvatarColor(teacher.id),
-                    color: '#ffffff',
-                    fontWeight: '600'
-                  }"
+                  [styleClass]="'td-avatar ' + getAvatarColor(teacher.id)"
                 />
                 <div class="teacher-info__text">
                   <span class="teacher-info__name">{{
@@ -249,10 +245,7 @@
                 [label]="getInitials(teacher.user.fullName)"
                 shape="circle"
                 size="normal"
-                [style]="{
-                  background: 'var(--p-surface-200)',
-                  color: 'var(--p-surface-600)'
-                }"
+                styleClass="td-avatar td-avatar-surface"
               />
               <div class="approval-item__info">
                 <span class="approval-item__name">{{

@@ -21,7 +21,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="'pi ' + stat.icon"></i>
         </div>
         <div class="stat-card__info">
@@ -179,7 +179,7 @@
           <th>Subject</th>
           <th class="text-center">Questions</th>
           <th>Status</th>
-          <th style="width: 100px">Actions</th>
+          <th class="w-[100px]">Actions</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-exam>
@@ -188,10 +188,10 @@
             <span class="exam-title">{{ exam.title }}</span>
           </td>
           <td>
-            <span class="subject-name" [style.color]="exam.subject.color">
+            <span class="subject-name" [ngClass]="getThemeTextToneClass(exam.subject.color)">
               <i
                 [class]="'pi ' + exam.subject.icon"
-                style="margin-right: 0.5rem"
+                class="mr-2"
               ></i>
               {{ exam.subject.name }}
             </span>

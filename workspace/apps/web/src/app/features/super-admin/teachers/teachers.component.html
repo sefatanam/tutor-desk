@@ -24,7 +24,7 @@
     @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="stat.icon"></i>
         </div>
         <div class="stat-card__text">
@@ -85,21 +85,21 @@
     >
       <ng-template #header>
         <tr>
-          <th pSortableColumn="user.fullName" style="min-width: 250px">
+          <th pSortableColumn="user.fullName" class="min-w-[250px]">
             Teacher
             <p-sortIcon field="user.fullName" />
           </th>
-          <th style="min-width: 150px">Qualification</th>
-          <th style="min-width: 100px" class="text-center">Students</th>
-          <th pSortableColumn="user.status" style="min-width: 120px">
+          <th class="min-w-[150px]">Qualification</th>
+          <th class="min-w-[100px] text-center">Students</th>
+          <th pSortableColumn="user.status" class="min-w-[120px]">
             Status
             <p-sortIcon field="user.status" />
           </th>
-          <th pSortableColumn="createdAt" style="min-width: 120px">
+          <th pSortableColumn="createdAt" class="min-w-[120px]">
             Joined
             <p-sortIcon field="createdAt" />
           </th>
-          <th style="width: 140px" class="text-center">Actions</th>
+          <th class="w-[140px] text-center">Actions</th>
         </tr>
       </ng-template>
 
@@ -110,11 +110,7 @@
               <p-avatar
                 [label]="getInitials(teacher.user.fullName)"
                 shape="circle"
-                [style]="{
-                  background: getAvatarColor(teacher.id),
-                  color: '#ffffff',
-                  fontWeight: '600'
-                }"
+                [styleClass]="'td-avatar '+ getAvatarColor(teacher.id)"
               />
               <div class="teacher-cell__info">
                 <span class="teacher-cell__name">{{

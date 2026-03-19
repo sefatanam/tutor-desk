@@ -33,7 +33,7 @@
         #fileInput
         type="file"
         accept=".json"
-        style="display: none"
+        class="hidden"
         (change)="onImportFile($event)"
       />
       <p-button
@@ -119,11 +119,11 @@
           >
             <ng-template #header>
               <tr>
-                <th style="width: 200px">Key</th>
-                <th style="width: 200px">Label</th>
+                <th class="w-[200px]">Key</th>
+                <th class="w-[200px]">Label</th>
                 <th>Value</th>
-                <th style="width: 100px">Type</th>
-                <th style="width: 100px" class="text-center">Actions</th>
+                <th class="w-[100px]">Type</th>
+                <th class="w-[100px] text-center">Actions</th>
               </tr>
             </ng-template>
             <ng-template #body let-setting>
@@ -252,7 +252,7 @@
     header="Manage Categories"
     [(visible)]="showCategoryDialog"
     [modal]="true"
-    [style]="{ width: '600px' }"
+    styleClass="w-[600px] max-w-[95vw]"
     [draggable]="false"
     [resizable]="false"
   >
@@ -357,7 +357,7 @@
     [header]="editingSettingId ? 'Edit Setting' : 'Add New Setting'"
     [(visible)]="showSettingDialog"
     [modal]="true"
-    [style]="{ width: '550px' }"
+    styleClass="w-[550px] max-w-[95vw]"
     [draggable]="false"
     [resizable]="false"
   >

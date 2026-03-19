@@ -3,6 +3,7 @@
 // Features: Deduplication (last attempt only), retake indication, statistics
 
 import { Injectable } from '@angular/core';
+import { getThemeToneClass } from '../utils/theme-tone.util';
 
 // =============================================
 // INTERFACES
@@ -160,10 +161,10 @@ export class ReportExportService {
     <div class="subtitle">
       ${
         data.subjectName
-          ? `<span class="subject-badge" style="background: ${
-              data.subjectColor ?? '#6b7280'
-            }">${this.escapeHtml(data.subjectName)}</span>`
-          : '<span class="subject-badge" style="background: #6b7280">Independent Exam</span>'
+          ? `<span class="subject-badge ${this.getReportBadgeToneClass(
+              data.subjectColor
+            )}">${this.escapeHtml(data.subjectName)}</span>`
+          : '<span class="subject-badge subject-badge--neutral">Independent Exam</span>'
       }
       <span class="separator">|</span>
       <span>Exam Results Report</span>
@@ -376,9 +377,9 @@ export class ReportExportService {
   <div class="header">
     <h1>${this.escapeHtml(data.subjectName)}</h1>
     <div class="subtitle">
-      <span class="subject-badge" style="background: ${
+      <span class="subject-badge ${this.getReportBadgeToneClass(
         data.subjectColor
-      }">${this.escapeHtml(data.subjectName)}</span>
+      )}">${this.escapeHtml(data.subjectName)}</span>
       <span class="separator">|</span>
       <span>Subject Progress Report</span>
     </div>
@@ -746,6 +747,13 @@ export class ReportExportService {
       font-size: 12px;
       font-weight: 500;
     }
+    .subject-badge--primary { background: #10b981; }
+    .subject-badge--accent { background: #8b5cf6; }
+    .subject-badge--success { background: #16a34a; }
+    .subject-badge--warning { background: #d97706; }
+    .subject-badge--danger { background: #dc2626; }
+    .subject-badge--info { background: #2563eb; }
+    .subject-badge--neutral { background: #6b7280; }
     .separator { color: #d1d5db; }
 
     /* Info Section */
@@ -926,6 +934,10 @@ export class ReportExportService {
       .table-section { page-break-inside: avoid; }
     }
     `;
+  }
+
+  private getReportBadgeToneClass(color?: string | null): string {
+    return getThemeToneClass(color).replace('td-tone-', 'subject-badge--');
   }
 
   // @REVIEW: Open print window for PDF generation

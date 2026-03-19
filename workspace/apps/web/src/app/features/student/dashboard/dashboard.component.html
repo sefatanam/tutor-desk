@@ -19,7 +19,7 @@
     } } @else { @for (stat of statsCards(); track stat.label) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <div class="stat-card__icon" [style.background]="stat.color">
+        <div class="stat-card__icon" [ngClass]="stat.color">
           <i [class]="'pi ' + stat.icon"></i>
         </div>
         <div class="stat-card__info">
@@ -83,7 +83,7 @@
           <td>
             <span
               class="subject-badge"
-              [style.background]="item.exam.subject.color"
+              [ngClass]="getThemeToneClass(item.exam.subject.color)"
             >
               {{ item.exam.subject.name }}
             </span>
@@ -191,7 +191,7 @@
           <td>
             <span
               class="subject-badge"
-              [style.background]="result.subjectColor"
+              [ngClass]="getThemeToneClass(result.subjectColor)"
             >
               {{ result.subjectName }}
             </span>

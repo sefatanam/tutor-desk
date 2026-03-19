@@ -23,6 +23,8 @@ import { MessageService } from 'primeng/api';
 import { forkJoin } from 'rxjs';
 import { AuthStore } from '../../../core/store/auth.store';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
+import { getThemeTextToneClass } from '../../../core/utils/theme-tone.util';
+
 import {
   TeacherDashboardStats,
   ExamWithSubject,
@@ -46,194 +48,10 @@ import {
   ],
   providers: [MessageService],
   templateUrl: './dashboard.component.html',
-  styles: `
-    .dashboard {
-      padding: 1.5rem;
-    }
-
-    .dashboard__header {
-      margin-bottom: 2rem;
-    }
-
-    .dashboard__header h1 {
-      margin: 0 0 0.5rem;
-      font-size: 1.75rem;
-      font-weight: 600;
-    }
-
-    .dashboard__header p {
-      margin: 0;
-      color: var(--text-color-secondary);
-    }
-
-    .dashboard__stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    :host ::ng-deep .stat-card .p-card-body {
-      padding: 1.25rem;
-    }
-
-    .stat-card__content {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-card__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
-      color: white;
-      font-size: 1.5rem;
-    }
-
-    .stat-card__info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .stat-card__value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-color);
-    }
-
-    .stat-card__label {
-      font-size: 0.875rem;
-      color: var(--text-color-secondary);
-    }
-
-    :host ::ng-deep .dashboard__card {
-      margin-bottom: 1.5rem;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--surface-border);
-    }
-
-    .card-header h2 {
-      margin: 0;
-      font-size: 1.125rem;
-      font-weight: 600;
-    }
-
-    .quick-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .exam-title {
-      font-weight: 500;
-    }
-
-    .subject-name {
-      display: flex;
-      align-items: center;
-      font-weight: 500;
-    }
-
-    .text-center {
-      text-align: center;
-    }
-
-    .skeleton-table {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .skeleton-row {
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--surface-border);
-    }
-
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1rem;
-      text-align: center;
-    }
-
-    .empty-state__icon {
-      font-size: 3rem;
-      color: var(--text-color-secondary);
-      margin-bottom: 1rem;
-    }
-
-    .empty-state__text {
-      color: var(--text-color-secondary);
-      margin-bottom: 1.5rem;
-    }
-
-    /* @REVIEW: Charts Section Styles */
-    .dashboard__charts {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    :host ::ng-deep .chart-card .p-card-body {
-      padding: 1rem 1.5rem;
-    }
-
-    .chart-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 250px;
-    }
-
-    .chart-loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 200px;
-    }
-
-    .chart-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 200px;
-      color: var(--text-color-secondary);
-    }
-
-    .chart-empty i {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-      opacity: 0.5;
-    }
-
-    .chart-empty p {
-      margin: 0;
-    }
-
-    .mr-2 {
-      margin-right: 0.5rem;
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit {
+  readonly getThemeTextToneClass = getThemeTextToneClass;
   private readonly authStore = inject(AuthStore);
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly messageService = inject(MessageService);
@@ -299,25 +117,25 @@ export class DashboardComponent implements OnInit {
         icon: 'pi-users',
         label: 'My Students',
         value: stats.totalStudents.toString(),
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: 'td-gradient-info',
       },
       {
         icon: 'pi-book',
         label: 'Subjects',
         value: stats.totalSubjects.toString(),
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: 'td-gradient-success',
       },
       {
         icon: 'pi-file-edit',
         label: 'Active Exams',
         value: stats.activeExams.toString(),
-        color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+        color: 'td-gradient-warning',
       },
       {
         icon: 'pi-check-circle',
         label: 'Avg Score',
         value: `${Math.round(stats.averageStudentScore)}%`,
-        color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+        color: 'td-gradient-accent',
       },
     ];
   });

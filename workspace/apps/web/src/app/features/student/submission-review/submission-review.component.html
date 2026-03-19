@@ -49,11 +49,11 @@
     <div class="header-info">
       <h1 class="exam-title">{{ submission()!.exam.title }}</h1>
       @if (subject()) {
-      <span class="subject-badge" [style.background]="subject()!.color">
+      <span class="subject-badge" [ngClass]="getThemeToneClass(subject()!.color)">
         {{ subject()!.name }}
       </span>
       } @else {
-      <span class="subject-badge" style="background: #6b7280">
+      <span class="subject-badge td-tone-neutral">
         Independent Exam
       </span>
       }

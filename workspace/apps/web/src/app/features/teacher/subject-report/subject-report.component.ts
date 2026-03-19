@@ -27,6 +27,8 @@ import { TabsModule } from 'primeng/tabs';
 import { forkJoin, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 import {
   Subject,
   Exam,
@@ -88,152 +90,10 @@ interface ExamPerformanceStats {
     TabsModule,
   ],
   templateUrl: './subject-report.component.html',
-  styles: `
-    .report-page { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
-
-    .page-nav { margin-bottom: 1.5rem; }
-
-    .loading-container { padding: 2rem 0; }
-
-    .not-found {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 4rem 2rem; text-align: center;
-    }
-    .not-found i { font-size: 4rem; color: var(--text-color-secondary); margin-bottom: 1rem; }
-
-    /* Header */
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
-    }
-    .header-info { display: flex; align-items: center; gap: 1rem; }
-    .subject-icon {
-      width: 56px; height: 56px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.5rem;
-    }
-    .subject-details { display: flex; flex-direction: column; gap: 0.25rem; }
-    .subject-name { margin: 0; font-size: 1.5rem; font-weight: 600; }
-    .subject-code {
-      font-size: 0.875rem; color: var(--text-color-secondary);
-      background: var(--surface-100); padding: 0.25rem 0.5rem;
-      border-radius: 4px; width: fit-content;
-    }
-
-    /* Stats Row */
-    .stats-row {
-      display: grid; grid-template-columns: repeat(5, 1fr);
-      gap: 1rem; margin-bottom: 1.5rem;
-    }
-    @media (max-width: 1024px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    :host ::ng-deep .stat-card.primary { border-left: 4px solid var(--primary-color); }
-    :host ::ng-deep .stat-card.purple { border-left: 4px solid var(--purple-500); }
-    :host ::ng-deep .stat-card.green { border-left: 4px solid var(--green-500); }
-    :host ::ng-deep .stat-card.blue { border-left: 4px solid var(--blue-500); }
-    :host ::ng-deep .stat-card.orange { border-left: 4px solid var(--orange-500); }
-    .stat-content { display: flex; align-items: center; gap: 1rem; }
-    .stat-content i { font-size: 1.5rem; color: var(--text-color-secondary); }
-    .stat-text { display: flex; flex-direction: column; }
-    .stat-value { font-size: 1.5rem; font-weight: 700; }
-    .stat-label { font-size: 0.8125rem; color: var(--text-color-secondary); }
-
-    /* Tabs */
-    :host ::ng-deep .p-tabs { margin-bottom: 1.5rem; }
-    :host ::ng-deep .p-tablist { margin-bottom: 1rem; }
-    :host ::ng-deep .p-tab { display: flex; align-items: center; gap: 0.5rem; }
-
-    /* Table Card */
-    .table-card { margin-bottom: 1.5rem; }
-    :host ::ng-deep .table-card .p-card-body { padding: 0; }
-    :host ::ng-deep .table-card .p-card-content { padding: 0; }
-    .table-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 1.5rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .table-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
-
-    .empty-state {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 3rem; color: var(--text-color-secondary);
-    }
-    .empty-state i { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
-
-    /* Student Cell */
-    .student-cell { display: flex; align-items: center; gap: 0.75rem; }
-    .student-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 600; font-size: 0.8125rem;
-    }
-    .student-info { display: flex; flex-direction: column; }
-    .student-name { font-weight: 500; }
-    .student-email { font-size: 0.75rem; color: var(--text-color-secondary); }
-
-    .exams-count { font-weight: 500; }
-    .score-cell .score-value { font-weight: 600; color: var(--red-500); }
-    .score-cell .score-value.good { color: var(--green-500); }
-
-    .progress-cell { width: 100px; }
-    :host ::ng-deep .progress-bar { height: 8px; border-radius: 4px; }
-
-    /* Exam Cell */
-    .exam-cell { display: flex; flex-direction: column; gap: 0.125rem; }
-    .exam-title { font-weight: 500; }
-    .exam-meta { font-size: 0.75rem; color: var(--text-color-secondary); }
-
-    .submission-count { font-weight: 500; }
-
-    .pass-fail { display: flex; gap: 0.25rem; }
-    .pass-fail .passed { color: var(--green-600); font-weight: 600; }
-    .pass-fail .failed { color: var(--red-600); font-weight: 600; }
-    .pass-fail .separator { color: var(--text-color-secondary); }
-
-    .avg-score { font-weight: 600; color: var(--red-500); }
-    .avg-score.good { color: var(--green-500); }
-
-    .score-range { font-size: 0.875rem; color: var(--text-color-secondary); }
-    .no-data { color: var(--text-color-secondary); }
-
-    .pass-rate { display: flex; align-items: center; gap: 0.5rem; }
-    :host ::ng-deep .pass-rate-bar { width: 60px; height: 8px; }
-
-    /* Matrix */
-    .matrix-card { margin-top: 1.5rem; }
-    :host ::ng-deep .matrix-card .p-card-body { padding: 0; }
-    :host ::ng-deep .matrix-card .p-card-content { padding: 0; }
-    .matrix-container { overflow-x: auto; }
-    .score-matrix {
-      width: 100%; border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-    .score-matrix th, .score-matrix td {
-      padding: 0.75rem 0.5rem;
-      border-bottom: 1px solid var(--surface-border);
-      text-align: center;
-    }
-    .score-matrix th { background: var(--surface-50); font-weight: 600; }
-    .score-matrix .student-col { text-align: left; min-width: 180px; }
-    .score-matrix .exam-col { min-width: 80px; font-size: 0.75rem; }
-    .score-matrix .avg-col { min-width: 80px; background: var(--surface-50); }
-    .matrix-student { font-weight: 500; }
-    .matrix-score {
-      display: inline-block; padding: 0.25rem 0.5rem;
-      border-radius: 4px; font-weight: 500; cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .matrix-score:hover { transform: scale(1.1); }
-    .matrix-score.passed { background: var(--green-100); color: var(--green-700); }
-    .matrix-score.failed { background: var(--red-100); color: var(--red-700); }
-    .matrix-score.not-taken { color: var(--text-color-secondary); cursor: default; }
-    .matrix-score.not-taken:hover { transform: none; }
-    .matrix-avg { font-weight: 600; }
-    .matrix-avg.good { color: var(--green-600); }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubjectReportComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly route = inject(ActivatedRoute);
   private readonly db = inject(SupabaseDatabaseAdapter);
   // @REVIEW: DestroyRef for subscription cleanup
@@ -532,16 +392,16 @@ export class SubjectReportComponent implements OnInit {
 
   getAvatarColor(name: string): string {
     const colors = [
-      '#3b82f6',
-      '#ef4444',
-      '#10b981',
-      '#f59e0b',
-      '#8b5cf6',
-      '#ec4899',
-      '#06b6d4',
-      '#84cc16',
-      '#f97316',
-      '#6366f1',
+      'td-tone-info',
+      'td-tone-danger',
+      'td-tone-success',
+      'td-tone-warning',
+      'td-tone-accent',
+      'td-tone-accent',
+      'td-tone-info',
+      'td-tone-success',
+      'td-tone-warning',
+      'td-tone-primary',
     ];
     const index = name
       .split('')

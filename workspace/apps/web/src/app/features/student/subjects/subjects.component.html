@@ -28,7 +28,7 @@
     <p-card styleClass="subject-card" (click)="openSubjectDialog(item)">
       <div
         class="subject-card__header"
-        [style.background]="item.subject.color"
+        [ngClass]="getThemeToneClass(item.subject.color)"
       >
         <i [class]="'pi ' + item.subject.icon"></i>
       </div>
@@ -63,7 +63,8 @@
   [(visible)]="showDialog"
   [header]="selectedSubject()?.subject?.name ?? 'Subject'"
   [modal]="true"
-  [style]="{ width: '600px', maxHeight: '80vh' }"
+  styleClass="w-[600px] max-w-[95vw]"
+  contentStyleClass="max-h-[80vh] overflow-y-auto"
   [draggable]="false"
   [resizable]="false"
 >
@@ -71,7 +72,7 @@
   <div class="dialog-content">
     <!-- Subject Info -->
     <div class="subject-info">
-      <div class="subject-badge" [style.background]="item.subject.color">
+      <div class="subject-badge" [ngClass]="getThemeToneClass(item.subject.color)">
         <i [class]="'pi ' + item.subject.icon"></i>
       </div>
       <div>

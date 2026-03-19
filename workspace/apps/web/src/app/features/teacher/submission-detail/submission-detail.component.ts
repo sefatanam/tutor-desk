@@ -33,6 +33,8 @@ import {
   PdfQuestionItem,
 } from '../../../core/services/pdf-export.service';
 import { CsvExportService } from '../../../core/services/csv-export.service';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 import {
   ExamSubmissionWithDetails,
   Question,
@@ -74,203 +76,10 @@ interface QuestionReviewItem {
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './submission-detail.component.html',
-  styles: `
-    .submission-detail-page { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-
-    .page-nav { margin-bottom: 1.5rem; }
-
-    .loading-container { padding: 2rem 0; }
-
-    .not-found {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 4rem 2rem; text-align: center;
-    }
-    .not-found i { font-size: 4rem; color: var(--text-color-secondary); margin-bottom: 1rem; }
-    .not-found h2 { margin: 0 0 0.5rem; }
-    .not-found p { color: var(--text-color-secondary); margin-bottom: 1.5rem; }
-
-    /* Header */
-    .page-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
-    }
-    .header-info { display: flex; flex-direction: column; gap: 1rem; }
-    .student-section { display: flex; align-items: center; gap: 1rem; }
-    .student-avatar {
-      width: 56px; height: 56px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 600; font-size: 1.25rem;
-    }
-    .student-details { display: flex; flex-direction: column; }
-    .student-name { margin: 0; font-size: 1.5rem; font-weight: 600; }
-    .student-email { color: var(--text-color-secondary); font-size: 0.875rem; }
-    .exam-info { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-    .exam-title { margin: 0; font-size: 1.125rem; font-weight: 500; color: var(--text-color-secondary); }
-    .subject-badge {
-      padding: 0.25rem 0.75rem; border-radius: 16px;
-      color: white; font-size: 0.8125rem; font-weight: 500;
-    }
-    .header-actions { display: flex; align-items: center; gap: 1rem; }
-    :host ::ng-deep .result-tag { font-size: 1rem; padding: 0.5rem 1rem; }
-
-    /* Score Section */
-    .score-section {
-      background: var(--surface-card); border-radius: 12px;
-      padding: 2rem; margin-bottom: 1.5rem;
-      display: flex; justify-content: center;
-    }
-    .score-display { display: flex; align-items: center; gap: 3rem; }
-    .score-main-block { display: flex; align-items: baseline; }
-    .score-value { font-size: 4rem; font-weight: 700; color: var(--red-500); }
-    .score-value.passed { color: var(--green-500); }
-    .score-divider { font-size: 2rem; color: var(--text-color-secondary); margin: 0 0.25rem; }
-    .score-total { font-size: 2rem; color: var(--text-color-secondary); }
-    .percentage-block { display: flex; flex-direction: column; gap: 0.5rem; min-width: 150px; }
-    .percentage-value { font-size: 2rem; font-weight: 600; text-align: center; }
-    :host ::ng-deep .score-progress { height: 12px; border-radius: 6px; }
-
-    /* Stats Row */
-    .stats-row {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 1rem; margin-bottom: 1.5rem;
-    }
-    @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    :host ::ng-deep .stat-card.correct { border-left: 4px solid var(--green-500); }
-    :host ::ng-deep .stat-card.wrong { border-left: 4px solid var(--red-500); }
-    :host ::ng-deep .stat-card.skipped { border-left: 4px solid var(--orange-500); }
-    :host ::ng-deep .stat-card.info { border-left: 4px solid var(--blue-500); }
-    .stat-content { display: flex; align-items: center; gap: 1rem; }
-    .stat-content i { font-size: 1.5rem; }
-    .stat-card.correct .stat-content i { color: var(--green-500); }
-    .stat-card.wrong .stat-content i { color: var(--red-500); }
-    .stat-card.skipped .stat-content i { color: var(--orange-500); }
-    .stat-card.info .stat-content i { color: var(--blue-500); }
-    .stat-text { display: flex; flex-direction: column; }
-    .stat-value { font-size: 1.5rem; font-weight: 700; }
-    .stat-label { font-size: 0.875rem; color: var(--text-color-secondary); }
-
-    /* Info Card */
-    :host ::ng-deep .info-card .p-card-body { padding: 1rem 1.5rem; }
-    .info-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem;
-    }
-    @media (max-width: 768px) { .info-grid { grid-template-columns: repeat(2, 1fr); } }
-    .info-item { display: flex; flex-direction: column; gap: 0.25rem; }
-    .info-item.full-width { grid-column: 1 / -1; }
-    .info-label { font-size: 0.75rem; color: var(--text-color-secondary); text-transform: uppercase; }
-    .info-value { font-weight: 500; }
-    .info-value.warning { color: var(--orange-600); }
-    .text-muted { color: var(--text-color-secondary); font-style: italic; }
-
-    /* Remarks Card */
-    .remarks-card { margin: 1.5rem 0; }
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 1.5rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .card-header h3 {
-      margin: 0; font-size: 1rem; font-weight: 600;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .card-header h3 i { color: var(--primary-color); }
-    .remarks-content { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
-    .remarks-textarea { width: 100%; }
-
-    /* Filter Buttons */
-    .filter-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-    /* Questions Card */
-    .questions-card { margin-bottom: 2rem; }
-    :host ::ng-deep .questions-card .p-card-body { padding: 0; }
-    :host ::ng-deep .questions-card .p-card-content { padding: 0; }
-
-    .questions-list { display: flex; flex-direction: column; }
-
-    .question-item {
-      padding: 1.5rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .question-item:last-child { border-bottom: none; }
-    .question-item.status-correct { background: var(--green-50); }
-    .question-item.status-wrong { background: var(--red-50); }
-    .question-item.status-skipped { background: var(--orange-50); }
-
-    .question-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 1rem;
-    }
-    .question-number { display: flex; align-items: center; gap: 0.75rem; }
-    .q-num {
-      font-weight: 700; font-size: 1rem;
-      background: var(--surface-200); padding: 0.25rem 0.75rem; border-radius: 6px;
-    }
-    .question-marks { display: flex; align-items: center; gap: 0.75rem; }
-    .marks-obtained { font-weight: 700; font-size: 1.125rem; }
-    .marks-obtained.correct { color: var(--green-600); }
-    .marks-obtained.wrong { color: var(--red-600); }
-    .marks-obtained.skipped { color: var(--orange-600); }
-    .marks-total { color: var(--text-color-secondary); }
-    .time-spent {
-      display: flex; align-items: center; gap: 0.25rem;
-      font-size: 0.875rem; color: var(--text-color-secondary);
-      background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px;
-    }
-
-    .question-content { margin-bottom: 1rem; }
-    .question-text { margin: 0 0 0.75rem; font-size: 1rem; line-height: 1.5; }
-    .question-image { max-width: 400px; border-radius: 8px; margin-top: 0.5rem; }
-
-    .options-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .option-item {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.75rem 1rem; border-radius: 8px;
-      background: var(--surface-0); border: 1px solid var(--surface-200);
-      position: relative;
-    }
-    .option-item.correct {
-      background: var(--green-100); border-color: var(--green-300);
-    }
-    .option-item.wrong {
-      background: var(--red-100); border-color: var(--red-300);
-    }
-    .option-item.selected:not(.correct):not(.wrong) {
-      border-color: var(--primary-300);
-    }
-    .option-marker { width: 24px; display: flex; justify-content: center; }
-    .option-bullet {
-      width: 12px; height: 12px; border-radius: 50%;
-      border: 2px solid var(--surface-400);
-    }
-    .correct-icon { color: var(--green-600); font-size: 1.25rem; }
-    .wrong-icon { color: var(--red-600); font-size: 1.25rem; }
-    .option-text { flex: 1; }
-    .selected-label, .correct-label {
-      font-size: 0.6875rem; padding: 0.125rem 0.5rem;
-      border-radius: 4px; font-weight: 500;
-    }
-    .selected-label { background: var(--blue-100); color: var(--blue-700); }
-    .correct-label { background: var(--green-100); color: var(--green-700); }
-
-    .explanation {
-      margin-top: 1rem; padding: 1rem;
-      background: var(--surface-100); border-radius: 8px;
-      font-size: 0.9375rem;
-    }
-    .explanation strong {
-      display: flex; align-items: center; gap: 0.5rem;
-      color: var(--primary-color); margin-bottom: 0.5rem;
-    }
-    .explanation p { margin: 0; color: var(--text-color-secondary); }
-
-    .empty-filter {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 3rem; color: var(--text-color-secondary);
-    }
-    .empty-filter i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubmissionDetailComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly route = inject(ActivatedRoute);
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
@@ -506,16 +315,16 @@ export class SubmissionDetailComponent implements OnInit {
 
   getAvatarColor(name: string): string {
     const colors = [
-      '#3b82f6',
-      '#ef4444',
-      '#10b981',
-      '#f59e0b',
-      '#8b5cf6',
-      '#ec4899',
-      '#06b6d4',
-      '#84cc16',
-      '#f97316',
-      '#6366f1',
+      'td-tone-info',
+      'td-tone-danger',
+      'td-tone-success',
+      'td-tone-warning',
+      'td-tone-accent',
+      'td-tone-accent',
+      'td-tone-info',
+      'td-tone-success',
+      'td-tone-warning',
+      'td-tone-primary',
     ];
     const index = name
       .split('')

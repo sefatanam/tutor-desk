@@ -19,6 +19,8 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 import {
   ExamWithSubject,
   ExamSubmission,
@@ -58,85 +60,10 @@ interface RecentResult {
     SkeletonModule,
   ],
   templateUrl: './dashboard.component.html',
-  styles: `
-    .dashboard { padding: 1.5rem; }
-
-    .dashboard__header { margin-bottom: 2rem; }
-    .dashboard__header h1 { margin: 0 0 0.5rem; font-size: 1.75rem; font-weight: 600; }
-    .dashboard__header p { margin: 0; color: var(--text-color-secondary); }
-
-    .dashboard__stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    :host ::ng-deep .stat-card .p-card-body { padding: 1.25rem; }
-
-    .stat-card__content { display: flex; align-items: center; gap: 1rem; }
-
-    .stat-card__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
-      color: white;
-      font-size: 1.5rem;
-    }
-
-    .stat-card__info { display: flex; flex-direction: column; }
-    .stat-card__value { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
-    .stat-card__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-
-    :host ::ng-deep .dashboard__card { margin-bottom: 1.5rem; }
-    :host ::ng-deep .dashboard__card .p-card-body { padding: 0; }
-    :host ::ng-deep .dashboard__card .p-card-content { padding: 0; }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--surface-border);
-    }
-    .card-header h2 { margin: 0; font-size: 1.125rem; font-weight: 600; }
-
-    .skeleton-table { padding: 1rem 1.5rem; }
-    .skeleton-row {
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid var(--surface-100);
-    }
-
-    .empty-state { text-align: center; padding: 3rem 2rem; }
-    .empty-state__icon { font-size: 3rem; color: var(--primary-color); opacity: 0.5; margin-bottom: 0.5rem; }
-    .empty-state__text { margin: 0; color: var(--text-color-secondary); }
-
-    .exam-title { font-weight: 500; }
-
-    .subject-badge {
-      display: inline-block;
-      padding: 0.25rem 0.625rem;
-      border-radius: 16px;
-      color: white;
-      font-size: 0.8125rem;
-      font-weight: 500;
-    }
-
-    .text-secondary { color: var(--text-color-secondary); }
-
-    .score { font-weight: 600; color: var(--red-600); }
-    .score--pass { color: var(--green-600); }
-    .score__percentage { font-weight: 400; color: var(--text-color-secondary); margin-left: 0.25rem; }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly db = inject(SupabaseDatabaseAdapter);
   private readonly authStore = inject(AuthStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -162,25 +89,25 @@ export class DashboardComponent implements OnInit {
         icon: 'pi-book',
         label: 'Enrolled Subjects',
         value: s.enrolledSubjects.toString(),
-        color: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        color: 'td-gradient-info',
       },
       {
         icon: 'pi-file-edit',
         label: 'Pending Exams',
         value: s.pendingExams.toString(),
-        color: 'linear-gradient(135deg, #f59e0b, #d97706)',
+        color: 'td-gradient-warning',
       },
       {
         icon: 'pi-check-circle',
         label: 'Completed',
         value: s.totalExamsTaken.toString(),
-        color: 'linear-gradient(135deg, #10b981, #059669)',
+        color: 'td-gradient-success',
       },
       {
         icon: 'pi-chart-line',
         label: 'Avg Score',
         value: `${Math.round(s.averageScore)}%`,
-        color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+        color: 'td-gradient-accent',
       },
     ];
   });

@@ -108,7 +108,7 @@
           <span class="icon-preview__label">Preview:</span>
           <div
             class="icon-preview__box"
-            [style.background]="subjectForm.get('color')?.value"
+            [ngClass]="getThemeToneClass(subjectForm.get('color')?.value)"
           >
             <i [class]="'pi ' + subjectForm.get('icon')?.value"></i>
           </div>

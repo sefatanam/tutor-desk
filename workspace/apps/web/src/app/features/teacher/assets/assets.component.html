@@ -25,7 +25,7 @@
   <!-- Page Header -->
   <header class="page-header">
     <div class="page-header__info">
-      <div class="subject-badge" [style.background]="subject()!.color">
+      <div class="subject-badge" [ngClass]="getThemeToneClass(subject()!.color)">
         <i [class]="'pi ' + subject()!.icon"></i>
       </div>
       <div>
@@ -74,12 +74,12 @@
     >
       <ng-template #header>
         <tr>
-          <th style="width: 50px">#</th>
+          <th class="w-[50px]">#</th>
           <th>Title</th>
-          <th style="width: 120px">Type</th>
-          <th style="width: 100px">Status</th>
-          <th style="width: 150px">Created</th>
-          <th style="width: 150px">Actions</th>
+          <th class="w-[120px]">Type</th>
+          <th class="w-[100px]">Status</th>
+          <th class="w-[150px]">Created</th>
+          <th class="w-[150px]">Actions</th>
         </tr>
       </ng-template>
       <ng-template #body let-asset let-rowIndex="rowIndex">
@@ -160,7 +160,7 @@
   [(visible)]="showDialog"
   [header]="editingAsset() ? 'Edit Asset' : 'Add New Asset'"
   [modal]="true"
-  [style]="{ width: '500px' }"
+  styleClass="w-[500px] max-w-[95vw]"
   [draggable]="false"
   [resizable]="false"
 >

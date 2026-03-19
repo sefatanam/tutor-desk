@@ -30,6 +30,8 @@ import { forkJoin, of } from 'rxjs';
 import { SupabaseDatabaseAdapter } from '../../../core/adapters/supabase-database.adapter';
 import { AuthStore } from '../../../core/store/auth.store';
 import { Subject, StudentWithUser, Exam } from '../../../core/models';
+import { getThemeToneClass } from '../../../core/utils/theme-tone.util';
+
 
 // @REVIEW: Exam stats for display in list
 interface ExamStats {
@@ -60,125 +62,10 @@ interface ExamStats {
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './subject-detail.component.html',
-  styles: `
-    .subject-detail-page { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
-    
-    .page-nav { margin-bottom: 1rem; }
-    
-    .loading-container { padding: 2rem; }
-    
-    .not-found { 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      padding: 4rem 2rem; text-align: center;
-    }
-    .not-found i { font-size: 4rem; color: var(--text-color-secondary); margin-bottom: 1rem; }
-    .not-found h2 { margin: 0 0 0.5rem; }
-    .not-found p { color: var(--text-color-secondary); margin-bottom: 1.5rem; }
-    
-    .subject-header { 
-      display: flex; justify-content: space-between; align-items: flex-start; 
-      margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;
-    }
-    .subject-header__info { display: flex; gap: 1rem; align-items: flex-start; }
-    .subject-icon { 
-      width: 64px; height: 64px; border-radius: 16px; 
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 1.5rem; flex-shrink: 0;
-    }
-    .subject-details { display: flex; flex-direction: column; gap: 0.25rem; }
-    .subject-name { margin: 0; font-size: 1.75rem; font-weight: 600; }
-    .subject-code { 
-      font-size: 0.875rem; color: var(--text-color-secondary); 
-      background: var(--surface-ground); padding: 0.25rem 0.5rem; border-radius: 4px;
-      width: fit-content;
-    }
-    .subject-description { margin: 0.5rem 0 0; color: var(--text-color-secondary); max-width: 500px; }
-    .subject-header__actions { display: flex; align-items: center; gap: 1rem; }
-    
-    .stats-row { 
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-      gap: 1rem; margin-bottom: 2rem; 
-    }
-    :host ::ng-deep .stat-card .p-card-body { padding: 1rem; }
-    .stat-card__content { display: flex; align-items: center; gap: 1rem; }
-    .stat-card__icon { 
-      display: flex; align-items: center; justify-content: center; 
-      width: 48px; height: 48px; border-radius: 12px; color: white; font-size: 1.25rem; 
-    }
-    .stat-card__text { display: flex; flex-direction: column; }
-    .stat-card__value { font-size: 1.5rem; font-weight: 700; }
-    .stat-card__label { font-size: 0.875rem; color: var(--text-color-secondary); }
-    
-    .content-grid { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; 
-    }
-    @media (max-width: 900px) { .content-grid { grid-template-columns: 1fr; } }
-    
-    .card-header { 
-      display: flex; justify-content: space-between; align-items: center; 
-      padding: 1rem 1.5rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .card-header__title { 
-      margin: 0; font-size: 1.125rem; font-weight: 600; 
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .card-header__title i { color: var(--primary-color); }
-    
-    .empty-state-small { 
-      display: flex; flex-direction: column; align-items: center; 
-      padding: 2rem; text-align: center; color: var(--text-color-secondary);
-    }
-    .empty-state-small i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
-    .empty-state-small p { margin: 0 0 1rem; }
-    
-    .skeleton-list { padding: 1rem; }
-    
-    .enrolled-list, .available-list { 
-      display: flex; flex-direction: column; max-height: 400px; overflow-y: auto; 
-    }
-    .enrolled-item, .available-item { 
-      display: flex; align-items: center; gap: 0.75rem; 
-      padding: 0.75rem 1rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .enrolled-item:last-child, .available-item:last-child { border-bottom: none; }
-    .enrolled-item__avatar, .available-item__avatar { 
-      width: 40px; height: 40px; border-radius: 50%; 
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;
-    }
-    .enrolled-item__info, .available-item__info { 
-      flex: 1; display: flex; flex-direction: column; min-width: 0; 
-    }
-    .enrolled-item__name, .available-item__name { 
-      font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-    }
-    .enrolled-item__email, .available-item__email { 
-      font-size: 0.75rem; color: var(--text-color-secondary); 
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    
-    .exams-list { display: flex; flex-direction: column; }
-    .exam-item { 
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 1.5rem; border-bottom: 1px solid var(--surface-border);
-    }
-    .exam-item:last-child { border-bottom: none; }
-    .exam-item__info { display: flex; flex-direction: column; gap: 0.25rem; }
-    .exam-item__title { font-weight: 500; }
-    .exam-item__meta { 
-      display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text-color-secondary); 
-      flex-wrap: wrap;
-    }
-    .exam-item__meta span { display: flex; align-items: center; gap: 0.25rem; }
-    .exam-item__meta .submissions-badge { 
-      color: var(--primary-color); font-weight: 500;
-      background: var(--primary-50); padding: 0.125rem 0.5rem; border-radius: 4px;
-    }
-    .exam-item__actions { display: flex; align-items: center; gap: 0.5rem; }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubjectDetailComponent implements OnInit {
+  readonly getThemeToneClass = getThemeToneClass;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly db = inject(SupabaseDatabaseAdapter);
@@ -423,16 +310,16 @@ export class SubjectDetailComponent implements OnInit {
 
   getAvatarColor(name: string): string {
     const colors = [
-      '#f87171',
-      '#fb923c',
-      '#fbbf24',
-      '#a3e635',
-      '#4ade80',
-      '#2dd4bf',
-      '#38bdf8',
-      '#818cf8',
-      '#c084fc',
-      '#f472b6',
+      'td-tone-danger',
+      'td-tone-warning',
+      'td-tone-warning',
+      'td-tone-success',
+      'td-tone-success',
+      'td-tone-info',
+      'td-tone-info',
+      'td-tone-primary',
+      'td-tone-accent',
+      'td-tone-accent',
     ];
     const index = name
       .split('')

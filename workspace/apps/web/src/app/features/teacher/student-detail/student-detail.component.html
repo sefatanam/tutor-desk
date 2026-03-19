@@ -27,7 +27,7 @@
     <div class="student-header__info">
       <div
         class="student-avatar"
-        [style.background]="getAvatarColor(student()!.user.fullName)"
+        [ngClass]="getAvatarColor(student()!.user.fullName)"
       >
         {{ getInitials(student()!.user.fullName) }}
       </div>
@@ -73,7 +73,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)"
+          class="stat-card__icon td-gradient-info"
         >
           <i class="pi pi-book"></i>
         </div>
@@ -89,7 +89,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #8b5cf6, #6d28d9)"
+          class="stat-card__icon td-gradient-accent"
         >
           <i class="pi pi-file-edit"></i>
         </div>
@@ -105,7 +105,7 @@
       <div class="stat-card__content">
         <div
           class="stat-card__icon"
-          style="background: linear-gradient(135deg, #10b981, #059669)"
+          class="stat-card__icon td-gradient-success"
         >
           <i class="pi pi-chart-line"></i>
         </div>
@@ -189,7 +189,7 @@
         <div class="subject-item">
           <div
             class="subject-item__icon"
-            [style.background]="subject.color"
+            [ngClass]="getThemeToneClass(subject.color)"
           >
             <i [class]="'pi ' + subject.icon"></i>
           </div>
@@ -257,7 +257,7 @@
         <div class="subject-item">
           <div
             class="subject-item__icon"
-            [style.background]="subject.color"
+            [ngClass]="getThemeToneClass(subject.color)"
           >
             <i [class]="'pi ' + subject.icon"></i>
           </div>
@@ -360,7 +360,7 @@
           <td>
             <span
               class="subject-badge"
-              [style.background]="item.subjectColor"
+              [ngClass]="getThemeToneClass(item.subjectColor)"
             >
               {{ item.subjectName }}
             </span>
@@ -381,8 +381,7 @@
               <p-progressBar
                 [value]="item.submission.percentage"
                 [showValue]="false"
-                styleClass="percentage-bar"
-                [style]="{ height: '6px', width: '50px' }"
+                styleClass="percentage-bar h-[6px] w-[50px]"
               />
               <span>{{ item.submission.percentage }}%</span>
             </div>
@@ -418,7 +417,7 @@
   [(visible)]="showExamDetailsDialog"
   [modal]="true"
   [closable]="true"
-  [style]="{ width: '600px' }"
+  styleClass="w-[600px] max-w-[95vw]"
   header="Exam Result Details"
 >
   @if (selectedExamHistory()) {
@@ -427,7 +426,7 @@
       <h3>{{ selectedExamHistory()!.examTitle }}</h3>
       <span
         class="subject-badge"
-        [style.background]="selectedExamHistory()!.subjectColor"
+        [ngClass]="getThemeToneClass(selectedExamHistory()!.subjectColor)"
       >
         {{ selectedExamHistory()!.subjectName }}
       </span>
