@@ -1,0 +1,56 @@
+<div class="pending-page">
+  <div class="pending-container">
+    <!-- Logo -->
+    <div class="pending-logo">
+      <a routerLink="/" class="logo-link">
+        <span class="logo-icon">
+          <i class="pi pi-book"></i>
+        </span>
+        <span class="logo-text">Tutor Desk</span>
+      </a>
+    </div>
+
+    <p-card styleClass="pending-card">
+      <div class="pending-content">
+        <div class="pending-icon">
+          <i class="pi pi-clock"></i>
+        </div>
+
+        <h1>Account Pending Approval</h1>
+
+        <p class="pending-message">
+          Thank you for registering! Your account is currently being
+          reviewed by an administrator. You will receive an email
+          notification once your account has been approved.
+        </p>
+
+        <div class="pending-info">
+          <div class="info-item">
+            <i class="pi pi-envelope"></i>
+            <span>{{ authStore.user()?.email }}</span>
+          </div>
+          <div class="info-item">
+            <i class="pi pi-user"></i>
+            <span>{{ authStore.user()?.fullName }}</span>
+          </div>
+        </div>
+
+        <div class="pending-actions">
+          <button
+            pButton
+            type="button"
+            label="Sign Out"
+            severity="secondary"
+            (click)="logout()"
+            class="w-full"
+          ></button>
+        </div>
+      </div>
+    </p-card>
+
+    <p class="pending-help">
+      Need help? Contact us at
+      <a href="mailto:support@tutordesk.app">support@tutordesk.app</a>
+    </p>
+  </div>
+</div>

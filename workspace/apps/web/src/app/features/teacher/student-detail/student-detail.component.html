@@ -1,0 +1,549 @@
+<div class="student-detail-page">
+  <!-- Breadcrumb & Back -->
+  <div class="page-nav">
+    <p-button
+      icon="pi pi-arrow-left"
+      label="Back to Students"
+      [text]="true"
+      routerLink="/teacher/students"
+    />
+  </div>
+
+  @if (loading()) {
+  <div class="loading-container">
+    <p-skeleton width="300px" height="32px" styleClass="mb-3" />
+    <p-skeleton width="200px" height="20px" />
+  </div>
+  } @else if (!student()) {
+  <div class="not-found">
+    <i class="pi pi-exclamation-circle"></i>
+    <h2>Student Not Found</h2>
+    <p>The student you're looking for doesn't exist or has been deleted.</p>
+    <p-button label="Go to Students" routerLink="/teacher/students" />
+  </div>
+  } @else {
+  <!-- Student Header -->
+  <header class="student-header">
+    <div class="student-header__info">
+      <div
+        class="student-avatar"
+        [style.background]="getAvatarColor(student()!.user.fullName)"
+      >
+        {{ getInitials(student()!.user.fullName) }}
+      </div>
+      <div class="student-details">
+        <h1 class="student-name">{{ student()!.user.fullName }}</h1>
+        <span class="student-email">{{ student()!.user.email }}</span>
+        <div class="student-meta">
+          @if (student()!.rollNumber) {
+          <span class="meta-item"
+            ><i class="pi pi-id-card"></i> {{ student()!.rollNumber }}</span
+          >
+          } @if (student()!.className) {
+          <span class="meta-item"
+            ><i class="pi pi-bookmark"></i> Class
+            {{ student()!.className }}</span
+          >
+          } @if (student()!.section) {
+          <span class="meta-item"
+            ><i class="pi pi-th-large"></i> Section
+            {{ student()!.section }}</span
+          >
+          }
+        </div>
+      </div>
+    </div>
+    <div class="student-header__actions">
+      <p-button
+        icon="pi pi-pencil"
+        label="Edit Student"
+        severity="secondary"
+        [routerLink]="['/teacher/students', student()!.id, 'edit']"
+      />
+      <p-tag
+        [value]="student()!.user.status"
+        [severity]="getStatusSeverity(student()!.user.status)"
+      />
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <section class="stats-row">
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)"
+        >
+          <i class="pi pi-book"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{
+            enrolledSubjects().length
+          }}</span>
+          <span class="stat-card__label">Enrolled Subjects</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #8b5cf6, #6d28d9)"
+        >
+          <i class="pi pi-file-edit"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{
+            student()!.totalExamsTaken
+          }}</span>
+          <span class="stat-card__label">Exams Taken</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #10b981, #059669)"
+        >
+          <i class="pi pi-chart-line"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value"
+            >{{ student()!.averageScore | number : '1.1-1' }}%</span
+          >
+          <span class="stat-card__label">Average Score</span>
+        </div>
+      </div>
+    </p-card>
+  </section>
+
+  <!-- Guardian Info -->
+  @if (student()!.guardianName || student()!.guardianPhone ||
+  student()!.address) {
+  <p-card styleClass="guardian-card">
+    <ng-template #header>
+      <div class="card-header">
+        <h2 class="card-header__title">
+          <i class="pi pi-users"></i>
+          Guardian Information
+        </h2>
+      </div>
+    </ng-template>
+    <div class="guardian-info">
+      @if (student()!.guardianName) {
+      <div class="info-item">
+        <span class="info-label">Guardian Name</span>
+        <span class="info-value">{{ student()!.guardianName }}</span>
+      </div>
+      } @if (student()!.guardianPhone) {
+      <div class="info-item">
+        <span class="info-label">Guardian Phone</span>
+        <span class="info-value">{{ student()!.guardianPhone }}</span>
+      </div>
+      } @if (student()!.address) {
+      <div class="info-item">
+        <span class="info-label">Address</span>
+        <span class="info-value">{{ student()!.address }}</span>
+      </div>
+      } @if (student()!.dateOfBirth) {
+      <div class="info-item">
+        <span class="info-label">Date of Birth</span>
+        <span class="info-value">{{
+          student()!.dateOfBirth | date : 'mediumDate'
+        }}</span>
+      </div>
+      }
+    </div>
+  </p-card>
+  }
+
+  <!-- Two Column Layout for Subjects -->
+  <div class="content-grid">
+    <!-- Enrolled Subjects Section -->
+    <p-card styleClass="enrolled-card">
+      <ng-template #header>
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-book"></i>
+            Enrolled Subjects
+          </h2>
+        </div>
+      </ng-template>
+
+      @if (loadingSubjects()) {
+      <div class="skeleton-list">
+        @for (i of [1, 2, 3]; track i) {
+        <p-skeleton width="100%" height="50px" styleClass="mb-2" />
+        }
+      </div>
+      } @else if (enrolledSubjects().length === 0) {
+      <div class="empty-state-small">
+        <i class="pi pi-book"></i>
+        <p>Not enrolled in any subjects yet</p>
+      </div>
+      } @else {
+      <div class="subjects-list">
+        @for (subject of enrolledSubjects(); track subject.id) {
+        <div class="subject-item">
+          <div
+            class="subject-item__icon"
+            [style.background]="subject.color"
+          >
+            <i [class]="'pi ' + subject.icon"></i>
+          </div>
+          <div class="subject-item__info">
+            <span class="subject-item__name">{{ subject.name }}</span>
+            @if (subject.code) {
+            <span class="subject-item__code">{{ subject.code }}</span>
+            }
+          </div>
+          <p-button
+            icon="pi pi-times"
+            severity="danger"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="Remove from subject"
+            (click)="confirmUnenroll(subject)"
+          />
+        </div>
+        }
+      </div>
+      }
+    </p-card>
+
+    <!-- Available Subjects Section -->
+    <p-card styleClass="available-card">
+      <ng-template #header>
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-plus-circle"></i>
+            Available Subjects
+          </h2>
+          <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              placeholder="Search subjects..."
+              [(ngModel)]="subjectSearchFilter"
+            />
+          </p-iconfield>
+        </div>
+      </ng-template>
+
+      @if (loadingSubjects()) {
+      <div class="skeleton-list">
+        @for (i of [1, 2, 3]; track i) {
+        <p-skeleton width="100%" height="50px" styleClass="mb-2" />
+        }
+      </div>
+      } @else if (filteredAvailableSubjects().length === 0) {
+      <div class="empty-state-small">
+        <i class="pi pi-check-circle"></i>
+        <p>
+          {{
+            allSubjects().length === 0
+              ? 'No subjects created yet'
+              : 'Enrolled in all subjects'
+          }}
+        </p>
+      </div>
+      } @else {
+      <div class="subjects-list">
+        @for (subject of filteredAvailableSubjects(); track subject.id) {
+        <div class="subject-item">
+          <div
+            class="subject-item__icon"
+            [style.background]="subject.color"
+          >
+            <i [class]="'pi ' + subject.icon"></i>
+          </div>
+          <div class="subject-item__info">
+            <span class="subject-item__name">{{ subject.name }}</span>
+            @if (subject.code) {
+            <span class="subject-item__code">{{ subject.code }}</span>
+            }
+          </div>
+          <p-button
+            icon="pi pi-plus"
+            severity="success"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="Enroll in subject"
+            (click)="enrollInSubject(subject)"
+            [loading]="enrollingSubjectId() === subject.id"
+          />
+        </div>
+        }
+      </div>
+      }
+    </p-card>
+  </div>
+
+  <!-- @REVIEW: Exam History Section -->
+  <p-card styleClass="exam-history-card">
+    <ng-template #header>
+      <div class="card-header">
+        <h2 class="card-header__title">
+          <i class="pi pi-history"></i>
+          Exam History
+        </h2>
+        @if (examHistory().length > 0) {
+        <span class="history-count"
+          >{{ examHistory().length }} exam(s)</span
+        >
+        }
+      </div>
+    </ng-template>
+
+    @if (loadingExamHistory()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="200px" height="16px" />
+        <p-skeleton width="100px" height="16px" />
+        <p-skeleton width="60px" height="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+      </div>
+      }
+    </div>
+    } @else if (examHistory().length === 0) {
+    <div class="empty-state-small">
+      <i class="pi pi-chart-bar"></i>
+      <p>No exam history yet</p>
+    </div>
+    } @else {
+    <p-table
+      [value]="examHistory()"
+      [paginator]="examHistory().length > 5"
+      [rows]="5"
+      [rowsPerPageOptions]="[5, 10, 25]"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="examTitle">
+            Exam <p-sortIcon field="examTitle" />
+          </th>
+          <th pSortableColumn="subjectName">
+            Subject <p-sortIcon field="subjectName" />
+          </th>
+          <th pSortableColumn="submission.score">
+            Score <p-sortIcon field="submission.score" />
+          </th>
+          <th pSortableColumn="submission.percentage">
+            % <p-sortIcon field="submission.percentage" />
+          </th>
+          <th>Result</th>
+          <th pSortableColumn="submission.submittedAt">
+            Date <p-sortIcon field="submission.submittedAt" />
+          </th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>
+            <div class="exam-cell">
+              <span class="exam-title">{{ item.examTitle }}</span>
+              @if (item.submission.attemptNumber > 1) {
+              <span class="attempt-badge"
+                >Attempt {{ item.submission.attemptNumber }}</span
+              >
+              }
+            </div>
+          </td>
+          <td>
+            <span
+              class="subject-badge"
+              [style.background]="item.subjectColor"
+            >
+              {{ item.subjectName }}
+            </span>
+          </td>
+          <td>
+            <div class="score-cell">
+              <span
+                class="score-value"
+                [class.score-value--pass]="item.passed"
+              >
+                {{ item.submission.score }}
+              </span>
+              <span class="score-total">/ {{ item.totalMarks }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="percentage-cell">
+              <p-progressBar
+                [value]="item.submission.percentage"
+                [showValue]="false"
+                styleClass="percentage-bar"
+                [style]="{ height: '6px', width: '50px' }"
+              />
+              <span>{{ item.submission.percentage }}%</span>
+            </div>
+          </td>
+          <td>
+            <p-tag
+              [value]="item.passed ? 'Passed' : 'Failed'"
+              [severity]="item.passed ? 'success' : 'danger'"
+            />
+          </td>
+          <td>
+            {{ item.submission.submittedAt | date : 'shortDate' }}
+          </td>
+          <td>
+            <p-button
+              icon="pi pi-eye"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="View Details"
+              (click)="viewExamDetails(item)"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+  }
+</div>
+
+<!-- @REVIEW: Exam Details Dialog -->
+<p-dialog
+  [(visible)]="showExamDetailsDialog"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '600px' }"
+  header="Exam Result Details"
+>
+  @if (selectedExamHistory()) {
+  <div class="details-dialog">
+    <div class="details-header">
+      <h3>{{ selectedExamHistory()!.examTitle }}</h3>
+      <span
+        class="subject-badge"
+        [style.background]="selectedExamHistory()!.subjectColor"
+      >
+        {{ selectedExamHistory()!.subjectName }}
+      </span>
+    </div>
+
+    <div class="details-score">
+      <div class="score-display">
+        <span
+          class="score-main"
+          [class.score-main--pass]="selectedExamHistory()!.passed"
+        >
+          {{ selectedExamHistory()!.submission.score }}
+        </span>
+        <span class="score-divider"
+          >/ {{ selectedExamHistory()!.totalMarks }}</span
+        >
+      </div>
+      <span class="percentage-display"
+        >{{ selectedExamHistory()!.submission.percentage }}%</span
+      >
+      <p-tag
+        [value]="selectedExamHistory()!.passed ? 'PASSED' : 'FAILED'"
+        [severity]="selectedExamHistory()!.passed ? 'success' : 'danger'"
+        styleClass="result-tag"
+      />
+    </div>
+
+    <div class="details-stats">
+      <div class="detail-stat">
+        <span class="detail-value correct">{{
+          selectedExamHistory()!.submission.totalCorrect
+        }}</span>
+        <span class="detail-label">Correct</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-value wrong">{{
+          selectedExamHistory()!.submission.totalWrong
+        }}</span>
+        <span class="detail-label">Wrong</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-value skipped">{{
+          selectedExamHistory()!.submission.totalSkipped
+        }}</span>
+        <span class="detail-label">Skipped</span>
+      </div>
+      <div class="detail-stat">
+        <span class="detail-value">{{
+          selectedExamHistory()!.submission.totalAnswered
+        }}</span>
+        <span class="detail-label">Answered</span>
+      </div>
+    </div>
+
+    <div class="details-info">
+      <div class="info-row">
+        <span class="info-label">Attempt</span>
+        <span class="info-value"
+          >#{{ selectedExamHistory()!.submission.attemptNumber }}</span
+        >
+      </div>
+      <div class="info-row">
+        <span class="info-label">Started</span>
+        <span class="info-value">{{
+          selectedExamHistory()!.submission.startedAt | date : 'medium'
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Submitted</span>
+        <span class="info-value">{{
+          selectedExamHistory()!.submission.submittedAt | date : 'medium'
+        }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status</span>
+        <span class="info-value">
+          @switch (selectedExamHistory()!.submission.status) { @case
+          ('submitted') { Submitted } @case ('auto_submitted') {
+          Auto-Submitted } @case ('evaluated') { Evaluated } @default {
+          {{ selectedExamHistory()!.submission.status }} } }
+        </span>
+      </div>
+      @if (selectedExamHistory()!.submission.autoSubmitReason) {
+      <div class="info-row">
+        <span class="info-label">Auto-Submit Reason</span>
+        <span class="info-value auto-reason">{{
+          selectedExamHistory()!.submission.autoSubmitReason
+        }}</span>
+      </div>
+      } @if (selectedExamHistory()!.submission.remarks) {
+      <div class="info-row">
+        <span class="info-label">Teacher Remarks</span>
+        <span class="info-value">{{
+          selectedExamHistory()!.submission.remarks
+        }}</span>
+      </div>
+      } @if (selectedExamHistory()!.passingMarks > 0) {
+      <div class="info-row">
+        <span class="info-label">Passing Marks</span>
+        <span class="info-value">{{
+          selectedExamHistory()!.passingMarks
+        }}</span>
+      </div>
+      }
+    </div>
+  </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Close"
+      severity="secondary"
+      (click)="showExamDetailsDialog = false"
+    />
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog />
+<p-toast />

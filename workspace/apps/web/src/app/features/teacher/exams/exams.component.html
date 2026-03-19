@@ -1,0 +1,235 @@
+<div class="exams-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-header__title">My Exams</h1>
+      <p class="page-header__subtitle">Create and manage your exams</p>
+    </div>
+    <div class="page-header__actions">
+      <p-button
+        label="Create Exam"
+        icon="pi pi-plus"
+        (click)="navigateToCreate()"
+        [disabled]="subjects().length === 0"
+      />
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <section class="stats-row">
+    @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <p-skeleton shape="circle" size="48px" />
+        <div class="stat-card__text">
+          <p-skeleton width="40px" height="24px" />
+          <p-skeleton width="80px" height="14px" />
+        </div>
+      </div>
+    </p-card>
+    } } @else { @for (stat of statsCards(); track stat.label) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div class="stat-card__icon" [style.background]="stat.color">
+          <i [class]="stat.icon"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{ stat.value }}</span>
+          <span class="stat-card__label">{{ stat.label }}</span>
+        </div>
+      </div>
+    </p-card>
+    } }
+  </section>
+
+  <!-- Exams Table -->
+  <p-card styleClass="exams-table-card">
+    <ng-template #header>
+      <div class="table-header">
+        <h2 class="table-header__title">All Exams</h2>
+        <div class="table-header__filters">
+          <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              placeholder="Search exams..."
+              [(ngModel)]="globalFilter"
+              (input)="dt()?.filterGlobal(globalFilter, 'contains')"
+            />
+          </p-iconfield>
+        </div>
+      </div>
+    </ng-template>
+
+    @if (loading()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="200px" height="16px" />
+        <p-skeleton width="120px" height="16px" />
+        <p-skeleton width="80px" height="16px" />
+        <p-skeleton width="60px" height="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+        <p-skeleton width="100px" height="32px" />
+      </div>
+      }
+    </div>
+    } @else if (subjects().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-book empty-state__icon"></i>
+      <h3 class="empty-state__title">No subjects yet</h3>
+      <p class="empty-state__text">
+        You need to create a subject before creating exams
+      </p>
+      <p-button
+        label="Go to Subjects"
+        icon="pi pi-arrow-right"
+        routerLink="/teacher/subjects"
+      />
+    </div>
+    } @else if (exams().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-file-edit empty-state__icon"></i>
+      <h3 class="empty-state__title">No exams yet</h3>
+      <p class="empty-state__text">Start by creating your first exam</p>
+      <p-button
+        label="Create Exam"
+        icon="pi pi-plus"
+        (click)="navigateToCreate()"
+      />
+    </div>
+    } @else {
+    <p-table
+      #dt
+      [value]="exams()"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [globalFilterFields]="['title', 'subject.name', 'description']"
+      [rowHover]="true"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} exams"
+    >
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="title" style="min-width: 200px">
+            Exam Title <p-sortIcon field="title" />
+          </th>
+          <th style="min-width: 140px">Subject</th>
+          <th style="min-width: 100px" class="text-center">Questions</th>
+          <th style="min-width: 100px" class="text-center">Time/Q</th>
+          <th style="min-width: 120px" class="text-center">Submissions</th>
+          <th pSortableColumn="status" style="min-width: 100px">
+            Status <p-sortIcon field="status" />
+          </th>
+          <th style="width: 160px" class="text-center">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-exam>
+        <tr>
+          <td>
+            <div class="exam-cell">
+              <span class="exam-cell__title">{{ exam.title }}</span>
+              @if (exam.description) {
+              <span class="exam-cell__desc"
+                >{{ exam.description | slice : 0 : 50
+                }}{{ exam.description.length > 50 ? '...' : '' }}</span
+              >
+              }
+            </div>
+          </td>
+          <td>
+            <div
+              class="subject-badge"
+              [style.background]="exam.subject.color"
+            >
+              <i [class]="'pi ' + exam.subject.icon"></i>
+              <span>{{ exam.subject.name }}</span>
+            </div>
+          </td>
+          <td class="text-center">{{ exam.totalQuestions }}</td>
+          <td class="text-center">{{ exam.timePerQuestionSeconds }}s</td>
+          <td class="text-center">{{ exam.totalSubmissions }}</td>
+          <td>
+            <p-tag
+              [value]="getStatusLabel(exam.status)"
+              [severity]="getStatusSeverity(exam.status)"
+              [rounded]="true"
+            />
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button
+                icon="pi pi-pencil"
+                severity="secondary"
+                [text]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Edit"
+                tooltipPosition="top"
+                (click)="navigateToEdit(exam)"
+                [disabled]="exam.status !== 'draft'"
+              />
+              @if (exam.status === 'draft') {
+              <p-button
+                icon="pi pi-play"
+                severity="success"
+                [text]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Publish"
+                tooltipPosition="top"
+                (click)="confirmPublish(exam)"
+                [disabled]="exam.totalQuestions === 0"
+              />
+              } @if (exam.status === 'active' || exam.status ===
+              'scheduled') {
+              <p-button
+                icon="pi pi-times"
+                severity="warn"
+                [text]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Cancel"
+                tooltipPosition="top"
+                (click)="confirmCancel(exam)"
+              />
+              }
+              <p-button
+                icon="pi pi-list"
+                severity="info"
+                [text]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Questions"
+                tooltipPosition="top"
+                (click)="navigateToQuestions(exam)"
+              />
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Delete"
+                tooltipPosition="top"
+                (click)="confirmDelete(exam)"
+                [disabled]="exam.totalSubmissions > 0"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+</div>
+
+<!-- @NOT-NEED: Dialogs removed - now using dedicated pages for create/edit/questions -->
+
+<p-confirmDialog />
+<p-toast />

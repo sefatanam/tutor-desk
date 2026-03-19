@@ -1,0 +1,732 @@
+<div class="exam-editor-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__nav">
+      <p-button
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [text]="true"
+        [rounded]="true"
+        (click)="goBack()"
+      />
+      <div class="page-header__content">
+        <h1 class="page-header__title">
+          {{ isEditMode() ? 'Edit Exam' : 'Create New Exam' }}
+        </h1>
+        <p class="page-header__subtitle">
+          {{
+            isEditMode()
+              ? 'Update exam details and questions'
+              : 'Set up your exam with questions'
+          }}
+        </p>
+      </div>
+    </div>
+    <div class="page-header__actions">
+      @if (isEditMode() && examStatus() === 'draft') {
+      <p-button
+        label="Publish Exam"
+        icon="pi pi-play"
+        severity="success"
+        [outlined]="true"
+        (click)="confirmPublish()"
+        [disabled]="questions().length === 0"
+      />
+      }
+    </div>
+  </header>
+
+  @if (loading()) {
+  <p-card styleClass="form-card">
+    <div class="form-skeleton">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <p-skeleton width="100%" height="56px" />
+      }
+    </div>
+  </p-card>
+  } @else {
+  <!-- Exam Details Card -->
+  <p-card styleClass="form-card">
+    <ng-template #header>
+      <div class="card-header">
+        <i class="pi pi-file-edit card-header__icon"></i>
+        <div>
+          <h2 class="card-header__title">Exam Details</h2>
+          <p class="card-header__subtitle">
+            Basic information about the exam
+          </p>
+        </div>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="examForm">
+      <div class="form-grid">
+        <!-- @REVIEW: Subject is now optional - exam can be created independently -->
+        <div class="form-field">
+          <label class="field-label">Subject (Optional)</label>
+          <p-select
+            formControlName="subjectId"
+            [options]="subjectOptions()"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="None (Independent Exam)"
+            styleClass="w-full"
+            [showClear]="true"
+          />
+          <small class="field-hint"
+            >Leave empty to create an independent exam that can be assigned
+            later</small
+          >
+        </div>
+
+        <!-- Title -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="title"
+              formControlName="title"
+              class="w-full"
+            />
+            <label for="title">Exam Title *</label>
+          </p-floatlabel>
+          @if (examForm.get('title')?.invalid &&
+          examForm.get('title')?.touched) {
+          <small class="form-error">Title is required</small>
+          }
+        </div>
+
+        <!-- Description -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="description"
+              formControlName="description"
+              rows="3"
+              class="w-full"
+            ></textarea>
+            <label for="description">Description</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Instructions -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="instructions"
+              formControlName="instructions"
+              rows="4"
+              class="w-full"
+            ></textarea>
+            <label for="instructions">Instructions for Students</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Time Settings Row -->
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">Time per Question (seconds) *</label>
+            <p-inputnumber
+              formControlName="timePerQuestionSeconds"
+              [min]="10"
+              [max]="600"
+              [showButtons]="true"
+              styleClass="w-full"
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Passing Marks</label>
+            <p-inputnumber
+              formControlName="passingMarks"
+              [min]="0"
+              [showButtons]="true"
+              styleClass="w-full"
+            />
+          </div>
+        </div>
+
+        <!-- @REVIEW: Status selector - only show in edit mode -->
+        @if (isEditMode()) {
+        <div class="form-field">
+          <label class="field-label">Status</label>
+          <p-select
+            formControlName="status"
+            [options]="examStatusOptions"
+            optionLabel="label"
+            optionValue="value"
+            styleClass="w-full"
+          />
+        </div>
+        }
+
+        <!-- Settings Row -->
+        <div class="settings-row">
+          <div class="setting-item">
+            <p-toggleswitch formControlName="allowSkipReturn" />
+            <label>Allow Skip & Return</label>
+          </div>
+          <div class="setting-item">
+            <p-toggleswitch formControlName="fullscreenRequired" />
+            <label>Fullscreen Required</label>
+          </div>
+          <div class="setting-item">
+            <p-toggleswitch formControlName="autoSubmitOnBlur" />
+            <label>Auto-submit on Tab Change</label>
+          </div>
+        </div>
+
+        <!-- @REVIEW: Result Settings Section -->
+        <p-panel
+          header="Result Settings"
+          [toggleable]="true"
+          [collapsed]="true"
+          styleClass="result-settings-panel"
+        >
+          <div class="form-grid">
+            <!-- When can students see results -->
+            <div class="form-field">
+              <label class="field-label"
+                >When can students view results?</label
+              >
+              <div class="visibility-options">
+                @for (option of resultVisibilityOptions; track option.value)
+                {
+                <div
+                  class="visibility-option"
+                  [class.selected]="
+                    examForm.get('resultVisibility')?.value === option.value
+                  "
+                >
+                  <p-radiobutton
+                    name="resultVisibility"
+                    [value]="option.value"
+                    formControlName="resultVisibility"
+                    [inputId]="'visibility-' + option.value"
+                  />
+                  <label
+                    [for]="'visibility-' + option.value"
+                    class="visibility-label"
+                  >
+                    <i class="pi {{ option.icon }}"></i>
+                    <span>{{ option.label }}</span>
+                  </label>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Manual release date picker -->
+            @if (showReleaseDatePicker()) {
+            <div class="form-field">
+              <label class="field-label"
+                >Scheduled Release Date (Optional)</label
+              >
+              <p-datepicker
+                formControlName="resultReleaseDate"
+                [showTime]="true"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Select date to auto-release"
+                styleClass="w-full"
+              />
+              <small class="field-hint"
+                >Leave empty to release manually using the button
+                below</small
+              >
+            </div>
+            }
+
+            <!-- Release button for manual mode in edit mode -->
+            @if (showReleaseButton()) {
+            <div class="form-field">
+              <p-button
+                label="Release Results Now"
+                icon="pi pi-send"
+                severity="success"
+                (click)="releaseResults()"
+                [loading]="releasingResults()"
+              />
+            </div>
+            }
+
+            <!-- Already released indicator -->
+            @if (isResultReleased()) {
+            <div class="release-status success">
+              <i class="pi pi-check-circle"></i>
+              <span>Results have been released to students</span>
+            </div>
+            }
+
+            <p-divider />
+
+            <!-- What can students see -->
+            <div class="form-field">
+              <label class="field-label"
+                >What can students see in their results?</label
+              >
+              <div class="checkbox-grid">
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showScore"
+                    [binary]="true"
+                    inputId="showScore"
+                  />
+                  <label for="showScore">Score (marks obtained)</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showPercentage"
+                    [binary]="true"
+                    inputId="showPercentage"
+                  />
+                  <label for="showPercentage">Percentage</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showPassFail"
+                    [binary]="true"
+                    inputId="showPassFail"
+                  />
+                  <label for="showPassFail">Pass/Fail status</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showQuestionReview"
+                    [binary]="true"
+                    inputId="showQuestionReview"
+                  />
+                  <label for="showQuestionReview"
+                    >Question-by-question review</label
+                  >
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showCorrectAnswers"
+                    [binary]="true"
+                    inputId="showCorrectAnswers"
+                  />
+                  <label for="showCorrectAnswers">Correct answers</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showStudentAnswers"
+                    [binary]="true"
+                    inputId="showStudentAnswers"
+                  />
+                  <label for="showStudentAnswers"
+                    >Student's selected answers</label
+                  >
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showExplanations"
+                    [binary]="true"
+                    inputId="showExplanations"
+                  />
+                  <label for="showExplanations">Explanations</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showTimeSpent"
+                    [binary]="true"
+                    inputId="showTimeSpent"
+                  />
+                  <label for="showTimeSpent">Time spent per question</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showTeacherRemarks"
+                    [binary]="true"
+                    inputId="showTeacherRemarks"
+                  />
+                  <label for="showTeacherRemarks">Teacher remarks</label>
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showRank"
+                    [binary]="true"
+                    inputId="showRank"
+                  />
+                  <label for="showRank">Rank among students</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </p-panel>
+
+        <!-- @REVIEW: Exam Style Settings Section -->
+        <p-panel
+          header="Exam Style Settings"
+          [toggleable]="true"
+          [collapsed]="true"
+          styleClass="exam-style-panel"
+        >
+          <div class="form-grid">
+            <!-- Exam style selector -->
+            <div class="form-field">
+              <label class="field-label">Select Exam Style</label>
+              <div class="style-options">
+                @for (option of examStyleOptions; track option.value) {
+                <div
+                  class="style-option"
+                  [class.selected]="
+                    examForm.get('examStyle')?.value === option.value
+                  "
+                  (click)="selectExamStyle(option.value)"
+                >
+                  <p-radiobutton
+                    name="examStyle"
+                    [value]="option.value"
+                    formControlName="examStyle"
+                    [inputId]="'style-' + option.value"
+                  />
+                  <label
+                    [for]="'style-' + option.value"
+                    class="style-label"
+                  >
+                    <div class="style-header">
+                      <i class="pi {{ option.icon }}"></i>
+                      <span class="style-name">{{ option.label }}</span>
+                    </div>
+                    <span class="style-description">{{
+                      option.description
+                    }}</span>
+                  </label>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Total time limit (for free_navigation and practice modes) -->
+            @if (showTotalTimeLimit()) {
+            <div class="form-field">
+              <label class="field-label">Total Time Limit (minutes)</label>
+              <p-inputnumber
+                formControlName="totalTimeLimitMinutes"
+                [min]="1"
+                [max]="480"
+                [showButtons]="true"
+                placeholder="Leave empty for unlimited"
+                styleClass="w-full"
+              />
+              <small class="field-hint"
+                >Total time for the entire exam. Leave empty for no time
+                limit.</small
+              >
+            </div>
+            }
+
+            <p-divider />
+
+            <!-- Shuffle and feedback options -->
+            <div class="form-field">
+              <label class="field-label">Additional Options</label>
+              <div class="checkbox-grid">
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="shuffleQuestions"
+                    [binary]="true"
+                    inputId="shuffleQuestions"
+                  />
+                  <label for="shuffleQuestions"
+                    >Shuffle questions order</label
+                  >
+                </div>
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="shuffleOptions"
+                    [binary]="true"
+                    inputId="shuffleOptions"
+                  />
+                  <label for="shuffleOptions">Shuffle answer options</label>
+                </div>
+                @if (showImmediateFeedbackOption()) {
+                <div class="checkbox-item">
+                  <p-checkbox
+                    formControlName="showImmediateFeedback"
+                    [binary]="true"
+                    inputId="showImmediateFeedback"
+                  />
+                  <label for="showImmediateFeedback"
+                    >Show immediate feedback after each question</label
+                  >
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Style-specific info box -->
+            <div
+              class="style-info-box"
+              [class]="'style-' + examForm.get('examStyle')?.value"
+            >
+              <i class="pi pi-info-circle"></i>
+              <span>{{ getExamStyleInfo() }}</span>
+            </div>
+          </div>
+        </p-panel>
+      </div>
+
+      <!-- Save Exam Button -->
+      <div class="form-actions">
+        <p-button
+          [label]="isEditMode() ? 'Update Exam Details' : 'Create Exam'"
+          icon="pi pi-check"
+          (click)="saveExam()"
+          [loading]="savingExam()"
+          [disabled]="!examForm.valid"
+        />
+      </div>
+    </form>
+  </p-card>
+
+  <!-- Questions Section (only show after exam is created) -->
+  @if (examId()) {
+  <p-card styleClass="form-card questions-card">
+    <ng-template #header>
+      <div class="card-header">
+        <i class="pi pi-list card-header__icon"></i>
+        <div>
+          <h2 class="card-header__title">
+            Questions ({{ questions().length }})
+          </h2>
+          <p class="card-header__subtitle">Add and manage exam questions</p>
+        </div>
+        <div class="card-header__actions">
+          <p-button
+            label="Add Question"
+            icon="pi pi-plus"
+            size="small"
+            (click)="addQuestion()"
+          />
+        </div>
+      </div>
+    </ng-template>
+
+    @if (loadingQuestions()) {
+    <div class="form-skeleton">
+      @for (i of [1, 2, 3]; track i) {
+      <p-skeleton width="100%" height="100px" />
+      }
+    </div>
+    } @else if (questions().length === 0) {
+    <div class="empty-questions">
+      <i class="pi pi-list"></i>
+      <p>
+        No questions yet. Click "Add Question" to create your first
+        question.
+      </p>
+    </div>
+    } @else {
+    <p-accordion [multiple]="true" [value]="activeQuestionIndex()">
+      @for (question of questions(); track question.id; let i = $index) {
+      <p-accordion-panel [value]="i">
+        <p-accordion-header>
+          <div class="question-header">
+            <span class="question-number">Q{{ i + 1 }}</span>
+            <span class="question-preview"
+              >{{ question.questionText | slice : 0 : 60
+              }}{{ question.questionText.length > 60 ? '...' : '' }}</span
+            >
+            <span class="question-marks"
+              >{{ question.marks }} mark{{
+                question.marks !== 1 ? 's' : ''
+              }}</span
+            >
+          </div>
+        </p-accordion-header>
+        <p-accordion-content>
+          <div class="question-content">
+            <div class="question-text">{{ question.questionText }}</div>
+
+            <div class="options-list">
+              @for (option of question.options; track option.id; let j =
+              $index) {
+              <div
+                class="option-item"
+                [class.correct]="option.id === question.correctOptionId"
+              >
+                <span class="option-letter">{{ getOptionLetter(j) }}</span>
+                <span class="option-text">{{ option.text }}</span>
+                @if (option.id === question.correctOptionId) {
+                <i class="pi pi-check correct-icon"></i>
+                }
+              </div>
+              }
+            </div>
+
+            @if (question.explanation) {
+            <div class="explanation">
+              <strong>Explanation:</strong> {{ question.explanation }}
+            </div>
+            }
+
+            <div class="question-actions">
+              <p-button
+                icon="pi pi-pencil"
+                label="Edit"
+                severity="secondary"
+                size="small"
+                [outlined]="true"
+                (click)="editQuestion(question)"
+              />
+              <p-button
+                icon="pi pi-trash"
+                label="Delete"
+                severity="danger"
+                size="small"
+                [outlined]="true"
+                (click)="confirmDeleteQuestion(question)"
+              />
+            </div>
+          </div>
+        </p-accordion-content>
+      </p-accordion-panel>
+      }
+    </p-accordion>
+    }
+  </p-card>
+  }
+
+  <!-- Question Form Dialog (inline) -->
+  @if (showQuestionForm()) {
+  <p-card styleClass="form-card question-form-card">
+    <ng-template #header>
+      <div class="card-header">
+        <i class="pi pi-pencil card-header__icon"></i>
+        <div>
+          <h2 class="card-header__title">
+            {{ editingQuestion() ? 'Edit Question' : 'Add New Question' }}
+          </h2>
+          <p class="card-header__subtitle">Fill in the question details</p>
+        </div>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="questionForm">
+      <div class="form-grid">
+        <!-- Question Text -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="questionText"
+              formControlName="questionText"
+              rows="3"
+              class="w-full"
+            ></textarea>
+            <label for="questionText">Question Text *</label>
+          </p-floatlabel>
+          @if (questionForm.get('questionText')?.invalid &&
+          questionForm.get('questionText')?.touched) {
+          <small class="form-error">Question text is required</small>
+          }
+        </div>
+
+        <!-- Options -->
+        <div class="form-field">
+          <label class="field-label">Options *</label>
+          <div class="options-form" formArrayName="options">
+            @for (option of optionsArray.controls; track option; let i =
+            $index) {
+            <div class="option-form-row" [formGroupName]="i">
+              <p-radiobutton
+                name="correctOption"
+                [value]="option.get('id')?.value"
+                [formControl]="correctOptionIdControl"
+                [inputId]="'option-' + i"
+              />
+              <span class="option-letter">{{ getOptionLetter(i) }}</span>
+              <input
+                pInputText
+                formControlName="text"
+                placeholder="Option {{ getOptionLetter(i) }}"
+                class="option-input"
+              />
+              @if (optionsArray.length > 2) {
+              <p-button
+                icon="pi pi-times"
+                severity="danger"
+                [text]="true"
+                [rounded]="true"
+                size="small"
+                (click)="removeOption(i)"
+              />
+              }
+            </div>
+            }
+          </div>
+          @if (optionsArray.length < 6) {
+          <p-button
+            label="Add Option"
+            icon="pi pi-plus"
+            size="small"
+            [text]="true"
+            (click)="addOption()"
+          />
+          }
+        </div>
+
+        <!-- Marks Row -->
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">Marks *</label>
+            <p-inputnumber
+              formControlName="marks"
+              [min]="1"
+              [max]="100"
+              [showButtons]="true"
+              styleClass="w-full"
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Negative Marks</label>
+            <p-inputnumber
+              formControlName="negativeMarks"
+              [min]="0"
+              [max]="100"
+              [showButtons]="true"
+              styleClass="w-full"
+            />
+          </div>
+        </div>
+
+        <!-- Explanation -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="explanation"
+              formControlName="explanation"
+              rows="2"
+              class="w-full"
+            ></textarea>
+            <label for="explanation">Explanation (shown after exam)</label>
+          </p-floatlabel>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <p-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          (click)="cancelQuestionForm()"
+        />
+        <p-button
+          [label]="editingQuestion() ? 'Update Question' : 'Add Question'"
+          icon="pi pi-check"
+          (click)="saveQuestion()"
+          [loading]="savingQuestion()"
+          [disabled]="!isQuestionFormValid()"
+        />
+      </div>
+    </form>
+  </p-card>
+  } }
+</div>
+
+<p-confirmDialog />
+<p-toast />

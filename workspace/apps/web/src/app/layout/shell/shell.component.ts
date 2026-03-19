@@ -10,29 +10,7 @@ import { FooterComponent } from '../footer/footer.component';
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent],
-  template: `
-    <!-- @REVIEW: Restructured shell layout - header now inside main area -->
-    <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
-      <app-sidebar
-        [collapsed]="sidebarCollapsed()"
-        (collapsedChange)="sidebarCollapsed.set($event)"
-      />
-
-      <main class="shell__main">
-        <app-header
-          [sidebarCollapsed]="sidebarCollapsed()"
-          (toggleSidebar)="toggleSidebar()"
-        />
-
-        <div class="shell__content">
-          <div class="shell__content-inner">
-            <router-outlet />
-          </div>
-          <app-footer />
-        </div>
-      </main>
-    </div>
-  `,
+  templateUrl: './shell.component.html',
   styles: `
     .shell {
       display: grid;

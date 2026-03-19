@@ -1,0 +1,66 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <!-- Logo -->
+  <div class="sidebar__header">
+    @if (!collapsed()) {
+    <a [routerLink]="dashboardRoute()" class="sidebar__logo">
+      <span class="sidebar__logo-icon">
+        <i class="pi pi-book"></i>
+      </span>
+      <span class="sidebar__logo-text animate-fade-in">Tutor Desk</span>
+    </a>
+    }
+    <!-- Collapse button (desktop) -->
+    <button
+      type="button"
+      class="sidebar__collapse-btn"
+      (click)="collapsedChange.emit(!collapsed())"
+      [pTooltip]="collapsed() ? 'Expand' : 'Collapse'"
+      tooltipPosition="right"
+    >
+      <i
+        class="pi"
+        [class]="collapsed() ? 'pi-angle-right' : 'pi-angle-left'"
+      ></i>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar__nav">
+    @for (item of menuItems(); track item.label) {
+    <a
+      [routerLink]="item.routerLink"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+      class="sidebar__nav-item"
+      [pTooltip]="collapsed() ? item.label : ''"
+      [tooltipDisabled]="!collapsed()"
+      tooltipPosition="right"
+      pRipple
+    >
+      <i [class]="'sidebar__nav-icon pi ' + item.icon"></i>
+      @if (!collapsed()) {
+      <span class="sidebar__nav-label">{{ item.label }}</span>
+      } @if (item.badge && !collapsed()) {
+      <span class="sidebar__nav-badge">{{ item.badge }}</span>
+      }
+    </a>
+    }
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar__footer">
+    @if (!collapsed()) {
+    <div class="sidebar__version animate-fade-in">
+      <span>v1.0.0</span>
+    </div>
+    }
+  </div>
+</aside>
+
+<!-- Mobile overlay -->
+@if (mobileOpen()) {
+<div
+  class="sidebar__overlay md:hidden"
+  (click)="mobileOpen.set(false)"
+></div>
+}

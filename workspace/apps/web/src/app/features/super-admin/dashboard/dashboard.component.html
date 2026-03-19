@@ -1,0 +1,318 @@
+<div class="dashboard">
+  <!-- Page Header -->
+  <header class="dashboard__header">
+    <div class="dashboard__header-content">
+      <h1 class="dashboard__title">Dashboard</h1>
+      <p class="dashboard__subtitle">Welcome back, {{ userName() }}</p>
+    </div>
+    <div class="dashboard__header-actions">
+      <p-button
+        label="Add Teacher"
+        icon="pi pi-plus"
+        routerLink="/admin/teachers"
+        severity="primary"
+      />
+    </div>
+  </header>
+
+  <!-- Stats Grid -->
+  <section class="dashboard__stats">
+    @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
+    <p-card styleClass="dashboard__stat-card">
+      <div class="stat-card">
+        <p-skeleton shape="circle" size="52px" />
+        <div class="stat-card__content">
+          <p-skeleton width="60px" height="28px" />
+          <p-skeleton width="100px" height="16px" />
+        </div>
+      </div>
+    </p-card>
+    } } @else { @for (stat of statsCards(); track stat.title) {
+    <p-card styleClass="dashboard__stat-card">
+      <div class="stat-card">
+        <div class="stat-card__icon" [style.background]="stat.color">
+          <i [class]="'pi ' + stat.icon"></i>
+        </div>
+        <div class="stat-card__content">
+          <span class="stat-card__value">{{ stat.value }}</span>
+          <span class="stat-card__title">{{ stat.title }}</span>
+        </div>
+      </div>
+    </p-card>
+    } }
+  </section>
+
+  <!-- @REVIEW: Analytics Charts Section -->
+  <div class="dashboard__charts">
+    <!-- Teacher Status Chart -->
+    <p-card styleClass="dashboard__chart-card">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-chart-pie mr-2"></i>Teacher Status Distribution
+          </h2>
+        </div>
+      </ng-template>
+
+      @if (loadingStats()) {
+      <div class="chart-loading">
+        <p-skeleton shape="circle" size="180px" />
+      </div>
+      } @else if (teacherStatusData()) {
+      <div class="chart-container">
+        <p-chart
+          type="doughnut"
+          [data]="teacherStatusData()!"
+          [options]="doughnutOptions"
+        />
+      </div>
+      } @else {
+      <div class="chart-empty">
+        <i class="pi pi-chart-pie"></i>
+        <p>No teacher data available</p>
+      </div>
+      }
+    </p-card>
+
+    <!-- Students per Teacher Chart -->
+    <p-card styleClass="dashboard__chart-card">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-chart-bar mr-2"></i>Top Teachers by Students
+          </h2>
+        </div>
+      </ng-template>
+
+      @if (loadingTeachers()) {
+      <div class="chart-loading">
+        <p-skeleton width="100%" height="180px" />
+      </div>
+      } @else if (teacherStudentsData()) {
+      <div class="chart-container">
+        <p-chart
+          type="bar"
+          [data]="teacherStudentsData()!"
+          [options]="barOptions"
+        />
+      </div>
+      } @else {
+      <div class="chart-empty">
+        <i class="pi pi-chart-bar"></i>
+        <p>No student data available</p>
+      </div>
+      }
+    </p-card>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="dashboard__content">
+    <!-- Teachers Table Card -->
+    <p-card styleClass="dashboard__table-card">
+      <ng-template #header>
+        <div class="card-header">
+          <h2 class="card-header__title">Recent Teachers</h2>
+          <p-button
+            label="View All"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [text]="true"
+            size="small"
+            routerLink="/admin/teachers"
+          />
+        </div>
+      </ng-template>
+
+      <p-table
+        [value]="recentTeachers()"
+        [rows]="5"
+        styleClass="p-datatable-sm"
+        [rowHover]="true"
+        [loading]="loadingTeachers()"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Teacher</th>
+            <th class="text-center">Students</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th style="width: 60px"></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-teacher>
+          <tr>
+            <td>
+              <div class="teacher-info">
+                <p-avatar
+                  [label]="getInitials(teacher.user.fullName)"
+                  shape="circle"
+                  [style]="{
+                    background: getAvatarColor(teacher.id),
+                    color: '#ffffff',
+                    fontWeight: '600'
+                  }"
+                />
+                <div class="teacher-info__text">
+                  <span class="teacher-info__name">{{
+                    teacher.user.fullName
+                  }}</span>
+                  <span class="teacher-info__email">{{
+                    teacher.user.email
+                  }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="student-count">{{ teacher.totalStudents }}</span>
+            </td>
+            <td>
+              <p-tag
+                [value]="teacher.user.status | titlecase"
+                [severity]="getStatusSeverity(teacher.user.status)"
+                [rounded]="true"
+              />
+            </td>
+            <td>
+              <span class="date-text">{{
+                teacher.createdAt | date : 'MMM d'
+              }}</span>
+            </td>
+            <td>
+              <p-button
+                icon="pi pi-ellipsis-v"
+                [text]="true"
+                [rounded]="true"
+                size="small"
+                pTooltip="Actions"
+                tooltipPosition="left"
+                routerLink="/admin/teachers"
+              />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="5" class="text-center p-4">
+              <div class="empty-message">
+                <i class="pi pi-users"></i>
+                <p>No teachers found</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+
+    <!-- Right Sidebar -->
+    <div class="dashboard__sidebar">
+      <!-- Pending Approvals Card -->
+      <p-card styleClass="dashboard__sidebar-card">
+        <ng-template #header>
+          <div class="card-header">
+            <h2 class="card-header__title">Pending Approvals</h2>
+            <p-tag
+              [value]="pendingTeachers().length.toString()"
+              severity="warn"
+              [rounded]="true"
+            />
+          </div>
+        </ng-template>
+
+        @if (loadingPending()) {
+        <div class="approval-loading">
+          @for (i of [1, 2]; track i) {
+          <div class="approval-item">
+            <div class="approval-item__user">
+              <p-skeleton shape="circle" size="40px" />
+              <div class="approval-item__info">
+                <p-skeleton width="120px" height="16px" />
+                <p-skeleton width="150px" height="14px" />
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        } @else if (pendingTeachers().length === 0) {
+        <div class="empty-state">
+          <div class="empty-state__icon empty-state__icon--success">
+            <i class="pi pi-check-circle"></i>
+          </div>
+          <p class="empty-state__title">All caught up!</p>
+          <span class="empty-state__text">No pending approvals</span>
+        </div>
+        } @else {
+        <ul class="approval-list">
+          @for (teacher of pendingTeachers(); track teacher.id) {
+          <li class="approval-item" pRipple>
+            <div class="approval-item__user">
+              <p-avatar
+                [label]="getInitials(teacher.user.fullName)"
+                shape="circle"
+                size="normal"
+                [style]="{
+                  background: 'var(--p-surface-200)',
+                  color: 'var(--p-surface-600)'
+                }"
+              />
+              <div class="approval-item__info">
+                <span class="approval-item__name">{{
+                  teacher.user.fullName
+                }}</span>
+                <span class="approval-item__email">{{
+                  teacher.user.email
+                }}</span>
+              </div>
+            </div>
+            <div class="approval-item__actions">
+              <p-button
+                icon="pi pi-check"
+                severity="success"
+                size="small"
+                [rounded]="true"
+                pTooltip="Approve"
+                tooltipPosition="top"
+                (click)="confirmApprove(teacher)"
+              />
+              <p-button
+                icon="pi pi-times"
+                severity="danger"
+                [outlined]="true"
+                size="small"
+                [rounded]="true"
+                pTooltip="Reject"
+                tooltipPosition="top"
+                (click)="confirmReject(teacher)"
+              />
+            </div>
+          </li>
+          }
+        </ul>
+        }
+      </p-card>
+
+      <!-- Quick Actions Card -->
+      <p-card styleClass="dashboard__sidebar-card">
+        <ng-template #header>
+          <div class="card-header">
+            <h2 class="card-header__title">Quick Actions</h2>
+          </div>
+        </ng-template>
+
+        <div class="quick-actions">
+          <a class="quick-action" routerLink="/admin/teachers" pRipple>
+            <i class="pi pi-users"></i>
+            <span>Manage Teachers</span>
+          </a>
+          <a class="quick-action" routerLink="/admin/settings" pRipple>
+            <i class="pi pi-cog"></i>
+            <span>Settings</span>
+          </a>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Dialogs -->
+  <p-confirmDialog />
+  <p-toast />
+</div>

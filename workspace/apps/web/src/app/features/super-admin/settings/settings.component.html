@@ -1,0 +1,473 @@
+<div class="settings-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-header__title">System Settings</h1>
+      <p class="page-header__subtitle">
+        Configure application settings and preferences
+      </p>
+    </div>
+    <div class="page-header__actions">
+      <p-button
+        label="Manage Categories"
+        icon="pi pi-folder"
+        severity="secondary"
+        [outlined]="true"
+        (click)="showCategoryDialog = true"
+      />
+      <p-button
+        label="Add Setting"
+        icon="pi pi-plus"
+        severity="secondary"
+        [outlined]="true"
+        (click)="openAddSettingDialog()"
+      />
+      <p-button
+        label="Import"
+        icon="pi pi-upload"
+        severity="secondary"
+        [outlined]="true"
+        (click)="fileInput.click()"
+      />
+      <input
+        #fileInput
+        type="file"
+        accept=".json"
+        style="display: none"
+        (change)="onImportFile($event)"
+      />
+      <p-button
+        label="Export"
+        icon="pi pi-download"
+        severity="secondary"
+        [outlined]="true"
+        (click)="exportSettings()"
+      />
+      <p-button
+        label="Refresh"
+        icon="pi pi-refresh"
+        severity="primary"
+        [outlined]="true"
+        (click)="loadData()"
+        [loading]="loading()"
+      />
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  @if (loading()) {
+  <p-card>
+    <div class="loading-skeleton">
+      <p-skeleton width="100%" height="40px" styleClass="mb-3" />
+      <p-skeleton width="100%" height="300px" />
+    </div>
+  </p-card>
+  } @else if (categories().length === 0) {
+  <!-- Empty State -->
+  <p-card>
+    <div class="empty-state">
+      <i class="pi pi-cog"></i>
+      <h2>No Settings Categories</h2>
+      <p>Create your first category to start adding settings</p>
+      <p-button
+        label="Create Category"
+        icon="pi pi-plus"
+        (click)="showCategoryDialog = true"
+      />
+    </div>
+  </p-card>
+  } @else {
+  <!-- Tabs for Categories -->
+  <p-card styleClass="settings-card">
+    <p-tabs [value]="activeTab()">
+      <p-tablist>
+        @for (cat of categories(); track cat.id; let i = $index) {
+        <p-tab [value]="i.toString()">
+          <i [class]="'pi ' + cat.icon + ' mr-2'"></i>
+          {{ cat.label }}
+          <p-tag
+            [value]="getSettingsCountForCategory(cat.id).toString()"
+            [rounded]="true"
+            severity="secondary"
+            styleClass="ml-2"
+          />
+        </p-tab>
+        }
+      </p-tablist>
+
+      <p-tabpanels>
+        @for (cat of categories(); track cat.id; let i = $index) {
+        <p-tabpanel [value]="i.toString()">
+          @if (cat.description) {
+          <p class="category-description">{{ cat.description }}</p>
+          } @if (getSettingsForCategory(cat.id).length === 0) {
+          <div class="empty-tab">
+            <i class="pi pi-inbox"></i>
+            <p>No settings in this category</p>
+            <p-button
+              label="Add Setting"
+              icon="pi pi-plus"
+              size="small"
+              (click)="openAddSettingDialog(cat.id)"
+            />
+          </div>
+          } @else {
+          <p-table
+            [value]="getSettingsForCategory(cat.id)"
+            styleClass="p-datatable-sm"
+            [rowHover]="true"
+          >
+            <ng-template #header>
+              <tr>
+                <th style="width: 200px">Key</th>
+                <th style="width: 200px">Label</th>
+                <th>Value</th>
+                <th style="width: 100px">Type</th>
+                <th style="width: 100px" class="text-center">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-setting>
+              <tr>
+                <td>
+                  <code class="setting-key">{{ setting.key }}</code>
+                </td>
+                <td>
+                  <span class="setting-label">{{ setting.label }}</span>
+                  @if (setting.description) {
+                  <i
+                    class="pi pi-info-circle ml-2 info-icon"
+                    [pTooltip]="setting.description"
+                    tooltipPosition="top"
+                  ></i>
+                  } @if (setting.isRequired) {
+                  <span class="required-badge">Required</span>
+                  }
+                </td>
+                <td class="value-cell">
+                  <!-- Dynamic Value Editor based on valueType -->
+                  @switch (setting.valueType) { @case ('boolean') {
+                  <p-toggleswitch
+                    [(ngModel)]="editingValues[setting.id]"
+                    (onChange)="onValueChange(setting)"
+                  />
+                  } @case ('number') {
+                  <p-inputnumber
+                    [(ngModel)]="editingValues[setting.id]"
+                    (onBlur)="onValueChange(setting)"
+                    [showButtons]="true"
+                    styleClass="value-input"
+                  />
+                  } @case ('color') {
+                  <div class="color-picker-wrapper">
+                    <p-colorpicker
+                      [(ngModel)]="editingValues[setting.id]"
+                      (onChange)="onValueChange(setting)"
+                    />
+                    <span class="color-value">{{
+                      editingValues[setting.id] || 'None'
+                    }}</span>
+                  </div>
+                  } @case ('url') {
+                  <input
+                    type="url"
+                    pInputText
+                    [(ngModel)]="editingValues[setting.id]"
+                    (blur)="onValueChange(setting)"
+                    placeholder="https://..."
+                    class="value-input"
+                  />
+                  } @case ('textarea') {
+                  <textarea
+                    pTextarea
+                    [(ngModel)]="editingValues[setting.id]"
+                    (blur)="onValueChange(setting)"
+                    rows="2"
+                    class="value-input"
+                  ></textarea>
+                  } @case ('select') {
+                  <p-select
+                    [(ngModel)]="editingValues[setting.id]"
+                    [options]="getSelectOptions(setting)"
+                    (onChange)="onValueChange(setting)"
+                    placeholder="Select..."
+                    styleClass="value-input"
+                  />
+                  } @case ('json') {
+                  <textarea
+                    pTextarea
+                    [(ngModel)]="editingValues[setting.id]"
+                    (blur)="onValueChange(setting)"
+                    rows="3"
+                    class="value-input json-input"
+                    placeholder="{}"
+                  ></textarea>
+                  } @default {
+                  <input
+                    type="text"
+                    pInputText
+                    [(ngModel)]="editingValues[setting.id]"
+                    (blur)="onValueChange(setting)"
+                    class="value-input"
+                  />
+                  } }
+                </td>
+                <td>
+                  <p-tag
+                    [value]="setting.valueType"
+                    [severity]="getTypeSeverity(setting.valueType)"
+                    [rounded]="true"
+                  />
+                </td>
+                <td class="text-center">
+                  <p-button
+                    icon="pi pi-pencil"
+                    severity="secondary"
+                    [text]="true"
+                    [rounded]="true"
+                    pTooltip="Edit Setting"
+                    (click)="editSetting(setting)"
+                  />
+                  <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [text]="true"
+                    [rounded]="true"
+                    pTooltip="Delete Setting"
+                    (click)="confirmDeleteSetting(setting)"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+          }
+        </p-tabpanel>
+        }
+      </p-tabpanels>
+    </p-tabs>
+  </p-card>
+  }
+
+  <!-- Category Manager Dialog -->
+  <p-dialog
+    header="Manage Categories"
+    [(visible)]="showCategoryDialog"
+    [modal]="true"
+    [style]="{ width: '600px' }"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <div class="category-manager">
+      <!-- Add New Category Form -->
+      <div class="add-category-form">
+        <h4>Add New Category</h4>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Name (unique key)</label>
+            <input
+              type="text"
+              pInputText
+              [(ngModel)]="newCategory.name"
+              placeholder="e.g. branding"
+            />
+          </div>
+          <div class="form-field">
+            <label>Label</label>
+            <input
+              type="text"
+              pInputText
+              [(ngModel)]="newCategory.label"
+              placeholder="e.g. Branding"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Icon (PrimeIcons)</label>
+            <input
+              type="text"
+              pInputText
+              [(ngModel)]="newCategory.icon"
+              placeholder="e.g. pi-palette"
+            />
+          </div>
+          <div class="form-field">
+            <label>Sort Order</label>
+            <p-inputnumber
+              [(ngModel)]="newCategory.sortOrder"
+              [showButtons]="true"
+              [min]="0"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label>Description</label>
+            <textarea
+              pTextarea
+              [(ngModel)]="newCategory.description"
+              rows="2"
+              placeholder="Optional description..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <p-button
+            label="Add Category"
+            icon="pi pi-plus"
+            (click)="addCategory()"
+            [disabled]="!newCategory.name || !newCategory.label"
+          />
+        </div>
+      </div>
+
+      <!-- Existing Categories -->
+      <div class="existing-categories">
+        <h4>Existing Categories</h4>
+        @if (categories().length === 0) {
+        <p class="no-categories">No categories yet</p>
+        } @else {
+        <div class="category-list">
+          @for (cat of categories(); track cat.id) {
+          <div class="category-item">
+            <div class="category-item__info">
+              <i [class]="'pi ' + cat.icon"></i>
+              <span class="category-item__label">{{ cat.label }}</span>
+              <span class="category-item__name">({{ cat.name }})</span>
+            </div>
+            <div class="category-item__actions">
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                [rounded]="true"
+                pTooltip="Delete Category"
+                (click)="confirmDeleteCategory(cat)"
+              />
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Setting Editor Dialog -->
+  <p-dialog
+    [header]="editingSettingId ? 'Edit Setting' : 'Add New Setting'"
+    [(visible)]="showSettingDialog"
+    [modal]="true"
+    [style]="{ width: '550px' }"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <div class="setting-form">
+      <div class="form-row">
+        <div class="form-field">
+          <label>Category <span class="required">*</span></label>
+          <p-select
+            [(ngModel)]="settingForm.categoryId"
+            [options]="categoryOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select category"
+          />
+        </div>
+        <div class="form-field">
+          <label>Value Type <span class="required">*</span></label>
+          <p-select
+            [(ngModel)]="settingForm.valueType"
+            [options]="valueTypeOptions"
+            placeholder="Select type"
+          />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Key <span class="required">*</span></label>
+          <input
+            type="text"
+            pInputText
+            [(ngModel)]="settingForm.key"
+            placeholder="e.g. app_name"
+          />
+        </div>
+        <div class="form-field">
+          <label>Label <span class="required">*</span></label>
+          <input
+            type="text"
+            pInputText
+            [(ngModel)]="settingForm.label"
+            placeholder="e.g. Application Name"
+          />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Default Value</label>
+          <input
+            type="text"
+            pInputText
+            [(ngModel)]="settingForm.defaultValue"
+            placeholder="Default value"
+          />
+        </div>
+        <div class="form-field">
+          <label>Sort Order</label>
+          <p-inputnumber
+            [(ngModel)]="settingForm.sortOrder"
+            [showButtons]="true"
+            [min]="0"
+          />
+        </div>
+      </div>
+      @if (settingForm.valueType === 'select') {
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>Options (comma-separated)</label>
+          <input
+            type="text"
+            pInputText
+            [(ngModel)]="settingForm.optionsText"
+            placeholder="e.g. option1, option2, option3"
+          />
+        </div>
+      </div>
+      }
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>Description</label>
+          <textarea
+            pTextarea
+            [(ngModel)]="settingForm.description"
+            rows="2"
+            placeholder="Help text for this setting..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <p-toggleswitch [(ngModel)]="settingForm.isRequired" />
+          <label class="inline-label">Required</label>
+        </div>
+      </div>
+    </div>
+    <ng-template #footer>
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        (click)="showSettingDialog = false"
+      />
+      <p-button
+        [label]="editingSettingId ? 'Update' : 'Create'"
+        icon="pi pi-check"
+        (click)="saveSetting()"
+        [disabled]="!isSettingFormValid()"
+      />
+    </ng-template>
+  </p-dialog>
+
+  <p-toast />
+  <p-confirmDialog />
+</div>

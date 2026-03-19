@@ -1,0 +1,340 @@
+<div class="subject-detail-page">
+  <!-- Breadcrumb & Back -->
+  <div class="page-nav">
+    <p-button
+      icon="pi pi-arrow-left"
+      label="Back to Subjects"
+      [text]="true"
+      routerLink="/teacher/subjects"
+    />
+  </div>
+
+  @if (loading()) {
+  <div class="loading-container">
+    <p-skeleton width="300px" height="32px" styleClass="mb-3" />
+    <p-skeleton width="200px" height="20px" />
+  </div>
+  } @else if (!subject()) {
+  <div class="not-found">
+    <i class="pi pi-exclamation-circle"></i>
+    <h2>Subject Not Found</h2>
+    <p>The subject you're looking for doesn't exist or has been deleted.</p>
+    <p-button label="Go to Subjects" routerLink="/teacher/subjects" />
+  </div>
+  } @else {
+  <!-- Subject Header -->
+  <header class="subject-header">
+    <div class="subject-header__info">
+      <div class="subject-icon" [style.background]="subject()!.color">
+        <i [class]="'pi ' + subject()!.icon"></i>
+      </div>
+      <div class="subject-details">
+        <h1 class="subject-name">{{ subject()!.name }}</h1>
+        @if (subject()!.code) {
+        <span class="subject-code">{{ subject()!.code }}</span>
+        } @if (subject()!.description) {
+        <p class="subject-description">{{ subject()!.description }}</p>
+        }
+      </div>
+    </div>
+    <div class="subject-header__actions">
+      <!-- @REVIEW: Manage learning materials -->
+      <p-button
+        icon="pi pi-folder-open"
+        label="Assets"
+        severity="secondary"
+        [routerLink]="['/teacher/subjects', subject()!.id, 'assets']"
+      />
+      <!-- @REVIEW: View comprehensive subject report -->
+      <p-button
+        icon="pi pi-chart-bar"
+        label="View Report"
+        severity="info"
+        [routerLink]="['/teacher/subjects', subject()!.id, 'report']"
+      />
+      <p-button
+        icon="pi pi-pencil"
+        label="Edit Subject"
+        severity="secondary"
+        [routerLink]="['/teacher/subjects', subject()!.id, 'edit']"
+      />
+      <p-tag
+        [value]="subject()!.isActive ? 'Active' : 'Inactive'"
+        [severity]="subject()!.isActive ? 'success' : 'danger'"
+      />
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <section class="stats-row">
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)"
+        >
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{
+            enrolledStudents().length
+          }}</span>
+          <span class="stat-card__label">Enrolled Students</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #8b5cf6, #6d28d9)"
+        >
+          <i class="pi pi-file-edit"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{ exams().length }}</span>
+          <span class="stat-card__label">Exams</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div
+          class="stat-card__icon"
+          style="background: linear-gradient(135deg, #10b981, #059669)"
+        >
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{ activeExamsCount() }}</span>
+          <span class="stat-card__label">Active Exams</span>
+        </div>
+      </div>
+    </p-card>
+  </section>
+
+  <!-- Two Column Layout -->
+  <div class="content-grid">
+    <!-- Enrolled Students Section -->
+    <p-card styleClass="enrolled-card">
+      <ng-template #header>
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-users"></i>
+            Enrolled Students
+          </h2>
+        </div>
+      </ng-template>
+
+      @if (loadingStudents()) {
+      <div class="skeleton-list">
+        @for (i of [1, 2, 3]; track i) {
+        <p-skeleton width="100%" height="50px" styleClass="mb-2" />
+        }
+      </div>
+      } @else if (enrolledStudents().length === 0) {
+      <div class="empty-state-small">
+        <i class="pi pi-user-plus"></i>
+        <p>No students enrolled yet</p>
+      </div>
+      } @else {
+      <div class="enrolled-list">
+        @for (student of enrolledStudents(); track student.id) {
+        <div class="enrolled-item">
+          <div
+            class="enrolled-item__avatar"
+            [style.background]="getAvatarColor(student.user.fullName)"
+          >
+            {{ getInitials(student.user.fullName) }}
+          </div>
+          <div class="enrolled-item__info">
+            <span class="enrolled-item__name">{{
+              student.user.fullName
+            }}</span>
+            <span class="enrolled-item__email">{{
+              student.user.email
+            }}</span>
+          </div>
+          <p-button
+            icon="pi pi-times"
+            severity="danger"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="Remove from subject"
+            (click)="confirmUnenroll(student)"
+          />
+        </div>
+        }
+      </div>
+      }
+    </p-card>
+
+    <!-- Available Students Section -->
+    <p-card styleClass="available-card">
+      <ng-template #header>
+        <div class="card-header">
+          <h2 class="card-header__title">
+            <i class="pi pi-user-plus"></i>
+            Available Students
+          </h2>
+          <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              placeholder="Search students..."
+              [(ngModel)]="studentSearchFilter"
+            />
+          </p-iconfield>
+        </div>
+      </ng-template>
+
+      @if (loadingStudents()) {
+      <div class="skeleton-list">
+        @for (i of [1, 2, 3]; track i) {
+        <p-skeleton width="100%" height="50px" styleClass="mb-2" />
+        }
+      </div>
+      } @else if (filteredAvailableStudents().length === 0) {
+      <div class="empty-state-small">
+        <i class="pi pi-check-circle"></i>
+        <p>
+          {{
+            allStudents().length === 0
+              ? 'No students created yet'
+              : 'All students are enrolled'
+          }}
+        </p>
+      </div>
+      } @else {
+      <div class="available-list">
+        @for (student of filteredAvailableStudents(); track student.id) {
+        <div class="available-item">
+          <div
+            class="available-item__avatar"
+            [style.background]="getAvatarColor(student.user.fullName)"
+          >
+            {{ getInitials(student.user.fullName) }}
+          </div>
+          <div class="available-item__info">
+            <span class="available-item__name">{{
+              student.user.fullName
+            }}</span>
+            <span class="available-item__email">{{
+              student.user.email
+            }}</span>
+          </div>
+          <p-button
+            icon="pi pi-plus"
+            severity="success"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="Enroll in subject"
+            (click)="enrollStudent(student)"
+            [loading]="enrollingStudentId() === student.id"
+          />
+        </div>
+        }
+      </div>
+      }
+    </p-card>
+  </div>
+
+  <!-- Exams Section -->
+  <p-card styleClass="exams-card">
+    <ng-template #header>
+      <div class="card-header">
+        <h2 class="card-header__title">
+          <i class="pi pi-file-edit"></i>
+          Exams in this Subject
+        </h2>
+        <p-button
+          icon="pi pi-plus"
+          label="Create Exam"
+          size="small"
+          [routerLink]="['/teacher/exams/create']"
+          [queryParams]="{ subjectId: subject()!.id }"
+        />
+      </div>
+    </ng-template>
+
+    @if (loadingExams()) {
+    <div class="skeleton-list">
+      @for (i of [1, 2, 3]; track i) {
+      <p-skeleton width="100%" height="60px" styleClass="mb-2" />
+      }
+    </div>
+    } @else if (exams().length === 0) {
+    <div class="empty-state-small">
+      <i class="pi pi-file-edit"></i>
+      <p>No exams created for this subject yet</p>
+      <p-button
+        label="Create First Exam"
+        icon="pi pi-plus"
+        [routerLink]="['/teacher/exams/create']"
+        [queryParams]="{ subjectId: subject()!.id }"
+      />
+    </div>
+    } @else {
+    <div class="exams-list">
+      @for (exam of exams(); track exam.id) {
+      <div class="exam-item">
+        <div class="exam-item__info">
+          <span class="exam-item__title">{{ exam.title }}</span>
+          <div class="exam-item__meta">
+            <span
+              ><i class="pi pi-list"></i>
+              {{ exam.totalQuestions }} questions</span
+            >
+            <span
+              ><i class="pi pi-star"></i> {{ exam.totalMarks }} marks</span
+            >
+            <span
+              ><i class="pi pi-clock"></i>
+              {{ exam.timePerQuestionSeconds }}s/question</span
+            >
+            @if (examStatsMap()[exam.id]; as stats) {
+            <span class="submissions-badge">
+              <i class="pi pi-users"></i>
+              {{ stats.completedSubmissions }} submissions @if
+              (stats.avgScore > 0) { ({{ stats.avgScore }}% avg) }
+            </span>
+            }
+          </div>
+        </div>
+        <div class="exam-item__actions">
+          <p-tag
+            [value]="exam.status"
+            [severity]="getExamStatusSeverity(exam.status)"
+          />
+          <p-button
+            icon="pi pi-chart-bar"
+            severity="info"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="View Results"
+            [routerLink]="['/teacher/exams', exam.id, 'results']"
+          />
+          <p-button
+            icon="pi pi-eye"
+            severity="secondary"
+            [text]="true"
+            [rounded]="true"
+            size="small"
+            pTooltip="View Exam"
+            [routerLink]="['/teacher/exams', exam.id]"
+          />
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </p-card>
+  }
+</div>
+
+<p-confirmDialog />
+<p-toast />

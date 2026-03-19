@@ -7,23 +7,7 @@ import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-footer',
   imports: [RouterLink],
-  template: `
-    <footer class="footer">
-      <div class="footer__content">
-        <div class="footer__copyright">
-          <span>&copy; {{ currentYear }} Tutor Desk. All rights reserved.</span>
-        </div>
-
-        <div class="footer__links">
-          <a routerLink="/privacy">Privacy Policy</a>
-          <span class="footer__divider">|</span>
-          <a routerLink="/terms">Terms of Service</a>
-          <span class="footer__divider">|</span>
-          <a routerLink="/contact">Contact</a>
-        </div>
-      </div>
-    </footer>
-  `,
+  templateUrl: './footer.component.html',
   styles: `
     .footer {
       padding: 1rem 1.5rem;

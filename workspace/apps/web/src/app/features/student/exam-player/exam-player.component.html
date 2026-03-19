@@ -1,0 +1,386 @@
+<div class="exam-player" [class.exam-player--fullscreen]="isFullscreen()">
+  <!-- Loading State -->
+  @if (phase() === 'loading') {
+  <div class="loading-screen">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner loading-icon"></i>
+      <h2>Loading Exam...</h2>
+      <p>Please wait while we prepare your exam</p>
+    </div>
+  </div>
+  }
+
+  <!-- Error State -->
+  @if (phase() === 'error') {
+  <div class="error-screen">
+    <div class="error-content">
+      <i class="pi pi-exclamation-triangle error-icon"></i>
+      <h2>Unable to Load Exam</h2>
+      <p>{{ errorMessage() }}</p>
+      <p-button
+        label="Back to Exams"
+        icon="pi pi-arrow-left"
+        (click)="navigateToExams()"
+      />
+    </div>
+  </div>
+  }
+
+  <!-- Exam Ready State -->
+  @if (phase() === 'ready' && exam()) {
+  <div class="ready-screen">
+    <div class="ready-content">
+      <div class="ready-header">
+        <h1>{{ exam()!.title }}</h1>
+        <!-- @REVIEW: Handle nullable subject for independent exams -->
+        @if (exam()!.subject) {
+        <span
+          class="subject-badge"
+          [style.background]="exam()!.subject!.color"
+        >
+          {{ exam()!.subject!.name }}
+        </span>
+        } @else {
+        <span class="subject-badge" style="background: #6b7280">
+          Independent Exam
+        </span>
+        }
+      </div>
+
+      <div class="ready-stats">
+        <div class="stat-card">
+          <i class="pi pi-question-circle"></i>
+          <div>
+            <span class="stat-value">{{ questions().length }}</span>
+            <span class="stat-label">Questions</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="pi pi-star"></i>
+          <div>
+            <span class="stat-value">{{ exam()!.totalMarks }}</span>
+            <span class="stat-label">Total Marks</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <i class="pi pi-clock"></i>
+          <div>
+            <span class="stat-value"
+              >{{ exam()!.timePerQuestionSeconds }}s</span
+            >
+            <span class="stat-label">Per Question</span>
+          </div>
+        </div>
+      </div>
+
+      @if (exam()!.fullscreenRequired && !isFullscreen()) {
+      <div class="fullscreen-warning">
+        <i class="pi pi-expand"></i>
+        <p>
+          This exam requires fullscreen mode. Click the button below to
+          enter fullscreen and start.
+        </p>
+      </div>
+      }
+
+      <div class="ready-actions">
+        @if (exam()!.fullscreenRequired && !isFullscreen()) {
+        <p-button
+          label="Enter Fullscreen & Start"
+          icon="pi pi-expand"
+          size="large"
+          (click)="enterFullscreenAndStart()"
+        />
+        } @else {
+        <p-button
+          label="Start Exam"
+          icon="pi pi-play"
+          size="large"
+          (click)="startExamTimer()"
+        />
+        }
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Exam In Progress -->
+  @if (phase() === 'in_progress' && currentQuestion()) {
+  <div class="exam-container">
+    <!-- Top Bar -->
+    <header class="exam-header">
+      <div class="exam-header__left">
+        <span class="exam-title">{{ exam()!.title }}</span>
+        <!-- @REVIEW: Handle nullable subject for independent exams -->
+        @if (exam()!.subject) {
+        <span
+          class="subject-badge"
+          [style.background]="exam()!.subject!.color"
+        >
+          {{ exam()!.subject!.name }}
+        </span>
+        } @else {
+        <span class="subject-badge" style="background: #6b7280">
+          Independent Exam
+        </span>
+        }
+      </div>
+      <div class="exam-header__center">
+        <div
+          class="timer"
+          [class.timer--warning]="timeRemaining() <= 10"
+          [class.timer--danger]="timeRemaining() <= 5"
+        >
+          <i class="pi pi-clock"></i>
+          <span class="timer__value">{{
+            formatTime(timeRemaining())
+          }}</span>
+        </div>
+      </div>
+      <div class="exam-header__right">
+        <span class="progress-text">
+          Question {{ currentIndex() + 1 }} of {{ questions().length }}
+        </span>
+        <p-button
+          icon="pi pi-send"
+          label="Submit Exam"
+          severity="danger"
+          [outlined]="true"
+          (click)="confirmSubmit()"
+        />
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="exam-body">
+      <!-- Question Panel -->
+      <main class="question-panel">
+        <div class="question-card">
+          <div class="question-header">
+            <span class="question-number"
+              >Question {{ currentIndex() + 1 }}</span
+            >
+            <span class="question-marks"
+              >{{ currentQuestion()!.question.marks }} marks</span
+            >
+          </div>
+
+          <div class="question-text">
+            <p>{{ currentQuestion()!.question.questionText }}</p>
+            @if (currentQuestion()!.question.questionImageUrl) {
+            <img
+              [src]="currentQuestion()!.question.questionImageUrl"
+              alt="Question image"
+              class="question-image"
+            />
+            }
+          </div>
+
+          <div class="options-list">
+            @for (option of currentQuestion()!.question.options; track
+            option.id; let i = $index) {
+            <label
+              class="option-item"
+              [class.option-item--selected]="selectedOption() === option.id"
+            >
+              <p-radioButton
+                [name]="'question-' + currentQuestion()!.question.id"
+                [value]="option.id"
+                [(ngModel)]="selectedOptionValue"
+                (ngModelChange)="onOptionSelect($event)"
+              />
+              <span class="option-label">{{ getOptionLetter(i) }}.</span>
+              <span class="option-text">{{ option.text }}</span>
+            </label>
+            }
+          </div>
+
+          @if (currentQuestion()!.question.negativeMarks > 0) {
+          <div class="negative-marks-warning">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span
+              >Wrong answer: -{{
+                currentQuestion()!.question.negativeMarks
+              }}
+              marks</span
+            >
+          </div>
+          }
+        </div>
+
+        <div class="question-actions">
+          @if (exam()!.allowSkipReturn && !isLastQuestion()) {
+          <p-button
+            label="Skip"
+            icon="pi pi-forward"
+            severity="secondary"
+            [outlined]="true"
+            (click)="skipQuestion()"
+          />
+          } @if (currentIndex() > 0 && exam()!.allowSkipReturn) {
+          <p-button
+            label="Previous"
+            icon="pi pi-arrow-left"
+            severity="secondary"
+            (click)="goToPrevious()"
+          />
+          } @if (!isLastQuestion()) {
+          <p-button
+            label="Next"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            (click)="goToNext()"
+            [disabled]="!selectedOption() && !exam()!.allowSkipReturn"
+          />
+          } @else {
+          <p-button
+            label="Submit Exam"
+            icon="pi pi-check"
+            severity="success"
+            (click)="confirmSubmit()"
+          />
+          }
+        </div>
+      </main>
+
+      <!-- Navigation Panel -->
+      <aside class="nav-panel">
+        <h3 class="nav-panel__title">Questions</h3>
+        <div class="nav-grid">
+          @for (state of questionStates(); track state.question.id; let i =
+          $index) {
+          <button
+            class="nav-item"
+            [class.nav-item--current]="i === currentIndex()"
+            [class.nav-item--answered]="state.selectedOptionId !== null"
+            [class.nav-item--skipped]="
+              state.wasSkipped && state.selectedOptionId === null
+            "
+            [class.nav-item--returned]="state.returnedTo"
+            (click)="goToQuestion(i)"
+            [disabled]="!exam()!.allowSkipReturn && i !== currentIndex()"
+            [pTooltip]="getQuestionTooltip(state, i)"
+          >
+            {{ i + 1 }}
+          </button>
+          }
+        </div>
+
+        <div class="nav-legend">
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--current"></span>
+            <span>Current</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--answered"></span>
+            <span>Answered</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--skipped"></span>
+            <span>Skipped</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--unanswered"></span>
+            <span>Not Visited</span>
+          </div>
+        </div>
+
+        <div class="nav-summary">
+          <div class="summary-item">
+            <span class="summary-value">{{ answeredCount() }}</span>
+            <span class="summary-label">Answered</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-value">{{ skippedCount() }}</span>
+            <span class="summary-label">Skipped</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-value">{{ unansweredCount() }}</span>
+            <span class="summary-label">Remaining</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  }
+
+  <!-- Submitting State -->
+  @if (phase() === 'submitting') {
+  <div class="loading-screen">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner loading-icon"></i>
+      <h2>Submitting Exam...</h2>
+      <p>Please wait while we save your answers</p>
+    </div>
+  </div>
+  }
+
+  <!-- Completed State -->
+  @if (phase() === 'completed' && submission()) {
+  <div class="completed-screen">
+    <div class="completed-content">
+      <div class="completed-icon">
+        @if (submission()!.score >= (exam()?.passingMarks ?? 0)) {
+        <i class="pi pi-check-circle success-icon"></i>
+        } @else {
+        <i class="pi pi-times-circle fail-icon"></i>
+        }
+      </div>
+      <h1>Exam Completed!</h1>
+
+      <div class="result-card">
+        <div class="result-score">
+          <span class="score-value">{{ submission()!.score }}</span>
+          <span class="score-total">/ {{ exam()!.totalMarks }}</span>
+        </div>
+        <span class="percentage">{{ submission()!.percentage }}%</span>
+      </div>
+
+      <div class="result-stats">
+        <div class="result-stat">
+          <span class="stat-value correct">{{
+            submission()!.totalCorrect
+          }}</span>
+          <span class="stat-label">Correct</span>
+        </div>
+        <div class="result-stat">
+          <span class="stat-value wrong">{{
+            submission()!.totalWrong
+          }}</span>
+          <span class="stat-label">Wrong</span>
+        </div>
+        <div class="result-stat">
+          <span class="stat-value skipped">{{
+            submission()!.totalSkipped
+          }}</span>
+          <span class="stat-label">Skipped</span>
+        </div>
+      </div>
+
+      @if (submission()!.autoSubmitReason) {
+      <div class="auto-submit-notice">
+        <i class="pi pi-info-circle"></i>
+        <span>Auto-submitted: {{ submission()!.autoSubmitReason }}</span>
+      </div>
+      }
+
+      <div class="completed-actions">
+        <p-button
+          label="View Results"
+          icon="pi pi-chart-bar"
+          (click)="navigateToResults()"
+        />
+        <p-button
+          label="Back to Exams"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          (click)="navigateToExams()"
+        />
+      </div>
+    </div>
+  </div>
+  }
+
+  <p-toast />
+  <p-confirmDialog />
+</div>

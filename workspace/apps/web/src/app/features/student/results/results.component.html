@@ -1,0 +1,174 @@
+<div class="results-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-header__title">My Results</h1>
+      <p class="page-header__subtitle">
+        View all your exam results and performance
+      </p>
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <section class="stats-row">
+    @if (loading()) { @for (i of [1, 2, 3, 4]; track i) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <p-skeleton shape="circle" size="48px" />
+        <div class="stat-card__text">
+          <p-skeleton width="40px" height="24px" />
+          <p-skeleton width="80px" height="14px" />
+        </div>
+      </div>
+    </p-card>
+    } } @else { @for (stat of statsCards(); track stat.label) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div class="stat-card__icon" [style.background]="stat.color">
+          <i [class]="stat.icon"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{ stat.value }}</span>
+          <span class="stat-card__label">{{ stat.label }}</span>
+        </div>
+      </div>
+    </p-card>
+    } }
+  </section>
+
+  <!-- Results Table -->
+  <p-card styleClass="results-table-card">
+    <ng-template #header>
+      <div class="table-header">
+        <h2 class="table-header__title">Exam Results</h2>
+        <div class="table-header__filters">
+          <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              placeholder="Search results..."
+              [(ngModel)]="searchTerm"
+            />
+          </p-iconfield>
+        </div>
+      </div>
+    </ng-template>
+
+    @if (loading()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="200px" height="16px" />
+        <p-skeleton width="120px" height="16px" />
+        <p-skeleton width="80px" height="16px" />
+        <p-skeleton width="60px" height="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+      </div>
+      }
+    </div>
+    } @else if (filteredResults().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-chart-bar empty-state__icon"></i>
+      <h3 class="empty-state__title">
+        @if (searchTerm) { No matching results } @else { No exam results yet
+        }
+      </h3>
+      <p class="empty-state__text">
+        @if (searchTerm) { Try adjusting your search } @else { Complete an
+        exam to see your results here }
+      </p>
+    </div>
+    } @else {
+    <p-table
+      [value]="filteredResults()"
+      [paginator]="filteredResults().length > 10"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      styleClass="p-datatable-sm"
+    >
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="examTitle">
+            Exam <p-sortIcon field="examTitle" />
+          </th>
+          <th pSortableColumn="subjectName">
+            Subject <p-sortIcon field="subjectName" />
+          </th>
+          <th pSortableColumn="submission.score">
+            Score <p-sortIcon field="submission.score" />
+          </th>
+          <th pSortableColumn="submission.percentage">
+            Percentage <p-sortIcon field="submission.percentage" />
+          </th>
+          <th>Status</th>
+          <th pSortableColumn="submission.submittedAt">
+            Submitted <p-sortIcon field="submission.submittedAt" />
+          </th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-result>
+        <tr>
+          <td>
+            <div class="exam-cell">
+              <span class="exam-title">{{ result.examTitle }}</span>
+              @if (result.submission.attemptNumber > 1) {
+              <span class="attempt-badge"
+                >Attempt {{ result.submission.attemptNumber }}</span
+              >
+              }
+            </div>
+          </td>
+          <td>
+            <span
+              class="subject-badge"
+              [style.background]="result.subjectColor"
+            >
+              {{ result.subjectName }}
+            </span>
+          </td>
+          <td>
+            <div class="score-cell">
+              <span
+                class="score-value"
+                [class.score-value--pass]="result.passed"
+              >
+                {{ result.submission.score }}
+              </span>
+              <span class="score-total">/ {{ result.totalMarks }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="percentage-cell">
+              <p-progressBar
+                [value]="result.submission.percentage"
+                [showValue]="false"
+                styleClass="percentage-bar"
+                [style]="{ height: '8px', width: '80px' }"
+              />
+              <span>{{ result.submission.percentage }}%</span>
+            </div>
+          </td>
+          <td>
+            <p-tag
+              [value]="result.passed ? 'Passed' : 'Failed'"
+              [severity]="result.passed ? 'success' : 'danger'"
+            />
+          </td>
+          <td>{{ result.submission.submittedAt | date : 'short' }}</td>
+          <td>
+            <p-button
+              icon="pi pi-eye"
+              [rounded]="true"
+              [text]="true"
+              pTooltip="View Details"
+              (click)="viewDetails(result)"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+</div>
