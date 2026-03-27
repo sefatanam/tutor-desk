@@ -5795,23 +5795,33 @@ input.w-full[pInputText] {
           display: flex;
           flex-direction: column;
           width: var(--td-sidebar-width);
-          height: 100vh;
           background: var(--td-surface);
           border-right: 1px solid var(--p-surface-200);
-          position: sticky;
-          top: 0;
           transition: width var(--td-transition-normal);
           overflow: hidden;
-          z-index: 200;
-    
+
           &.collapsed {
             width: var(--td-sidebar-collapsed-width);
-    
+
             .sidebar__nav-item {
               justify-content: center;
               padding: 0.75rem;
             }
           }
+        }
+
+        .sidebar--persistent {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          z-index: 200;
+        }
+
+        .sidebar--overlay {
+          position: relative;
+          border-right: none;
+          box-shadow: var(--td-shadow-lg);
+          height: 100%;
         }
     
         .sidebar__header {
@@ -5941,25 +5951,9 @@ input.w-full[pInputText] {
           color: var(--td-text-secondary);
         }
     
-        .sidebar__overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 150;
-          animation: fadeIn var(--td-transition-fast) forwards;
-        }
-    
-        /* Mobile: Hidden by default, shown with overlay */
         @media (max-width: 768px) {
-          .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            transform: translateX(-100%);
-    
-            &.open {
-              transform: translateX(0);
-            }
+          .sidebar--persistent {
+            display: none;
           }
         }
     

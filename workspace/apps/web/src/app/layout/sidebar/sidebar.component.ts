@@ -7,13 +7,13 @@ import {
   ChangeDetectionStrategy,
   input,
   output,
-  signal,
   computed,
   inject,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { RippleModule } from 'primeng/ripple';
+import { SidebarModule } from 'primeng/sidebar';
 import { AuthStore } from '../../core/store/auth.store';
 
 interface MenuItem {
@@ -26,7 +26,7 @@ interface MenuItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink, RouterLinkActive, TooltipModule, RippleModule],
+  imports: [RouterLink, RouterLinkActive, TooltipModule, RippleModule, SidebarModule],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,7 +36,8 @@ export class SidebarComponent {
   readonly collapsed = input<boolean>(false);
   readonly collapsedChange = output<boolean>();
 
-  readonly mobileOpen = signal(false);
+  readonly mobileOpen = input<boolean>(false);
+  readonly mobileOpenChange = output<boolean>();
 
   // @REVIEW: Role-based dashboard route
   readonly dashboardRoute = computed(() => {

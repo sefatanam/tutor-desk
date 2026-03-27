@@ -1,13 +1,13 @@
-<aside class="sidebar" [class.collapsed]="collapsed()">
+<ng-template #sidebarContent>
   <!-- Logo -->
   <div class="sidebar__header">
     @if (!collapsed()) {
-    <a [routerLink]="dashboardRoute()" class="sidebar__logo">
-      <span class="sidebar__logo-icon">
-        <i class="pi pi-book"></i>
-      </span>
-      <span class="sidebar__logo-text animate-fade-in">Tutor Desk</span>
-    </a>
+      <a [routerLink]="dashboardRoute()" class="sidebar__logo">
+        <span class="sidebar__logo-icon">
+          <i class="pi pi-book"></i>
+        </span>
+        <span class="sidebar__logo-text animate-fade-in">Tutor Desk</span>
+      </a>
     }
     <!-- Collapse button (desktop) -->
     <button
@@ -27,40 +27,50 @@
   <!-- Navigation -->
   <nav class="sidebar__nav">
     @for (item of menuItems(); track item.label) {
-    <a
-      [routerLink]="item.routerLink"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-      class="sidebar__nav-item"
-      [pTooltip]="collapsed() ? item.label : ''"
-      [tooltipDisabled]="!collapsed()"
-      tooltipPosition="right"
-      pRipple
-    >
-      <i [class]="'sidebar__nav-icon pi ' + item.icon"></i>
-      @if (!collapsed()) {
-      <span class="sidebar__nav-label">{{ item.label }}</span>
-      } @if (item.badge && !collapsed()) {
-      <span class="sidebar__nav-badge">{{ item.badge }}</span>
-      }
-    </a>
+      <a
+        [routerLink]="item.routerLink"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+        class="sidebar__nav-item"
+        [pTooltip]="collapsed() ? item.label : ''"
+        [tooltipDisabled]="!collapsed()"
+        tooltipPosition="right"
+        pRipple
+      >
+        <i [class]="'sidebar__nav-icon pi ' + item.icon"></i>
+        @if (!collapsed()) {
+          <span class="sidebar__nav-label">{{ item.label }}</span>
+        }
+        @if (item.badge && !collapsed()) {
+          <span class="sidebar__nav-badge">{{ item.badge }}</span>
+        }
+      </a>
     }
   </nav>
 
   <!-- Footer -->
   <div class="sidebar__footer">
     @if (!collapsed()) {
-    <div class="sidebar__version animate-fade-in">
-      <span>v1.0.0</span>
-    </div>
+      <div class="sidebar__version animate-fade-in">
+        <span>v1.0.0</span>
+      </div>
     }
   </div>
+</ng-template>
+
+<aside class="sidebar sidebar--persistent" [class.collapsed]="collapsed()">
+  <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
 </aside>
 
-<!-- Mobile overlay -->
-@if (mobileOpen()) {
-<div
-  class="sidebar__overlay md:hidden"
-  (click)="mobileOpen.set(false)"
-></div>
-}
+<p-sidebar
+  mode="headless"
+  position="left"
+  appendTo="body"
+  [visible]="mobileOpen()"
+  (visibleChange)="mobileOpenChange.emit($event)"
+  [baseZIndex]="1000"
+>
+  <div class="sidebar sidebar--overlay" [class.collapsed]="collapsed()">
+    <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+  </div>
+</p-sidebar>

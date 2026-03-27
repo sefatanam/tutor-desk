@@ -3,6 +3,8 @@
   <app-sidebar
     [collapsed]="sidebarCollapsed()"
     (collapsedChange)="sidebarCollapsed.set($event)"
+    [mobileOpen]="mobileSidebarVisible()"
+    (mobileOpenChange)="mobileSidebarVisible.set($event)"
   />
 
   <main class="shell__main">

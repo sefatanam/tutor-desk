@@ -15,8 +15,21 @@ import { FooterComponent } from '../footer/footer.component';
 })
 export class ShellComponent {
   readonly sidebarCollapsed = signal(false);
+  readonly mobileSidebarVisible = signal(false);
 
   toggleSidebar(): void {
+    if (this.isMobileViewport()) {
+      this.mobileSidebarVisible.update((visible) => !visible);
+      return;
+    }
+
     this.sidebarCollapsed.update((collapsed) => !collapsed);
+  }
+
+  private isMobileViewport(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 768px)').matches
+    );
   }
 }
