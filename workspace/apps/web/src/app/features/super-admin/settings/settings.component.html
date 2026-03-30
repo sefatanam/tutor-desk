@@ -13,6 +13,7 @@
         icon="pi pi-folder"
         severity="secondary"
         [outlined]="true"
+        size="small"
         (click)="showCategoryDialog = true"
       />
       <p-button
@@ -20,6 +21,7 @@
         icon="pi pi-plus"
         severity="secondary"
         [outlined]="true"
+        size="small"
         (click)="openAddSettingDialog()"
       />
       <p-button
@@ -27,6 +29,7 @@
         icon="pi pi-upload"
         severity="secondary"
         [outlined]="true"
+        size="small"
         (click)="fileInput.click()"
       />
       <input
@@ -41,6 +44,7 @@
         icon="pi pi-download"
         severity="secondary"
         [outlined]="true"
+        size="small"
         (click)="exportSettings()"
       />
       <p-button
@@ -48,6 +52,7 @@
         icon="pi pi-refresh"
         severity="primary"
         [outlined]="true"
+        size="small"
         (click)="loadData()"
         [loading]="loading()"
       />
@@ -72,6 +77,7 @@
       <p-button
         label="Create Category"
         icon="pi pi-plus"
+        size="small"
         (click)="showCategoryDialog = true"
       />
     </div>
@@ -87,7 +93,7 @@
           {{ cat.label }}
           <p-tag
             [value]="getSettingsCountForCategory(cat.id).toString()"
-            [rounded]="true"
+            [rounded]="false"
             severity="secondary"
             styleClass="ml-2"
           />
@@ -215,7 +221,7 @@
                   <p-tag
                     [value]="setting.valueType"
                     [severity]="getTypeSeverity(setting.valueType)"
-                    [rounded]="true"
+                    [rounded]="false"
                   />
                 </td>
                 <td class="text-center">
@@ -223,7 +229,8 @@
                     icon="pi pi-pencil"
                     severity="secondary"
                     [text]="true"
-                    [rounded]="true"
+                    [rounded]="false"
+                    size="small"
                     pTooltip="Edit Setting"
                     (click)="editSetting(setting)"
                   />
@@ -231,7 +238,8 @@
                     icon="pi pi-trash"
                     severity="danger"
                     [text]="true"
-                    [rounded]="true"
+                    [rounded]="false"
+                    size="small"
                     pTooltip="Delete Setting"
                     (click)="confirmDeleteSetting(setting)"
                   />
@@ -314,6 +322,7 @@
           <p-button
             label="Add Category"
             icon="pi pi-plus"
+            size="small"
             (click)="addCategory()"
             [disabled]="!newCategory.name || !newCategory.label"
           />
@@ -339,10 +348,11 @@
                 icon="pi pi-trash"
                 severity="danger"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Delete Category"
                 (click)="confirmDeleteCategory(cat)"
-              />
+      size="small"
+    />
             </div>
           </div>
           }
@@ -457,11 +467,13 @@
         label="Cancel"
         severity="secondary"
         [text]="true"
+        size="small"
         (click)="showSettingDialog = false"
       />
       <p-button
         [label]="editingSettingId ? 'Update' : 'Create'"
         icon="pi pi-check"
+        size="small"
         (click)="saveSetting()"
         [disabled]="!isSettingFormValid()"
       />

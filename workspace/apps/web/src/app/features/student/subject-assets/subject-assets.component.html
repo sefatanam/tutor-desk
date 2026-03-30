@@ -6,6 +6,7 @@
       label="Back to Subjects"
       [text]="true"
       routerLink="/student/subjects"
+      size="small"
     />
   </div>
 
@@ -20,7 +21,7 @@
       <i class="pi pi-exclamation-circle"></i>
       <h2>Subject Not Found</h2>
       <p>The subject you're looking for doesn't exist.</p>
-      <p-button label="Go to Subjects" routerLink="/student/subjects" />
+      <p-button label="Go to Subjects" size="small" routerLink="/student/subjects" />
     </div>
   </p-card>
   } @else {
@@ -88,7 +89,7 @@
         <div class="comment-input">
           <p-avatar
             [label]="getInitials(currentUserName())"
-            shape="circle"
+            shape="square"
             [styleClass]="'td-avatar ' + getAvatarColor(currentUserName())"
           />
           <div class="comment-input__field">
@@ -119,7 +120,7 @@
           <div class="comment">
             <p-avatar
               [label]="getInitials(comment.user.fullName)"
-              shape="circle"
+              shape="square"
               [styleClass]="'td-avatar ' + getAvatarColor(comment.user.fullName)"
             />
             <div class="comment__content">
@@ -153,7 +154,7 @@
                 <div class="comment reply">
                   <p-avatar
                     [label]="getInitials(reply.user.fullName)"
-                    shape="circle"
+                    shape="square"
                     size="normal"
                     [styleClass]="'td-avatar ' + getAvatarColor(reply.user.fullName)"
                   />

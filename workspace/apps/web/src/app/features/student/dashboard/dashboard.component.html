@@ -1,6 +1,6 @@
 <div class="dashboard">
   <div class="dashboard__header">
-    <h1>Student Dashboard</h1>
+    <h1 class="text-base font-semibold m-0">Student Dashboard</h1>
     <p>Welcome back, {{ userName() }}! Here's your learning overview.</p>
   </div>
 
@@ -9,7 +9,7 @@
     @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <p-skeleton shape="circle" size="56px" />
+        <p-skeleton shape="square" size="36px" />
         <div class="stat-card__info">
           <p-skeleton width="40px" height="24px" />
           <p-skeleton width="100px" height="14px" />
@@ -52,7 +52,7 @@
       @for (i of [1, 2, 3]; track i) {
       <div class="skeleton-row">
         <p-skeleton width="200px" height="16px" />
-        <p-skeleton width="120px" height="24px" borderRadius="16px" />
+        <p-skeleton width="120px" height="24px" borderRadius="4px" />
         <p-skeleton width="150px" height="16px" />
         <p-skeleton width="80px" height="16px" />
         <p-skeleton width="100px" height="36px" />
@@ -159,9 +159,9 @@
       @for (i of [1, 2, 3]; track i) {
       <div class="skeleton-row">
         <p-skeleton width="200px" height="16px" />
-        <p-skeleton width="120px" height="24px" borderRadius="16px" />
+        <p-skeleton width="120px" height="24px" borderRadius="4px" />
         <p-skeleton width="80px" height="16px" />
-        <p-skeleton width="60px" height="24px" borderRadius="16px" />
+        <p-skeleton width="60px" height="24px" borderRadius="4px" />
       </div>
       }
     </div>

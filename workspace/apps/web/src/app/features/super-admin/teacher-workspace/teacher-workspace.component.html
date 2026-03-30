@@ -6,6 +6,7 @@
       label="Back to Teachers"
       [text]="true"
       routerLink="/admin/teachers"
+      size="small"
     />
   </div>
 
@@ -19,7 +20,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Teacher Not Found</h2>
     <p>The teacher you're looking for doesn't exist.</p>
-    <p-button label="Go to Teachers" routerLink="/admin/teachers" />
+    <p-button label="Go to Teachers" size="small" routerLink="/admin/teachers" />
   </div>
   } @else {
   <!-- Teacher Header -->
@@ -28,7 +29,7 @@
       <p-avatar
         [label]="getInitials(teacher()!.user.fullName)"
         size="xlarge"
-        shape="circle"
+        shape="square"
         [styleClass]="'td-avatar text-2xl ' + getAvatarColor(teacher()!.id)"
       />
       <div class="teacher-details">
@@ -45,7 +46,7 @@
       <p-tag
         [value]="teacher()!.user.status | titlecase"
         [severity]="getStatusSeverity(teacher()!.user.status)"
-        [rounded]="true"
+        [rounded]="false"
       />
       <span class="joined-date"
         >Joined {{ teacher()!.createdAt | date : 'MMM d, yyyy' }}</span
@@ -145,7 +146,7 @@
                   <p-tag
                     [value]="subject.isActive ? 'Active' : 'Inactive'"
                     [severity]="subject.isActive ? 'success' : 'secondary'"
-                    [rounded]="true"
+                    [rounded]="false"
                   />
                 </td>
               </tr>
@@ -193,7 +194,7 @@
                   <div class="user-cell">
                     <p-avatar
                       [label]="getInitials(student.user.fullName)"
-                      shape="circle"
+                      shape="square"
                       [styleClass]="'td-avatar '+ getAvatarColor(student.id)"
                     />
                     <div class="cell-info">
@@ -224,7 +225,7 @@
                   <p-tag
                     [value]="student.user.status | titlecase"
                     [severity]="getStatusSeverity(student.user.status)"
-                    [rounded]="true"
+                    [rounded]="false"
                   />
                 </td>
               </tr>
@@ -287,7 +288,7 @@
                   <p-tag
                     [value]="exam.status | titlecase"
                     [severity]="getExamStatusSeverity(exam.status)"
-                    [rounded]="true"
+                    [rounded]="false"
                   />
                 </td>
                 <td>{{ exam.createdAt | date : 'MMM d, yyyy' }}</td>

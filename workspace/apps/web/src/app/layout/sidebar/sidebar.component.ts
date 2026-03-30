@@ -10,10 +10,11 @@ import {
   computed,
   inject,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { RippleModule } from 'primeng/ripple';
-import { SidebarModule } from 'primeng/sidebar';
+import { DrawerModule } from 'primeng/drawer';
 import { AuthStore } from '../../core/store/auth.store';
 
 interface MenuItem {
@@ -26,7 +27,7 @@ interface MenuItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterLink, RouterLinkActive, TooltipModule, RippleModule, SidebarModule],
+  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, TooltipModule, RippleModule, DrawerModule],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

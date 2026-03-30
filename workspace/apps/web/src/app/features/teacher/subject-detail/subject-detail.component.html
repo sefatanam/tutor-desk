@@ -6,6 +6,7 @@
       label="Back to Subjects"
       [text]="true"
       routerLink="/teacher/subjects"
+      size="small"
     />
   </div>
 
@@ -19,7 +20,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Subject Not Found</h2>
     <p>The subject you're looking for doesn't exist or has been deleted.</p>
-    <p-button label="Go to Subjects" routerLink="/teacher/subjects" />
+    <p-button label="Go to Subjects" size="small" routerLink="/teacher/subjects" />
   </div>
   } @else {
   <!-- Subject Header -->
@@ -159,7 +160,7 @@
             icon="pi pi-times"
             severity="danger"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="Remove from subject"
             (click)="confirmUnenroll(student)"
@@ -229,7 +230,7 @@
             icon="pi pi-plus"
             severity="success"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="Enroll in subject"
             (click)="enrollStudent(student)"
@@ -313,7 +314,7 @@
             icon="pi pi-chart-bar"
             severity="info"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="View Results"
             [routerLink]="['/teacher/exams', exam.id, 'results']"
@@ -322,7 +323,7 @@
             icon="pi pi-eye"
             severity="secondary"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="View Exam"
             [routerLink]="['/teacher/exams', exam.id]"

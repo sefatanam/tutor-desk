@@ -62,15 +62,18 @@
   <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
 </aside>
 
-<p-sidebar
-  mode="headless"
-  position="left"
-  appendTo="body"
+<p-drawer
   [visible]="mobileOpen()"
   (visibleChange)="mobileOpenChange.emit($event)"
-  [baseZIndex]="1000"
+  position="left"
+  [modal]="true"
+  [showCloseIcon]="false"
+  appendTo="body"
+  styleClass="!p-0 !w-auto !rounded-none"
 >
-  <div class="sidebar sidebar--overlay" [class.collapsed]="collapsed()">
-    <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
-  </div>
-</p-sidebar>
+  <ng-template #headless>
+    <div class="sidebar sidebar--overlay" [class.collapsed]="collapsed()">
+      <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+    </div>
+  </ng-template>
+</p-drawer>

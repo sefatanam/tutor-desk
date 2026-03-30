@@ -6,7 +6,7 @@
       pRipple
       type="button"
       icon="pi pi-bars"
-      class="p-button-text p-button-rounded header__menu-btn"
+      class="p-button-text header__menu-btn"
       (click)="toggleSidebar.emit()"
       aria-label="Toggle sidebar"
     ></button>
@@ -40,7 +40,7 @@
       pRipple
       type="button"
       icon="pi pi-bell"
-      class="p-button-text p-button-rounded"
+      class="p-button-text"
       pBadge
       value="3"
       severity="danger"
@@ -53,7 +53,7 @@
       pRipple
       type="button"
       [icon]="darkMode() ? 'pi pi-sun' : 'pi pi-moon'"
-      class="p-button-text p-button-rounded"
+      class="p-button-text"
       (click)="toggleTheme()"
       aria-label="Toggle theme"
     ></button>
@@ -62,10 +62,11 @@
     <div class="header__user">
       <p-avatar
         icon="pi pi-user"
-        shape="circle"
+        shape="square"
         styleClass="td-avatar td-tone-primary"
         (click)="userMenu.toggle($event)"
         class="cursor-pointer"
+        style="border-radius: var(--r-sm);"
       />
       <p-menu
         #userMenu

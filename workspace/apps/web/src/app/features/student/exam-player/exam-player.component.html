@@ -20,6 +20,7 @@
       <p-button
         label="Back to Exams"
         icon="pi pi-arrow-left"
+        size="small"
         (click)="navigateToExams()"
       />
     </div>
@@ -146,6 +147,7 @@
           label="Submit Exam"
           severity="danger"
           [outlined]="true"
+          size="small"
           (click)="confirmSubmit()"
         />
       </div>
@@ -215,6 +217,7 @@
             icon="pi pi-forward"
             severity="secondary"
             [outlined]="true"
+            size="small"
             (click)="skipQuestion()"
           />
           } @if (currentIndex() > 0 && exam()!.allowSkipReturn) {
@@ -222,6 +225,7 @@
             label="Previous"
             icon="pi pi-arrow-left"
             severity="secondary"
+            size="small"
             (click)="goToPrevious()"
           />
           } @if (!isLastQuestion()) {
@@ -229,6 +233,7 @@
             label="Next"
             icon="pi pi-arrow-right"
             iconPos="right"
+            size="small"
             (click)="goToNext()"
             [disabled]="!selectedOption() && !exam()!.allowSkipReturn"
           />
@@ -237,6 +242,7 @@
             label="Submit Exam"
             icon="pi pi-check"
             severity="success"
+            size="small"
             (click)="confirmSubmit()"
           />
           }
@@ -368,12 +374,14 @@
         <p-button
           label="View Results"
           icon="pi pi-chart-bar"
+          size="small"
           (click)="navigateToResults()"
         />
         <p-button
           label="Back to Exams"
           icon="pi pi-arrow-left"
           severity="secondary"
+          size="small"
           (click)="navigateToExams()"
         />
       </div>

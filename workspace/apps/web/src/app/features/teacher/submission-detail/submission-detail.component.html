@@ -7,6 +7,7 @@
       label="Back to Exam Results"
       [text]="true"
       [routerLink]="['/teacher/exams', submission()!.examId, 'results']"
+      size="small"
     />
     } @else {
     <p-button
@@ -14,6 +15,7 @@
       label="Back"
       [text]="true"
       routerLink="/teacher/exams"
+      size="small"
     />
     }
   </div>
@@ -35,7 +37,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Submission Not Found</h2>
     <p>The submission you're looking for doesn't exist.</p>
-    <p-button label="Go to Exams" routerLink="/teacher/exams" />
+    <p-button label="Go to Exams" size="small" routerLink="/teacher/exams" />
   </div>
   } @else {
   <!-- Header -->

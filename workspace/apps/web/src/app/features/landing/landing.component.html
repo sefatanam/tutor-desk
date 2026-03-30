@@ -1,366 +1,539 @@
-<div class="landing">
-  <!-- Navigation -->
-  <nav class="landing__nav">
-    <div class="landing__nav-container">
-      <a routerLink="/" class="landing__logo">
-        <span class="landing__logo-icon">
+<!-- ================================================================
+     TUTOR DESK — LANDING PAGE
+     Premium UK-standard educational design for Bangladesh market
+     All classes prefixed with td-lp-
+     ================================================================ -->
+<div class="td-lp-root">
+
+  <!-- ══════════════════════════════════════════════════════
+       1. NAVIGATION
+  ══════════════════════════════════════════════════════ -->
+  <header class="td-lp-nav" role="banner">
+    <div class="td-lp-nav__wrap">
+
+      <!-- Logo -->
+      <a routerLink="/" class="td-lp-nav__logo" aria-label="TutorDesk home">
+        <span class="td-lp-nav__logo-icon" aria-hidden="true">
           <i class="pi pi-book"></i>
         </span>
-        <span class="landing__logo-text">Tutor Desk</span>
+        <span class="td-lp-nav__logo-text">Tutor<strong>Desk</strong></span>
       </a>
 
-      <div class="landing__nav-links">
-        <a href="#features" class="landing__nav-link">Features</a>
-        <a href="#about" class="landing__nav-link">About</a>
-        <a href="#contact" class="landing__nav-link">Contact</a>
-      </div>
+      <!-- Desktop nav links -->
+      <nav class="td-lp-nav__links" aria-label="Primary navigation">
+        <a href="#features"     class="td-lp-nav__link">Features</a>
+        <a href="#how-it-works" class="td-lp-nav__link">How It Works</a>
+        <a href="#testimonials" class="td-lp-nav__link">Reviews</a>
+        <a href="#pricing"      class="td-lp-nav__link">Pricing</a>
+      </nav>
 
-      <div class="landing__nav-actions">
-        <a routerLink="/auth/login" class="landing__nav-link">Sign In</a>
-        <a routerLink="/auth/register">
-          <button
-            pButton
-            pRipple
-            label="Get Started"
-            class="p-button-rounded"
-          ></button>
+      <!-- Desktop actions -->
+      <div class="td-lp-nav__actions">
+        <a routerLink="/auth/login" class="td-lp-nav__signin">Sign in</a>
+        <a routerLink="/auth/register" class="td-lp-nav__cta">
+          Start free
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </a>
       </div>
 
-      <!-- Mobile menu button -->
+      <!-- Mobile hamburger -->
       <button
-        class="landing__mobile-menu-btn"
+        class="td-lp-nav__burger"
+        [class.td-lp-nav__burger--open]="mobileMenuOpen()"
         (click)="mobileMenuOpen.set(!mobileMenuOpen())"
-      >
-        <i [class]="mobileMenuOpen() ? 'pi pi-times' : 'pi pi-bars'"></i>
+        aria-label="Toggle mobile menu"
+        [attr.aria-expanded]="mobileMenuOpen()">
+        <span></span>
+        <span></span>
+        <span></span>
       </button>
     </div>
 
-    <!-- Mobile menu -->
+    <!-- Mobile drawer -->
     @if (mobileMenuOpen()) {
-    <div class="landing__mobile-menu animate-slide-up">
-      <a
-        href="#features"
-        class="landing__mobile-link"
-        (click)="mobileMenuOpen.set(false)"
-        >Features</a
-      >
-      <a
-        href="#about"
-        class="landing__mobile-link"
-        (click)="mobileMenuOpen.set(false)"
-        >About</a
-      >
-      <a
-        href="#contact"
-        class="landing__mobile-link"
-        (click)="mobileMenuOpen.set(false)"
-        >Contact</a
-      >
-      <p-divider />
-      <a
-        routerLink="/auth/login"
-        class="landing__mobile-link"
-        (click)="mobileMenuOpen.set(false)"
-        >Sign In</a
-      >
-      <a routerLink="/auth/register" (click)="mobileMenuOpen.set(false)">
-        <button
-          pButton
-          pRipple
-          label="Get Started"
-          class="p-button-rounded w-full"
-        ></button>
-      </a>
-    </div>
+      <div class="td-lp-nav__drawer" role="dialog" aria-label="Mobile navigation">
+        <a href="#features"     class="td-lp-nav__drawer-link" (click)="mobileMenuOpen.set(false)">Features</a>
+        <a href="#how-it-works" class="td-lp-nav__drawer-link" (click)="mobileMenuOpen.set(false)">How It Works</a>
+        <a href="#testimonials" class="td-lp-nav__drawer-link" (click)="mobileMenuOpen.set(false)">Reviews</a>
+        <a href="#pricing"      class="td-lp-nav__drawer-link" (click)="mobileMenuOpen.set(false)">Pricing</a>
+        <div class="td-lp-nav__drawer-divider"></div>
+        <a routerLink="/auth/login"    class="td-lp-nav__drawer-link" (click)="mobileMenuOpen.set(false)">Sign in</a>
+        <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--primary td-lp-btn--full" (click)="mobileMenuOpen.set(false)">
+          Start free
+        </a>
+      </div>
     }
-  </nav>
+  </header>
 
-  <!-- Hero Section -->
-  <section class="landing__hero">
-    <div class="landing__hero-bg">
-      <div class="landing__hero-gradient"></div>
-      <div class="landing__hero-grid"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2. HERO — full viewport, navy background, two-column
+  ══════════════════════════════════════════════════════ -->
+  <section class="td-lp-hero" aria-label="Hero">
+
+    <!-- Background dot pattern -->
+    <div class="td-lp-hero__bg" aria-hidden="true">
+      <div class="td-lp-hero__dots"></div>
+      <div class="td-lp-hero__glow td-lp-hero__glow--a"></div>
+      <div class="td-lp-hero__glow td-lp-hero__glow--b"></div>
     </div>
 
-    <div class="landing__hero-content">
-      <div class="landing__hero-badge animate-slide-up">
-        <i class="pi pi-sparkles"></i>
-        <span>Empowering Education</span>
-      </div>
+    <div class="td-lp-hero__inner">
 
-      <h1 class="landing__hero-title animate-slide-up stagger-1">
-        The Modern Platform for
-        <span class="landing__hero-highlight">Teachers & Students</span>
-      </h1>
+      <!-- LEFT — copy column -->
+      <div class="td-lp-hero__copy">
 
-      <p class="landing__hero-subtitle animate-slide-up stagger-2">
-        Simplify your teaching workflow with powerful exam management,
-        student tracking, and real-time analytics. All in one place.
-      </p>
-
-      <div class="landing__hero-actions animate-slide-up stagger-3">
-        <a routerLink="/auth/register">
-          <button
-            pButton
-            pRipple
-            label="Start Free Trial"
-            icon="pi pi-arrow-right"
-            iconPos="right"
-            class="p-button-lg p-button-rounded"
-          ></button>
-        </a>
-        <a href="#features">
-          <button
-            pButton
-            pRipple
-            label="Learn More"
-            icon="pi pi-play"
-            class="p-button-lg p-button-rounded p-button-outlined"
-          ></button>
-        </a>
-      </div>
-
-      <div class="landing__hero-stats animate-slide-up stagger-4">
-        @for (stat of stats; track stat.label) {
-        <div class="landing__stat">
-          <span class="landing__stat-value">{{ stat.value }}</span>
-          <span class="landing__stat-label">{{ stat.label }}</span>
+        <!-- Eyebrow badge -->
+        <div class="td-lp-hero__badge" role="note">
+          <span class="td-lp-hero__badge-dot" aria-hidden="true"></span>
+          <span>🇧🇩</span>
+          <span><span class="bn">বাংলাদেশের #১ পরীক্ষা প্ল্যাটফর্ম</span></span>
         </div>
-        }
-      </div>
-    </div>
 
-    <!-- Floating elements -->
-    <div class="landing__hero-visuals">
-      <div
-        class="landing__floating-card landing__floating-card--1 animate-float"
-      >
-        <i class="pi pi-check-circle"></i>
-        <span>Exam Completed</span>
-      </div>
-      <div
-        class="landing__floating-card landing__floating-card--2 animate-float stagger-5"
-      >
-        <i class="pi pi-chart-line"></i>
-        <span>95% Score</span>
-      </div>
-      <div
-        class="landing__floating-card landing__floating-card--3 animate-float stagger-10"
-      >
-        <i class="pi pi-users"></i>
-        <span>+50 Students</span>
-      </div>
-    </div>
-  </section>
+        <!-- Main heading -->
+        <h1 class="td-lp-hero__h1">
+          <span class="td-lp-hero__h1-bn bn">পরীক্ষা দিন,</span>
+          <span class="td-lp-hero__h1-bn td-lp-hero__h1-bn--bright bn">এগিয়ে যান।</span>
+          <span class="td-lp-hero__h1-en">The Smart Exam Platform for SSC · HSC Students</span>
+        </h1>
 
-  <!-- Features Section -->
-  <section id="features" class="landing__features">
-    <div class="landing__section-header">
-      <span class="landing__section-badge">Features</span>
-      <h2 class="landing__section-title">Everything You Need</h2>
-      <p class="landing__section-subtitle">
-        Powerful features designed for modern education
-      </p>
-    </div>
+        <!-- Description -->
+        <p class="td-lp-hero__desc">
+          <span class="bn">SSC ও HSC শিক্ষার্থীদের জন্য আধুনিক MCQ পরীক্ষা।</span>
+          অটো-গ্রেডিং, রিয়েল-টাইম analytics এবং অ্যান্টি-চিট সুরক্ষা — সব এক জায়গায়।
+        </p>
 
-    <div class="landing__features-grid">
-      @for (feature of features; track feature.title; let i = $index) {
-      <div
-        class="landing__feature-card"
-        [ngClass]="getStaggerClass(i)"
-      >
-        <div
-          class="landing__feature-icon"
-          [ngClass]="feature.color"
-        >
-          <i [class]="'pi ' + feature.icon"></i>
+        <!-- CTA buttons -->
+        <div class="td-lp-hero__actions">
+          <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--primary td-lp-btn--lg">
+            <span class="bn">বিনামূল্যে শুরু করুন</span>
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </a>
+          <a href="#how-it-works" class="td-lp-btn td-lp-btn--ghost td-lp-btn--lg">
+            <i class="pi pi-play-circle" aria-hidden="true"></i>
+            Watch demo
+          </a>
         </div>
-        <h3 class="landing__feature-title">{{ feature.title }}</h3>
-        <p class="landing__feature-desc">{{ feature.description }}</p>
-      </div>
-      }
-    </div>
-  </section>
 
-  <!-- Simplicity Section -->
-  <section class="landing__simplicity">
-    <div class="landing__simplicity-content">
-      <span class="landing__section-badge">Simplicity</span>
-      <h2 class="landing__section-title">Focus on What Matters</h2>
-      <p class="landing__simplicity-text">
-        We believe in keeping things simple. No complex setups, no confusing
-        interfaces. Just powerful tools that work the way you expect them
-        to.
-      </p>
+        <!-- Trust line -->
+        <p class="td-lp-hero__trust">
+          <i class="pi pi-lock" aria-hidden="true"></i>
+          No credit card &nbsp;·&nbsp; 30 sec setup &nbsp;·&nbsp;
+          <span class="bn">সম্পূর্ণ বিনামূল্যে</span>
+        </p>
 
-      <div class="landing__simplicity-points">
-        @for (point of simplicityPoints; track point) {
-        <div class="landing__simplicity-point">
-          <i class="pi pi-check-circle"></i>
-          <span>{{ point }}</span>
+        <!-- Stats grid -->
+        <div class="td-lp-hero__stats" role="list">
+          @for (s of stats; track s.label) {
+            <div class="td-lp-hero__stat" role="listitem">
+              <strong class="td-lp-hero__stat-num bn">{{ s.display }}</strong>
+              <span class="td-lp-hero__stat-label bn">{{ s.label }}</span>
+              <span class="td-lp-hero__stat-en">{{ s.labelEn }}</span>
+            </div>
+          }
         </div>
-        }
-      </div>
-    </div>
 
-    <div class="landing__simplicity-visual">
-      <div class="landing__device-frame">
-        <div class="landing__device-screen">
-          <div class="landing__device-header">
-            <span class="landing__device-dot"></span>
-            <span class="landing__device-dot"></span>
-            <span class="landing__device-dot"></span>
+      </div>
+
+      <!-- RIGHT — exam mockup -->
+      <div class="td-lp-hero__visual" aria-hidden="true">
+
+        <!-- Floating notification A — exam complete -->
+        <div class="td-lp-toast td-lp-toast--a">
+          <span class="td-lp-toast__icon td-lp-toast__icon--green">
+            <i class="pi pi-check"></i>
+          </span>
+          <div class="td-lp-toast__body">
+            <b class="bn">পরীক্ষা সম্পন্ন!</b>
+            <small class="bn">রাহেলা · স্কোর ৯৫%</small>
           </div>
-          <div class="landing__device-content">
-            <div class="landing__mock-sidebar"></div>
-            <div class="landing__mock-main">
-              <div class="landing__mock-card"></div>
-              <div class="landing__mock-card"></div>
-              <div class="landing__mock-card"></div>
+        </div>
+
+        <!-- Floating notification B — new students -->
+        <div class="td-lp-toast td-lp-toast--b">
+          <span class="td-lp-toast__icon td-lp-toast__icon--blue">
+            <i class="pi pi-users"></i>
+          </span>
+          <div class="td-lp-toast__body">
+            <b class="bn">+১২ শিক্ষার্থী</b>
+            <small>joined today</small>
+          </div>
+        </div>
+
+        <!-- Floating notification C — analytics -->
+        <div class="td-lp-toast td-lp-toast--c">
+          <span class="td-lp-toast__icon td-lp-toast__icon--purple">
+            <i class="pi pi-chart-bar"></i>
+          </span>
+          <div class="td-lp-toast__body">
+            <b class="bn">ব্যাচ গড় ৮৭%</b>
+            <small>Physics · Class 10</small>
+          </div>
+        </div>
+
+        <!-- Browser-frame exam interface mockup -->
+        <div class="td-lp-mockup">
+          <!-- Browser chrome top bar -->
+          <div class="td-lp-mockup__bar">
+            <div class="td-lp-mockup__dots">
+              <span class="td-lp-mockup__dot td-lp-mockup__dot--red"></span>
+              <span class="td-lp-mockup__dot td-lp-mockup__dot--yellow"></span>
+              <span class="td-lp-mockup__dot td-lp-mockup__dot--green"></span>
+            </div>
+            <div class="td-lp-mockup__url">
+              <i class="pi pi-lock"></i>
+              tutordesk.com.bd/exam/live
             </div>
           </div>
+
+          <!-- Exam UI content -->
+          <div class="td-lp-mockup__body">
+
+            <!-- Exam header row -->
+            <div class="td-lp-mockup__exam-header">
+              <div class="td-lp-mockup__exam-meta">
+                <span class="td-lp-mockup__q-badge">Q 3</span>
+                <span class="td-lp-mockup__subject bn">পদার্থবিজ্ঞান</span>
+              </div>
+              <div class="td-lp-mockup__timer">
+                <i class="pi pi-clock"></i>
+                <span>14:32</span>
+              </div>
+            </div>
+
+            <!-- Question text -->
+            <div class="td-lp-mockup__question">
+              <p class="td-lp-mockup__q-text bn">
+                নিউটনের গতির দ্বিতীয় সূত্র অনুযায়ী, বল (F), ভর (m) এবং ত্বরণ (a)-এর মধ্যে সম্পর্ক কোনটি?
+              </p>
+            </div>
+
+            <!-- MCQ options -->
+            <div class="td-lp-mockup__options">
+              <label class="td-lp-mockup__option">
+                <span class="td-lp-mockup__option-radio">A</span>
+                <span class="bn">F = m / a</span>
+              </label>
+              <label class="td-lp-mockup__option td-lp-mockup__option--selected">
+                <span class="td-lp-mockup__option-radio td-lp-mockup__option-radio--selected">B</span>
+                <span class="bn">F = m × a</span>
+                <i class="pi pi-check td-lp-mockup__option-check"></i>
+              </label>
+              <label class="td-lp-mockup__option">
+                <span class="td-lp-mockup__option-radio">C</span>
+                <span class="bn">F = a / m</span>
+              </label>
+              <label class="td-lp-mockup__option">
+                <span class="td-lp-mockup__option-radio">D</span>
+                <span class="bn">F = m + a</span>
+              </label>
+            </div>
+
+            <!-- Progress bar footer -->
+            <div class="td-lp-mockup__footer">
+              <div class="td-lp-mockup__progress-label">
+                <span>3 of 10 questions</span>
+                <span>30%</span>
+              </div>
+              <div class="td-lp-mockup__progress-track">
+                <div class="td-lp-mockup__progress-fill" style="width: 30%"></div>
+              </div>
+              <div class="td-lp-mockup__nav-row">
+                <button class="td-lp-mockup__nav-btn">
+                  <i class="pi pi-chevron-left"></i> Prev
+                </button>
+                <button class="td-lp-mockup__nav-btn td-lp-mockup__nav-btn--primary">
+                  Next <i class="pi pi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
+
       </div>
     </div>
   </section>
 
-  <!-- Motto Section -->
-  <section class="landing__motto">
-    <div class="landing__motto-content">
-      <h2 class="landing__motto-text">
-        "Education is not preparation for life; <br />
-        <span class="landing__motto-highlight"
-          >education is life itself.</span
-        >"
-      </h2>
-      <p class="landing__motto-author">- John Dewey</p>
-    </div>
-  </section>
 
-  <!-- About Section -->
-  <section id="about" class="landing__about">
-    <div class="landing__about-content">
-      <span class="landing__section-badge">About</span>
-      <h2 class="landing__section-title">Built for Educators</h2>
-      <p class="landing__about-text">
-        Tutor Desk was born from a simple idea: teachers deserve better
-        tools. We've built a platform that understands the unique challenges
-        of education and provides solutions that actually work.
-      </p>
-      <p class="landing__about-text">
-        Our mission is to empower educators with technology that enhances,
-        not complicates, the learning experience for both teachers and
-        students.
-      </p>
-    </div>
-  </section>
-
-  <!-- Contact Section -->
-  <section id="contact" class="landing__contact">
-    <div class="landing__section-header">
-      <span class="landing__section-badge">Contact</span>
-      <h2 class="landing__section-title">Get in Touch</h2>
-      <p class="landing__section-subtitle">
-        Have questions? We'd love to hear from you.
-      </p>
-    </div>
-
-    <div class="landing__contact-cards">
-      @for (contact of contactMethods; track contact.title) {
-      <div class="landing__contact-card">
-        <i [class]="'pi ' + contact.icon"></i>
-        <h3>{{ contact.title }}</h3>
-        <p>{{ contact.value }}</p>
-      </div>
+  <!-- ══════════════════════════════════════════════════════
+       3. TRUST BAR — thin dark strip with stats
+  ══════════════════════════════════════════════════════ -->
+  <div class="td-lp-trust-bar" role="complementary" aria-label="Platform statistics">
+    <div class="td-lp-trust-bar__inner">
+      <span class="td-lp-trust-bar__label">Trusted by educators across Bangladesh</span>
+      <div class="td-lp-trust-bar__divider" aria-hidden="true"></div>
+      @for (s of stats; track s.label) {
+        <div class="td-lp-trust-bar__stat">
+          <strong class="td-lp-trust-bar__num bn">{{ s.display }}</strong>
+          <span class="td-lp-trust-bar__name bn">{{ s.label }}</span>
+          <em class="td-lp-trust-bar__en">{{ s.labelEn }}</em>
+        </div>
       }
     </div>
-  </section>
+  </div>
 
-  <!-- Developer Section -->
-  <section class="landing__developer">
-    <div class="landing__developer-content">
-      <div class="landing__developer-avatar">
-        <i class="pi pi-code"></i>
-      </div>
-      <h3 class="landing__developer-title">Built with Love</h3>
-      <p class="landing__developer-text">
-        Crafted using Angular, Supabase, and PrimeNG. Open source and
-        continuously improving.
-      </p>
-      <div class="landing__developer-tech">
-        <span class="landing__tech-badge">Angular 21</span>
-        <span class="landing__tech-badge">Supabase</span>
-        <span class="landing__tech-badge">PrimeNG</span>
-        <span class="landing__tech-badge">Tailwind CSS</span>
-      </div>
-    </div>
-  </section>
 
-  <!-- CTA Section -->
-  <section class="landing__cta">
-    <div class="landing__cta-content">
-      <h2 class="landing__cta-title">Ready to Transform Your Teaching?</h2>
-      <p class="landing__cta-subtitle">
-        Join thousands of educators who have simplified their workflow with
-        Tutor Desk.
-      </p>
-      <a routerLink="/auth/register">
-        <button
-          pButton
-          pRipple
-          label="Get Started for Free"
-          icon="pi pi-arrow-right"
-          iconPos="right"
-          class="p-button-lg p-button-rounded landing__cta-btn"
-        ></button>
-      </a>
-    </div>
-  </section>
+  <!-- ══════════════════════════════════════════════════════
+       4. FEATURES — 3-column clean grid
+  ══════════════════════════════════════════════════════ -->
+  <section id="features" class="td-lp-section td-lp-section--white" aria-label="Features">
+    <div class="td-lp-container">
 
-  <!-- Footer -->
-  <footer class="landing__footer">
-    <div class="landing__footer-content">
-      <div class="landing__footer-brand">
-        <a routerLink="/" class="landing__logo">
-          <span class="landing__logo-icon landing__logo-icon--small">
-            <i class="pi pi-book"></i>
-          </span>
-          <span class="landing__logo-text">Tutor Desk</span>
-        </a>
-        <p class="landing__footer-tagline">
-          Empowering education, one exam at a time.
+      <div class="td-lp-section__header">
+        <span class="td-lp-eyebrow">
+          <i class="pi pi-star-fill" aria-hidden="true"></i>
+          <span class="bn">আমাদের ফিচার</span>
+        </span>
+        <h2 class="td-lp-section__h2">Everything you need to teach better</h2>
+        <p class="td-lp-section__sub">
+          <span class="bn">শিক্ষক ও শিক্ষার্থী — উভয়ের জন্য ডিজাইন করা।</span>
+          Built specifically for the Bangladesh curriculum.
         </p>
       </div>
 
-      <div class="landing__footer-links">
-        <div class="landing__footer-column">
-          <h4>Product</h4>
-          <a href="#features">Features</a>
-          <a href="#">Pricing</a>
-          <a href="#">Roadmap</a>
+      <div class="td-lp-features-grid">
+        @for (f of features; track f.titleEn) {
+          <article class="td-lp-feature-card td-lp-feature-card--{{ f.color }} reveal">
+            <div class="td-lp-feature-card__icon td-lp-feature-card__icon--{{ f.color }}">
+              <i [class]="'pi ' + f.icon" aria-hidden="true"></i>
+            </div>
+            <h3 class="td-lp-feature-card__title bn">{{ f.title }}</h3>
+            <span class="td-lp-feature-card__en">{{ f.titleEn }}</span>
+            <p class="td-lp-feature-card__desc bn">{{ f.description }}</p>
+          </article>
+        }
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       5. HOW IT WORKS — 4 horizontal steps
+  ══════════════════════════════════════════════════════ -->
+  <section id="how-it-works" class="td-lp-section td-lp-section--offwhite" aria-label="How it works">
+    <div class="td-lp-container">
+
+      <div class="td-lp-section__header">
+        <span class="td-lp-eyebrow td-lp-eyebrow--dark">
+          <span class="bn">প্রক্রিয়া</span>
+        </span>
+        <h2 class="td-lp-section__h2">4 simple steps to get started</h2>
+        <p class="td-lp-section__sub">
+          Get up and running in under 5 minutes — no technical setup required.
+        </p>
+      </div>
+
+      <div class="td-lp-steps">
+        @for (s of howItWorksSteps; track s.step; let last = $last) {
+          <div class="td-lp-step reveal">
+            <div class="td-lp-step__number bn">{{ s.step }}</div>
+            @if (!last) {
+              <div class="td-lp-step__connector" aria-hidden="true"></div>
+            }
+            <div class="td-lp-step__icon">
+              <i [class]="'pi ' + s.icon" aria-hidden="true"></i>
+            </div>
+            <h3 class="td-lp-step__title bn">{{ s.title }}</h3>
+            <p class="td-lp-step__title-en">{{ s.titleEn }}</p>
+            <p class="td-lp-step__desc bn">{{ s.description }}</p>
+          </div>
+        }
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       6. TESTIMONIALS — 3-column grid (no carousel)
+  ══════════════════════════════════════════════════════ -->
+  <section id="testimonials" class="td-lp-section td-lp-section--white" aria-label="Testimonials">
+    <div class="td-lp-container">
+
+      <div class="td-lp-section__header">
+        <span class="td-lp-eyebrow">
+          <i class="pi pi-heart-fill" aria-hidden="true"></i>
+          <span class="bn">সাফল্যের গল্প</span>
+        </span>
+        <h2 class="td-lp-section__h2">Real stories from Bangladesh educators</h2>
+        <p class="td-lp-section__sub">
+          Thousands of teachers and students trust TutorDesk every day.
+        </p>
+      </div>
+
+      <div class="td-lp-testimonials-grid">
+        @for (t of testimonials; track t.name) {
+          <div class="td-lp-testimonial reveal">
+            <!-- Stars -->
+            <div class="td-lp-testimonial__stars" aria-label="5 out of 5 stars">
+              @for (star of [1,2,3,4,5]; track star) {
+                <i class="pi pi-star-fill" aria-hidden="true"></i>
+              }
+            </div>
+            <!-- Quote -->
+            <blockquote class="td-lp-testimonial__quote bn">
+              "{{ t.quote }}"
+            </blockquote>
+            <!-- Author -->
+            <div class="td-lp-testimonial__author">
+              <div class="td-lp-testimonial__avatar" [style.background]="t.avatarColor" aria-hidden="true">
+                {{ t.avatar }}
+              </div>
+              <div>
+                <p class="td-lp-testimonial__name bn">{{ t.name }}</p>
+                <p class="td-lp-testimonial__role bn">{{ t.role }}</p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       7. CTA BAND — two-column navy section
+  ══════════════════════════════════════════════════════ -->
+  <section id="pricing" class="td-lp-cta" aria-label="Call to action">
+    <div class="td-lp-cta__inner">
+
+      <!-- Left: headline + buttons -->
+      <div class="td-lp-cta__copy">
+        <div class="td-lp-hero__badge td-lp-hero__badge--light">
+          <span class="td-lp-hero__badge-dot" aria-hidden="true"></span>
+          <span class="bn">আজই যোগ দিন — সম্পূর্ণ বিনামূল্যে</span>
         </div>
-        <div class="landing__footer-column">
-          <h4>Company</h4>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
-          <a href="#">Blog</a>
+        <h2 class="td-lp-cta__h2">
+          <span class="bn">আপনার শিক্ষাকে</span>
+          <br>
+          <span class="td-lp-cta__gradient">Transform করুন।</span>
+        </h2>
+        <p class="td-lp-cta__body">
+          <span class="bn">হাজার হাজার শিক্ষক ও শিক্ষার্থী ইতিমধ্যে Tutor Desk ব্যবহার করছেন।</span>
+          <br>
+          Join thousands of educators who simplified their workflow.
+        </p>
+        <div class="td-lp-cta__actions">
+          <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--primary td-lp-btn--lg">
+            <span class="bn">বিনামূল্যে শুরু করুন</span>
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </a>
+          <a routerLink="/auth/login" class="td-lp-btn td-lp-btn--ghost td-lp-btn--lg">
+            <span class="bn">লগইন করুন</span>
+          </a>
         </div>
-        <div class="landing__footer-column">
-          <h4>Legal</h4>
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+      </div>
+
+      <!-- Right: feature checklist -->
+      <div class="td-lp-cta__checklist" aria-label="Key features">
+        <h3 class="td-lp-cta__checklist-title">What you get — for free</h3>
+        <ul class="td-lp-cta__list">
+          <li class="td-lp-cta__list-item">
+            <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
+            <span><span class="bn">MCQ পরীক্ষা তৈরি ও পরিচালনা</span> — Unlimited exams</span>
+          </li>
+          <li class="td-lp-cta__list-item">
+            <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
+            <span>Auto-grading with instant results</span>
+          </li>
+          <li class="td-lp-cta__list-item">
+            <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
+            <span><span class="bn">অ্যান্টি-চিট</span> fullscreen lock &amp; tab detection</span>
+          </li>
+          <li class="td-lp-cta__list-item">
+            <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
+            <span>Analytics dashboard for every student</span>
+          </li>
+          <li class="td-lp-cta__list-item">
+            <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
+            <span><span class="bn">মোবাইল ফার্স্ট</span> — works on any device</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       8. FOOTER
+  ══════════════════════════════════════════════════════ -->
+  <footer class="td-lp-footer" role="contentinfo">
+    <div class="td-lp-footer__inner">
+
+      <!-- Brand column -->
+      <div class="td-lp-footer__brand">
+        <a routerLink="/" class="td-lp-nav__logo" aria-label="TutorDesk home">
+          <span class="td-lp-nav__logo-icon" aria-hidden="true">
+            <i class="pi pi-book"></i>
+          </span>
+          <span class="td-lp-nav__logo-text">Tutor<strong>Desk</strong></span>
+        </a>
+        <p class="td-lp-footer__tagline bn">শিক্ষাকে সহজ করি, একটি পরীক্ষা এক সময়ে।</p>
+        <p class="td-lp-footer__tagline-en">Empowering Bangladesh's educators &amp; students.</p>
+        <div class="td-lp-footer__socials">
+          <a href="#" class="td-lp-footer__social" aria-label="GitHub">
+            <i class="pi pi-github" aria-hidden="true"></i>
+          </a>
+          <a href="#" class="td-lp-footer__social" aria-label="Twitter / X">
+            <i class="pi pi-twitter" aria-hidden="true"></i>
+          </a>
+          <a href="#" class="td-lp-footer__social" aria-label="LinkedIn">
+            <i class="pi pi-linkedin" aria-hidden="true"></i>
+          </a>
         </div>
+      </div>
+
+      <!-- Link columns -->
+      <div class="td-lp-footer__cols">
+
+        <div class="td-lp-footer__col">
+          <h4 class="td-lp-footer__col-title">Product</h4>
+          <a href="#features"     class="td-lp-footer__link">Features</a>
+          <a href="#how-it-works" class="td-lp-footer__link">How it works</a>
+          <a href="#"             class="td-lp-footer__link">Pricing</a>
+          <a href="#"             class="td-lp-footer__link">Changelog</a>
+        </div>
+
+        <div class="td-lp-footer__col">
+          <h4 class="td-lp-footer__col-title bn">কোম্পানি</h4>
+          <a href="#" class="td-lp-footer__link bn">আমাদের সম্পর্কে</a>
+          <a href="#" class="td-lp-footer__link bn">যোগাযোগ</a>
+          <a href="#" class="td-lp-footer__link">Blog</a>
+          <a href="#" class="td-lp-footer__link">Careers</a>
+        </div>
+
+        <div class="td-lp-footer__col">
+          <h4 class="td-lp-footer__col-title">Support</h4>
+          <a href="#" class="td-lp-footer__link">Help Centre</a>
+          <a href="#" class="td-lp-footer__link">Documentation</a>
+          <a href="#" class="td-lp-footer__link">Privacy Policy</a>
+          <a href="#" class="td-lp-footer__link">Terms of Service</a>
+        </div>
+
+        <div class="td-lp-footer__col">
+          <h4 class="td-lp-footer__col-title">Platform</h4>
+          <a routerLink="/auth/register" class="td-lp-footer__link">Sign up free</a>
+          <a routerLink="/auth/login"    class="td-lp-footer__link">Sign in</a>
+          <a href="#" class="td-lp-footer__link">Status</a>
+          <a href="#" class="td-lp-footer__link">API</a>
+        </div>
+
       </div>
     </div>
 
-    <div class="landing__footer-bottom">
-      <p>&copy; {{ currentYear }} Tutor Desk. All rights reserved.</p>
-      <div class="landing__social-links">
-        <a href="#" aria-label="GitHub"><i class="pi pi-github"></i></a>
-        <a href="#" aria-label="Twitter"><i class="pi pi-twitter"></i></a>
-        <a href="#" aria-label="LinkedIn"><i class="pi pi-linkedin"></i></a>
-      </div>
+    <!-- Bottom bar -->
+    <div class="td-lp-footer__bottom">
+      <p class="td-lp-footer__copy">
+        &copy; {{ currentYear }} TutorDesk. All rights reserved.
+      </p>
+      <p class="td-lp-footer__love bn">
+        তৈরি হয়েছে ভালোবাসা দিয়ে 🇧🇩 বাংলাদেশে
+      </p>
     </div>
   </footer>
+
 </div>

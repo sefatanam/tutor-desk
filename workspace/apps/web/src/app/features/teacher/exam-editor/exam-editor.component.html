@@ -6,9 +6,10 @@
         icon="pi pi-arrow-left"
         severity="secondary"
         [text]="true"
-        [rounded]="true"
+        [rounded]="false"
         (click)="goBack()"
-      />
+      size="small"
+    />
       <div class="page-header__content">
         <h1 class="page-header__title">
           {{ isEditMode() ? 'Edit Exam' : 'Create New Exam' }}
@@ -650,7 +651,7 @@
                 icon="pi pi-times"
                 severity="danger"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 size="small"
                 (click)="removeOption(i)"
               />

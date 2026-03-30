@@ -20,7 +20,7 @@
     @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="dashboard__stat-card">
       <div class="stat-card">
-        <p-skeleton shape="circle" size="52px" />
+        <p-skeleton shape="square" size="36px" />
         <div class="stat-card__content">
           <p-skeleton width="60px" height="28px" />
           <p-skeleton width="100px" height="16px" />
@@ -56,7 +56,7 @@
 
       @if (loadingStats()) {
       <div class="chart-loading">
-        <p-skeleton shape="circle" size="180px" />
+        <p-skeleton shape="square" size="180px" />
       </div>
       } @else if (teacherStatusData()) {
       <div class="chart-container">
@@ -145,7 +145,7 @@
               <div class="teacher-info">
                 <p-avatar
                   [label]="getInitials(teacher.user.fullName)"
-                  shape="circle"
+                  shape="square"
                   [styleClass]="'td-avatar ' + getAvatarColor(teacher.id)"
                 />
                 <div class="teacher-info__text">
@@ -165,7 +165,7 @@
               <p-tag
                 [value]="teacher.user.status | titlecase"
                 [severity]="getStatusSeverity(teacher.user.status)"
-                [rounded]="true"
+                [rounded]="false"
               />
             </td>
             <td>
@@ -177,7 +177,7 @@
               <p-button
                 icon="pi pi-ellipsis-v"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 size="small"
                 pTooltip="Actions"
                 tooltipPosition="left"
@@ -209,7 +209,7 @@
             <p-tag
               [value]="pendingTeachers().length.toString()"
               severity="warn"
-              [rounded]="true"
+              [rounded]="false"
             />
           </div>
         </ng-template>
@@ -219,7 +219,7 @@
           @for (i of [1, 2]; track i) {
           <div class="approval-item">
             <div class="approval-item__user">
-              <p-skeleton shape="circle" size="40px" />
+              <p-skeleton shape="square" size="40px" />
               <div class="approval-item__info">
                 <p-skeleton width="120px" height="16px" />
                 <p-skeleton width="150px" height="14px" />
@@ -243,7 +243,7 @@
             <div class="approval-item__user">
               <p-avatar
                 [label]="getInitials(teacher.user.fullName)"
-                shape="circle"
+                shape="square"
                 size="normal"
                 styleClass="td-avatar td-avatar-surface"
               />
@@ -261,7 +261,7 @@
                 icon="pi pi-check"
                 severity="success"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Approve"
                 tooltipPosition="top"
                 (click)="confirmApprove(teacher)"
@@ -271,7 +271,7 @@
                 severity="danger"
                 [outlined]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Reject"
                 tooltipPosition="top"
                 (click)="confirmReject(teacher)"

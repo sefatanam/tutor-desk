@@ -126,7 +126,7 @@
           label="Register as Teacher"
           [loading]="authStore.isLoading()"
           [disabled]="registerForm.invalid || authStore.isLoading()"
-          class="w-full p-button-lg"
+          class="w-full"
         ></button>
       </form>
       } @else {
@@ -145,7 +145,7 @@
           type="button"
           label="Go to Login"
           (click)="goToLogin()"
-          class="w-full p-button-lg"
+          class="w-full"
         ></button>
       </div>
       } @if (!isRegistered()) {

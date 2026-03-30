@@ -35,7 +35,10 @@
       "Bash(npx ng lint:*)",
       "mcp__plugin_supabase_supabase__execute_sql",
       "mcp__supabase__search_docs",
-      "Bash(find /Users/sefat/Documents/Github/tutor-desk/workspace -name tailwind.config.* -o -name postcss.config.*)"
+      "Bash(find /Users/sefat/Documents/Github/tutor-desk/workspace -name tailwind.config.* -o -name postcss.config.*)",
+      "Bash(xargs sed:*)",
+      "Bash(python3:*)",
+      "Bash(npx nx:*)"
     ]
   },
   "enableAllProjectMcpServers": true

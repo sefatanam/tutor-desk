@@ -6,6 +6,7 @@
       label="Back to Subject"
       [text]="true"
       [routerLink]="['/teacher/subjects', subjectId()]"
+      size="small"
     />
   </div>
 
@@ -19,7 +20,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Subject Not Found</h2>
     <p>The subject you're looking for doesn't exist or has been deleted.</p>
-    <p-button label="Go to Subjects" routerLink="/teacher/subjects" />
+    <p-button label="Go to Subjects" size="small" routerLink="/teacher/subjects" />
   </div>
   } @else {
   <!-- Page Header -->
@@ -38,6 +39,7 @@
     <p-button
       icon="pi pi-plus"
       label="Add Asset"
+      size="small"
       (click)="openCreateDialog()"
     />
   </header>
@@ -61,6 +63,7 @@
       <p-button
         label="Add First Asset"
         icon="pi pi-plus"
+        size="small"
         (click)="openCreateDialog()"
       />
     </div>
@@ -121,7 +124,7 @@
               <p-button
                 icon="pi pi-external-link"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 size="small"
                 pTooltip="Open"
                 (click)="openAsset(asset)"
@@ -131,7 +134,7 @@
                 icon="pi pi-pencil"
                 severity="secondary"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 size="small"
                 pTooltip="Edit"
                 (click)="openEditDialog(asset)"
@@ -140,7 +143,7 @@
                 icon="pi pi-trash"
                 severity="danger"
                 [text]="true"
-                [rounded]="true"
+                [rounded]="false"
                 size="small"
                 pTooltip="Delete"
                 (click)="confirmDelete(asset)"
@@ -241,11 +244,13 @@
         label="Cancel"
         severity="secondary"
         [text]="true"
+        size="small"
         (click)="closeDialog()"
       />
       <p-button
         [label]="editingAsset() ? 'Update' : 'Create'"
         type="submit"
+        size="small"
         [loading]="saving()"
         [disabled]="assetForm.invalid || saving()"
       />

@@ -14,7 +14,7 @@
     @if (loading()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <p-skeleton shape="circle" size="48px" />
+        <p-skeleton shape="square" size="32px" />
         <div class="stat-card__text">
           <p-skeleton width="40px" height="24px" />
           <p-skeleton width="80px" height="14px" />
@@ -86,7 +86,7 @@
     <p-card styleClass="exam-card exam-card--skeleton">
       <div class="exam-card__header">
         <p-skeleton width="60%" height="20px" />
-        <p-skeleton width="60px" height="24px" borderRadius="16px" />
+        <p-skeleton width="60px" height="24px" borderRadius="4px" />
       </div>
       <div class="exam-card__body">
         <p-skeleton width="80%" height="16px" />

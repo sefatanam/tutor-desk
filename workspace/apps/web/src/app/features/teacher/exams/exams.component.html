@@ -20,7 +20,7 @@
     @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <p-skeleton shape="circle" size="48px" />
+        <p-skeleton shape="square" size="32px" />
         <div class="stat-card__text">
           <p-skeleton width="40px" height="24px" />
           <p-skeleton width="80px" height="14px" />
@@ -70,7 +70,7 @@
         <p-skeleton width="120px" height="16px" />
         <p-skeleton width="80px" height="16px" />
         <p-skeleton width="60px" height="16px" />
-        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="4px" />
         <p-skeleton width="100px" height="32px" />
       </div>
       }
@@ -158,7 +158,7 @@
             <p-tag
               [value]="getStatusLabel(exam.status)"
               [severity]="getStatusSeverity(exam.status)"
-              [rounded]="true"
+              [rounded]="false"
             />
           </td>
           <td>
@@ -168,7 +168,7 @@
                 severity="secondary"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Edit"
                 tooltipPosition="top"
                 (click)="navigateToEdit(exam)"
@@ -180,7 +180,7 @@
                 severity="success"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Publish"
                 tooltipPosition="top"
                 (click)="confirmPublish(exam)"
@@ -193,7 +193,7 @@
                 severity="warn"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Cancel"
                 tooltipPosition="top"
                 (click)="confirmCancel(exam)"
@@ -204,7 +204,7 @@
                 severity="info"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Questions"
                 tooltipPosition="top"
                 (click)="navigateToQuestions(exam)"
@@ -214,7 +214,7 @@
                 severity="danger"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Delete"
                 tooltipPosition="top"
                 (click)="confirmDelete(exam)"

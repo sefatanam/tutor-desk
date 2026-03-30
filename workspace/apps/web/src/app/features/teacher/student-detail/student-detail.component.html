@@ -6,6 +6,7 @@
       label="Back to Students"
       [text]="true"
       routerLink="/teacher/students"
+      size="small"
     />
   </div>
 
@@ -19,7 +20,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Student Not Found</h2>
     <p>The student you're looking for doesn't exist or has been deleted.</p>
-    <p-button label="Go to Students" routerLink="/teacher/students" />
+    <p-button label="Go to Students" size="small" routerLink="/teacher/students" />
   </div>
   } @else {
   <!-- Student Header -->
@@ -203,7 +204,7 @@
             icon="pi pi-times"
             severity="danger"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="Remove from subject"
             (click)="confirmUnenroll(subject)"
@@ -271,7 +272,7 @@
             icon="pi pi-plus"
             severity="success"
             [text]="true"
-            [rounded]="true"
+            [rounded]="false"
             size="small"
             pTooltip="Enroll in subject"
             (click)="enrollInSubject(subject)"
@@ -307,7 +308,7 @@
         <p-skeleton width="200px" height="16px" />
         <p-skeleton width="100px" height="16px" />
         <p-skeleton width="60px" height="16px" />
-        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="4px" />
       </div>
       }
     </div>
@@ -398,11 +399,12 @@
           <td>
             <p-button
               icon="pi pi-eye"
-              [rounded]="true"
+              [rounded]="false"
               [text]="true"
               pTooltip="View Details"
               (click)="viewExamDetails(item)"
-            />
+      size="small"
+    />
           </td>
         </tr>
       </ng-template>

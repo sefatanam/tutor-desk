@@ -5,6 +5,7 @@
       icon="pi pi-arrow-left"
       label="Back to Results"
       [text]="true"
+      size="small"
       routerLink="/student/results"
     />
   </div>
@@ -29,7 +30,7 @@
       The submission you're looking for doesn't exist or you don't have
       access to it.
     </p>
-    <p-button label="Go to Results" routerLink="/student/results" />
+    <p-button label="Go to Results" size="small" routerLink="/student/results" />
   </div>
   } @else if (!displaySettings().canViewResults) {
   <!-- Results Not Available -->
@@ -41,6 +42,7 @@
       label="Go to Results"
       routerLink="/student/results"
       severity="secondary"
+      size="small"
     />
   </div>
   } @else {
@@ -80,6 +82,7 @@
       label="Export"
       severity="secondary"
       [outlined]="true"
+      size="small"
       (click)="exportMenu.toggle($event)"
     />
   </header>

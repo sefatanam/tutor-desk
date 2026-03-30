@@ -14,7 +14,7 @@
     @if (loading()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <p-skeleton shape="circle" size="48px" />
+        <p-skeleton shape="square" size="32px" />
         <div class="stat-card__text">
           <p-skeleton width="40px" height="24px" />
           <p-skeleton width="80px" height="14px" />
@@ -142,7 +142,7 @@
         <p-skeleton width="180px" height="16px" />
         <p-skeleton width="120px" height="16px" />
         <p-skeleton width="80px" height="16px" />
-        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="4px" />
         <p-skeleton width="100px" height="16px" />
       </div>
       }
@@ -265,23 +265,25 @@
             <div class="action-buttons">
               <p-button
                 icon="pi pi-eye"
-                [rounded]="true"
+                [rounded]="false"
                 [text]="true"
                 pTooltip="View Details"
                 tooltipPosition="left"
                 (click)="viewDetails(result)"
-              />
+      size="small"
+    />
               @if (result.submission.status === 'submitted' ||
               result.submission.status === 'auto_submitted') {
               <p-button
                 icon="pi pi-check-square"
-                [rounded]="true"
+                [rounded]="false"
                 [text]="true"
                 severity="success"
                 pTooltip="Evaluate"
                 tooltipPosition="left"
                 (click)="viewDetails(result)"
-              />
+      size="small"
+    />
               }
             </div>
           </td>

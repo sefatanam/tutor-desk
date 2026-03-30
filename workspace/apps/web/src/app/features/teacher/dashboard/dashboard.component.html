@@ -1,7 +1,7 @@
 <div class="dashboard">
   <div class="dashboard__header">
     <div>
-      <h1>Teacher Dashboard</h1>
+      <h1 class="text-base font-semibold m-0">Teacher Dashboard</h1>
       <p>Welcome back, {{ userName() }}! Here's your overview.</p>
     </div>
   </div>
@@ -11,7 +11,7 @@
     @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
     <p-card styleClass="stat-card">
       <div class="stat-card__content">
-        <p-skeleton shape="circle" size="56px" />
+        <p-skeleton shape="square" size="36px" />
         <div class="stat-card__info">
           <p-skeleton width="50px" height="24px" />
           <p-skeleton width="80px" height="14px" />
@@ -46,21 +46,21 @@
         pButton
         label="Create Exam"
         icon="pi pi-plus"
-        class="p-button-lg"
+        class="p-button-sm"
         routerLink="/teacher/exams/create"
       ></button>
       <button
         pButton
         label="Add Student"
         icon="pi pi-user-plus"
-        class="p-button-lg p-button-outlined"
+        class="p-button-outlined p-button-sm"
         routerLink="/teacher/students"
       ></button>
       <button
         pButton
         label="New Subject"
         icon="pi pi-book"
-        class="p-button-lg p-button-outlined"
+        class="p-button-outlined p-button-sm"
         routerLink="/teacher/subjects"
       ></button>
     </div>
@@ -80,7 +80,7 @@
 
       @if (loadingCharts()) {
       <div class="chart-loading">
-        <p-skeleton shape="circle" size="200px" />
+        <p-skeleton shape="square" size="200px" />
       </div>
       } @else if (examStatusData()) {
       <div class="chart-container">
@@ -150,7 +150,7 @@
         <p-skeleton width="200px" height="16px" />
         <p-skeleton width="100px" height="16px" />
         <p-skeleton width="50px" height="16px" />
-        <p-skeleton width="80px" height="24px" borderRadius="16px" />
+        <p-skeleton width="80px" height="24px" borderRadius="4px" />
         <p-skeleton width="60px" height="32px" />
       </div>
       }
@@ -207,14 +207,14 @@
             <button
               pButton
               icon="pi pi-eye"
-              class="p-button-rounded p-button-text p-button-sm"
+              class="p-button-text p-button-sm"
               [routerLink]="['/teacher/exams', exam.id, 'results']"
               pTooltip="View Results"
             ></button>
             <button
               pButton
               icon="pi pi-pencil"
-              class="p-button-rounded p-button-text p-button-sm"
+              class="p-button-text p-button-sm"
               [routerLink]="['/teacher/exams', exam.id, 'edit']"
               pTooltip="Edit"
             ></button>

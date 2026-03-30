@@ -6,6 +6,7 @@
       label="Back to Subjects"
       [text]="true"
       routerLink="/teacher/subjects"
+      size="small"
     />
   </div>
 
@@ -24,7 +25,7 @@
     <i class="pi pi-exclamation-circle"></i>
     <h2>Subject Not Found</h2>
     <p>The subject you're looking for doesn't exist.</p>
-    <p-button label="Go to Subjects" routerLink="/teacher/subjects" />
+    <p-button label="Go to Subjects" size="small" routerLink="/teacher/subjects" />
   </div>
   } @else {
   <!-- Header -->
@@ -47,6 +48,7 @@
         icon="pi pi-download"
         label="Export Report"
         severity="secondary"
+        size="small"
         (click)="exportReport()"
       />
     </div>
@@ -230,11 +232,12 @@
                 <td>
                   <p-button
                     icon="pi pi-eye"
-                    [rounded]="true"
+                    [rounded]="false"
                     [text]="true"
                     pTooltip="View Details"
                     [routerLink]="['/teacher/students', perf.student.id]"
-                  />
+      size="small"
+    />
                 </td>
               </tr>
             </ng-template>
@@ -420,7 +423,7 @@
                 <td>
                   <p-button
                     icon="pi pi-chart-bar"
-                    [rounded]="true"
+                    [rounded]="false"
                     [text]="true"
                     pTooltip="View Results"
                     [routerLink]="[
@@ -428,7 +431,8 @@
                       stat.exam.id,
                       'results'
                     ]"
-                  />
+      size="small"
+    />
                 </td>
               </tr>
             </ng-template>

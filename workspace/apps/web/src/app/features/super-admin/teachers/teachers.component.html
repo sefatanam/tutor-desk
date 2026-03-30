@@ -13,6 +13,7 @@
         icon="pi pi-refresh"
         severity="secondary"
         [outlined]="true"
+        size="small"
         (click)="loadTeachers()"
         [loading]="loading()"
       />
@@ -109,7 +110,7 @@
             <div class="teacher-cell">
               <p-avatar
                 [label]="getInitials(teacher.user.fullName)"
-                shape="circle"
+                shape="square"
                 [styleClass]="'td-avatar '+ getAvatarColor(teacher.id)"
               />
               <div class="teacher-cell__info">
@@ -134,7 +135,7 @@
             <p-tag
               [value]="teacher.user.status | titlecase"
               [severity]="getStatusSeverity(teacher.user.status)"
-              [rounded]="true"
+              [rounded]="false"
             />
           </td>
           <td>
@@ -149,7 +150,7 @@
                 icon="pi pi-check"
                 severity="success"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Approve"
                 tooltipPosition="top"
                 (click)="confirmApprove(teacher)"
@@ -159,7 +160,7 @@
                 severity="danger"
                 [outlined]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Reject"
                 tooltipPosition="top"
                 (click)="confirmReject(teacher)"
@@ -170,7 +171,7 @@
                 severity="warn"
                 [outlined]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Disable"
                 tooltipPosition="top"
                 (click)="confirmDisable(teacher)"
@@ -181,7 +182,7 @@
                 severity="success"
                 [outlined]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="Enable"
                 tooltipPosition="top"
                 (click)="confirmEnable(teacher)"
@@ -193,7 +194,7 @@
                 severity="info"
                 [text]="true"
                 size="small"
-                [rounded]="true"
+                [rounded]="false"
                 pTooltip="View Workspace"
                 tooltipPosition="top"
                 (click)="viewWorkspace(teacher)"
