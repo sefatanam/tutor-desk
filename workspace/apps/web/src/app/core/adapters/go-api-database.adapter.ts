@@ -9,8 +9,9 @@
 import { Injectable, inject, InjectionToken } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError, from, map } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../services/auth.service';
 import {
   IDatabaseAdapter,
   IAuthAdapter,
@@ -537,6 +538,7 @@ class GoApiTeacherAdapter implements ITeacherAdapter {
 @Injectable()
 class GoApiStudentAdapter implements IStudentAdapter {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly base = environment.apiBaseUrl;
 
   getById(id: string): Observable<StudentWithUser | null> {
@@ -564,12 +566,40 @@ class GoApiStudentAdapter implements IStudentAdapter {
     );
   }
 
-  create(_dto: CreateStudentDto): Observable<Student> {
-    return throwError(() => new Error('Use AuthService.createStudent()'));
+  create(dto: CreateStudentDto): Observable<Student> {
+    return this.authService.createStudent({
+      full_name: dto.fullName,
+      email: dto.email,
+      password: dto.password,
+      roll_number: dto.rollNumber,
+      class_name: dto.className,
+      section: dto.section,
+      guardian_name: dto.guardianName,
+      guardian_phone: dto.guardianPhone,
+      address: dto.address,
+      date_of_birth: dto.dateOfBirth?.toISOString().split('T')[0],
+    }).pipe(
+      switchMap((response) => {
+        if (!response.success) {
+          return throwError(() => new Error(response.error || 'Failed to create student'));
+        }
+        const studentId = response.user?.studentId;
+        if (!studentId) {
+          return throwError(() => new Error('No student ID in response'));
+        }
+        return this.getById(studentId).pipe(
+          map((student) => {
+            if (!student) throw new Error('Student created but not found');
+            return student;
+          })
+        );
+      })
+    );
   }
 
   update(id: string, dto: UpdateStudentDto): Observable<Student> {
     return this.http.patch<Record<string, unknown>>(`${this.base}/students/${id}`, {
+      full_name: dto.fullName,
       roll_number: dto.rollNumber,
       class_name: dto.className,
       section: dto.section,
@@ -628,9 +658,9 @@ class GoApiSubjectAdapter implements ISubjectAdapter {
   }
 
   getByStudent(studentId: string): Observable<Subject[]> {
-    const p = new HttpParams().set('student_id', studentId);
-    return this.http.get<Record<string, unknown>[]>(`${this.base}/subjects`, { params: p }).pipe(
-      map((items) => items.map(mapSubject))
+    return this.http.get<Record<string, unknown>[]>(`${this.base}/students/${studentId}/subjects`).pipe(
+      map((items) => items.map(mapSubject)),
+      catchError(() => [[]])
     );
   }
 
@@ -917,8 +947,15 @@ class GoApiSubmissionAdapter implements ISubmissionAdapter {
     );
   }
 
-  getByStudentAndExam(_studentId: string, _examId: string): Observable<ExamSubmission | null> {
-    return throwError(() => new Error('Not supported — use getByStudent and filter'));
+  getByStudentAndExam(studentId: string, examId: string): Observable<ExamSubmission | null> {
+    const p = new HttpParams().set('exam_id', examId).set('page_size', '1');
+    return this.http.get<Record<string, unknown>>(`${this.base}/students/${studentId}/submissions`, { params: p }).pipe(
+      map((r) => {
+        const items = (r['items'] as Record<string, unknown>[]) ?? [];
+        return items.length > 0 ? mapSubmission(items[0]) : null;
+      }),
+      catchError(() => [null])
+    );
   }
 
   startExam(examId: string, studentId: string): Observable<ExamSubmission> {

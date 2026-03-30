@@ -1,0 +1,128 @@
+/* ============================================================
+   DESIGN TOKENS — :root variables + dark-mode overrides
+   Single source of truth. Edit here to retheme the entire app.
+   ============================================================ */
+/* ============================================================
+   DESIGN TOKENS — single source of truth
+   Change values here to retheme the entire app instantly
+   ============================================================ */
+:root {
+  /* === BRAND — edit ONE line to change the app accent color === */
+  --color-primary:         #10b981;
+  --color-primary-hover:   #059669;
+  --color-primary-subtle:  #d1fae5;
+  --color-primary-fg:      #ffffff;
+
+  /* === SEMANTIC COLORS === */
+  --color-success:         #22c55e;
+  --color-success-subtle:  #dcfce7;
+  --color-warning:         #f59e0b;
+  --color-warning-subtle:  #fef3c7;
+  --color-danger:          #ef4444;
+  --color-danger-subtle:   #fee2e2;
+  --color-info:            #3b82f6;
+  --color-info-subtle:     #dbeafe;
+  --color-accent:          #8b5cf6;
+  --color-accent-subtle:   #ede9fe;
+
+  /* === SURFACE (light mode) === */
+  --color-bg:              #f1f5f9;
+  --color-surface:         #ffffff;
+  --color-surface-2:       #f8fafc;
+  --color-border:          #e2e8f0;
+  --color-border-strong:   #cbd5e1;
+  --color-text:            #0f172a;
+  --color-text-muted:      #64748b;
+
+  /* === LAYOUT DIMENSIONS === */
+  --header-h:              48px;
+  --sidebar-w:             220px;
+  --sidebar-collapsed-w:   48px;
+
+  /* === RADII (squarish) === */
+  --r-sm:  2px;
+  --r-md:  4px;
+  --r-lg:  6px;
+  --r-xl:  8px;
+
+  /* === SHADOWS === */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+  --shadow-md: 0 2px 8px 0 rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 4px 16px 0 rgb(0 0 0 / 0.10);
+
+  /* === TRANSITIONS === */
+  --t-fast:   150ms ease;
+  --t-normal: 250ms ease;
+
+  /* === BACKWARD COMPAT: map legacy td-* vars to new tokens === */
+  --td-primary:              var(--color-primary);
+  --td-primary-dark:         var(--color-primary-hover);
+  --td-primary-light:        var(--color-primary-subtle);
+  --td-background:           var(--color-bg);
+  --td-surface:              var(--color-surface);
+  --td-text:                 var(--color-text);
+  --td-text-secondary:       var(--color-text-muted);
+  --td-success:              var(--color-success);
+  --td-warning:              var(--color-warning);
+  --td-danger:               var(--color-danger);
+  --td-info:                 var(--color-info);
+  --td-accent:               var(--color-accent);
+  --td-neutral:              #6b7280;
+  --td-header-height:        var(--header-h);
+  --td-sidebar-width:        var(--sidebar-w);
+  --td-sidebar-collapsed-width: var(--sidebar-collapsed-w);
+  --td-transition-fast:      var(--t-fast);
+  --td-transition-normal:    var(--t-normal);
+  --td-transition-slow:      400ms ease;
+  --td-radius-sm:            var(--r-sm);
+  --td-radius-md:            var(--r-md);
+  --td-radius-lg:            var(--r-lg);
+  --td-radius-xl:            var(--r-xl);
+  --td-shadow-sm:            var(--shadow-sm);
+  --td-shadow-md:            var(--shadow-md);
+  --td-shadow-lg:            var(--shadow-lg);
+
+  /* === TYPOGRAPHY === */
+  --font-bengali: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+}
+
+/* === DARK MODE — same token names, different values === */
+.dark-mode {
+  --color-bg:              #0d1117;
+  --color-surface:         #161b22;
+  --color-surface-2:       #21262d;
+  --color-border:          #30363d;
+  --color-border-strong:   #484f58;
+  --color-text:            #e6edf3;
+  --color-text-muted:      #7d8590;
+  --color-primary-subtle:  #064e3b;
+}
+
+/* === TAILWIND v4 THEME BRIDGE (inline mode = references CSS vars) ===
+   Exposes design tokens as Tailwind utilities:
+   bg-surface, text-primary, border-border, rounded-sm, etc. */
+@theme inline {
+  --color-primary:        var(--color-primary);
+  --color-primary-hover:  var(--color-primary-hover);
+  --color-primary-subtle: var(--color-primary-subtle);
+  --color-surface:        var(--color-surface);
+  --color-surface-2:      var(--color-surface-2);
+  --color-bg:             var(--color-bg);
+  --color-border:         var(--color-border);
+  --color-text:           var(--color-text);
+  --color-muted:          var(--color-text-muted);
+  --color-danger:         var(--color-danger);
+  --color-danger-subtle:  var(--color-danger-subtle);
+  --color-success:        var(--color-success);
+  --color-success-subtle: var(--color-success-subtle);
+  --color-warning:        var(--color-warning);
+  --color-warning-subtle: var(--color-warning-subtle);
+  --color-info:           var(--color-info);
+  --color-info-subtle:    var(--color-info-subtle);
+  --color-accent:         var(--color-accent);
+  --color-accent-subtle:  var(--color-accent-subtle);
+  --radius-sm:            var(--r-sm);
+  --radius-md:            var(--r-md);
+  --radius-lg:            var(--r-lg);
+  --radius-xl:            var(--r-xl);
+}

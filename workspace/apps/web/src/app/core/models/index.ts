@@ -165,6 +165,7 @@ export interface CreateStudentDto {
 }
 
 export interface UpdateStudentDto {
+  readonly fullName?: string;
   readonly rollNumber?: string;
   readonly className?: string;
   readonly section?: string;

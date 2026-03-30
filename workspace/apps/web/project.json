@@ -22,7 +22,29 @@
           "apps/web/src/manifest.webmanifest"
         ],
         "serviceWorker": "apps/web/ngsw-config.json",
-        "styles": ["apps/web/src/styles.css"],
+        "styles": [
+          "apps/web/src/styles.css",
+          {
+            "input": "apps/web/src/styles/features/auth.css",
+            "bundleName": "feature-auth",
+            "inject": false
+          },
+          {
+            "input": "apps/web/src/styles/features/teacher.css",
+            "bundleName": "feature-teacher",
+            "inject": false
+          },
+          {
+            "input": "apps/web/src/styles/features/student.css",
+            "bundleName": "feature-student",
+            "inject": false
+          },
+          {
+            "input": "apps/web/src/styles/features/admin.css",
+            "bundleName": "feature-admin",
+            "inject": false
+          }
+        ],
         "server": "apps/web/src/main.server.ts",
         "ssr": {
           "entry": "apps/web/src/server.ts"

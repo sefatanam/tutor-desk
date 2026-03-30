@@ -576,11 +576,13 @@ func (h *AuthHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create student profile
-	_, err = h.db.Exec(ctx,
+	var newStudentID string
+	err = h.db.QueryRow(ctx,
 		`INSERT INTO students (user_id, teacher_id, roll_number, class_name, section, guardian_name, guardian_phone, address, date_of_birth)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id`,
 		newUserID, teacherID, req.RollNumber, req.ClassName, req.Section,
-		req.GuardianName, req.GuardianPhone, req.Address, dob)
+		req.GuardianName, req.GuardianPhone, req.Address, dob).Scan(&newStudentID)
 	if err != nil {
 		// Rollback user creation
 		_, _ = h.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, newUserID)
@@ -595,12 +597,13 @@ func (h *AuthHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 
 	middleware.WriteJSON(w, http.StatusCreated, map[string]any{
 		"message": "student created successfully",
-		"user": map[string]string{
-			"id":        newUserID,
-			"email":     newEmail,
-			"full_name": newFullName,
-			"role":      newRole,
-			"status":    newStatus,
+		"user": map[string]any{
+			"id":         newUserID,
+			"email":      newEmail,
+			"full_name":  newFullName,
+			"role":       newRole,
+			"status":     newStatus,
+			"student_id": newStudentID,
 		},
 	})
 }

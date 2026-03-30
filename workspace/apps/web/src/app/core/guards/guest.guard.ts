@@ -5,12 +5,14 @@
 import { inject } from '@angular/core';
 import { Router, type CanActivateFn } from '@angular/router';
 import { AuthStore } from '../store/auth.store';
+import { StyleLoaderService } from '../services/style-loader.service';
 
 /**
  * Guard that only allows unauthenticated users
  * Redirects authenticated users to their dashboard
  */
 export const guestGuard: CanActivateFn = async () => {
+  inject(StyleLoaderService).load('feature-auth');
   const authStore = inject(AuthStore);
   const router = inject(Router);
 

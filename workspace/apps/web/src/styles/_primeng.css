@@ -1,0 +1,180 @@
+/* ============================================================
+   PRIMENG — Global PrimeNG component overrides & dark mode fixes
+   ============================================================ */
+/* PrimeNG global compactness overrides */
+.w-full { width: 100% !important; }
+
+p-password.w-full,
+p-password.w-full > .p-password,
+p-password.w-full input { width: 100%; }
+
+p-select.w-full,
+p-select.w-full > .p-select { width: 100%; }
+
+input.w-full[pInputText] { width: 100%; }
+
+/* Make all PrimeNG cards use compact border radius and clean borders */
+.p-card {
+  border-radius: var(--r-md) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: none !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.p-card .p-card-header {
+  padding: 0.625rem 0.75rem !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.p-card .p-card-body { padding: 0.75rem !important; background: var(--color-surface) !important; }
+.p-card .p-card-content { padding: 0 !important; }
+
+/* === DARK MODE — explicit surface overrides for PrimeNG components === */
+.dark-mode .p-card,
+.dark-mode .p-card .p-card-header,
+.dark-mode .p-card .p-card-body,
+.dark-mode .p-card .p-card-content {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-datatable .p-datatable-thead > tr > th {
+  background: var(--color-surface-2) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr > td {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr:hover > td {
+  background: var(--color-surface-2) !important;
+}
+
+.dark-mode .p-datatable .p-datatable-header {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-menu,
+.dark-mode .p-menu .p-menu-list,
+.dark-mode .p-menu .p-menuitem-content {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.dark-mode .p-menu .p-menuitem-link:hover .p-menuitem-text,
+.dark-mode .p-menu .p-menuitem-link:hover {
+  background: var(--color-surface-2) !important;
+}
+
+.dark-mode .p-select-overlay,
+.dark-mode .p-select-panel,
+.dark-mode .p-dropdown-panel {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.dark-mode .p-dialog .p-dialog-content,
+.dark-mode .p-dialog .p-dialog-header,
+.dark-mode .p-dialog .p-dialog-footer {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-tabs,
+.dark-mode .p-tablist,
+.dark-mode .p-tabpanel,
+.dark-mode .p-tabpanels {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-inputtext,
+.dark-mode .p-password input,
+.dark-mode .p-select .p-select-label,
+.dark-mode .p-select {
+  background: var(--color-surface-2) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-inputtext:focus,
+.dark-mode .p-password input:focus,
+.dark-mode .p-select:focus {
+  border-color: var(--color-primary) !important;
+}
+
+.dark-mode .p-paginator {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-paginator .p-paginator-page,
+.dark-mode .p-paginator .p-paginator-first,
+.dark-mode .p-paginator .p-paginator-prev,
+.dark-mode .p-paginator .p-paginator-next,
+.dark-mode .p-paginator .p-paginator-last {
+  color: var(--color-text) !important;
+}
+
+.dark-mode .p-paginator .p-paginator-page.p-highlight {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+
+.dark-mode .p-drawer .p-drawer-content,
+.dark-mode .p-drawer {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .p-toast .p-toast-message {
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+/* Compact data table */
+.p-datatable .p-datatable-header { padding: 0.625rem 0.75rem !important; }
+.p-datatable .p-datatable-thead > tr > th { padding: 0.5rem 0.75rem !important; font-size: 0.75rem !important; font-weight: 600 !important; }
+.p-datatable .p-datatable-tbody > tr > td { padding: 0.5rem 0.75rem !important; font-size: 0.8125rem !important; }
+
+/* Compact tags */
+.p-tag { border-radius: var(--r-sm) !important; font-size: 0.6875rem !important; padding: 0.125rem 0.375rem !important; }
+
+/* Compact buttons */
+.p-button { border-radius: var(--r-sm) !important; }
+.p-button-sm { font-size: 0.75rem !important; padding: 0.25rem 0.625rem !important; }
+
+/* Compact form inputs */
+.p-inputtext { border-radius: var(--r-sm) !important; font-size: 0.8125rem !important; }
+.p-select { border-radius: var(--r-sm) !important; }
+.p-password { border-radius: var(--r-sm) !important; }
+
+/* Dialog compact */
+.p-dialog { border-radius: var(--r-md) !important; }
+.p-dialog .p-dialog-header { padding: 0.75rem 1rem !important; }
+.p-dialog .p-dialog-content { padding: 0 1rem 1rem !important; }
+.p-dialog .p-dialog-footer { padding: 0.75rem 1rem !important; }

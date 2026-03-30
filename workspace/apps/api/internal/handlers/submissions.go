@@ -165,8 +165,31 @@ func (h *SubmissionsHandler) GetByStudent(w http.ResponseWriter, r *http.Request
 	studentID := r.PathValue("studentId")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	examID := r.URL.Query().Get("exam_id")
 	p := models.NewPaginationParams(page, pageSize)
 	ctx := r.Context()
+
+	if examID != "" {
+		// Return single latest submission for this student+exam
+		var s models.ExamSubmission
+		err := h.db.QueryRow(ctx,
+			`SELECT `+submissionCols+` FROM exam_submissions WHERE student_id = $1 AND exam_id = $2
+			 ORDER BY created_at DESC LIMIT 1`, studentID, examID).
+			Scan(&s.ID, &s.ExamID, &s.StudentID, &s.Status, &s.StartedAt, &s.SubmittedAt,
+				&s.AutoSubmitReason, &s.TotalAnswered, &s.TotalCorrect, &s.TotalWrong, &s.TotalSkipped,
+				&s.Score, &s.Percentage, &s.AttemptNumber, &s.EvaluatedAt, &s.EvaluatedBy,
+				&s.Remarks, &s.CreatedAt, &s.UpdatedAt)
+		if err != nil {
+			middleware.WriteJSON(w, http.StatusOK, models.PaginatedResponse[models.ExamSubmission]{
+				Items: []models.ExamSubmission{}, Total: 0, Page: 1, PageSize: 1, TotalPages: 0,
+			})
+			return
+		}
+		middleware.WriteJSON(w, http.StatusOK, models.PaginatedResponse[models.ExamSubmission]{
+			Items: []models.ExamSubmission{s}, Total: 1, Page: 1, PageSize: 1, TotalPages: 1,
+		})
+		return
+	}
 
 	var total int
 	_ = h.db.QueryRow(ctx, `SELECT COUNT(*) FROM exam_submissions WHERE student_id = $1`, studentID).Scan(&total)
@@ -279,7 +302,7 @@ func (h *SubmissionsHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request
 //	@Failure		400		{object}	map[string]string
 //	@Router			/submissions/{id}/answer/{answerId} [patch]
 func (h *SubmissionsHandler) UpdateAnswer(w http.ResponseWriter, r *http.Request) {
-	answerID := r.PathValue("answerId")
+	answerID := r.PathValue("id")
 	var req models.UpdateAnswerRequest
 	if err := middleware.DecodeBody(r, &req); err != nil {
 		middleware.WriteError(w, http.StatusBadRequest, "invalid request body")

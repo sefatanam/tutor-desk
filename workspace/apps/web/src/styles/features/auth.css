@@ -1,0 +1,571 @@
+/* Auth feature — login, register, forgot-password, pending */
+@layer components {
+  app-register {
+        .register-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-surface-2) 100%);
+          padding: 2rem;
+        }
+
+        .register-container {
+          width: 100%;
+          max-width: 480px;
+        }
+
+        .register-logo {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+
+        .logo-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          color: var(--color-text);
+        }
+
+        .logo-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: var(--color-primary);
+          color: white;
+          border-radius: var(--r-sm);
+          font-size: 1rem;
+        }
+
+        .logo-text {
+          font-size: 1.125rem; font-weight: 700;
+        }
+
+        & .register-card {
+          border-radius: var(--r-lg);
+          box-shadow: var(--shadow-md);
+        }
+
+        .register-header {
+          text-align: center;
+          padding: 1rem 1rem 0;
+        }
+
+        .register-header h1 {
+          margin: 0 0 0.25rem;
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+
+        .register-header p {
+          margin: 0;
+          color: var(--color-text-muted);
+        }
+
+        .form-field {
+          margin-bottom: 0.75rem;
+        }
+
+        .form-field label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: var(--color-text);
+        }
+
+        .info-box {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          background: var(--color-bg);
+          border-radius: var(--r-lg);
+          margin-bottom: 0.75rem;
+          font-size: 0.875rem;
+          color: var(--color-text-muted);
+        }
+
+        .info-box i {
+          color: var(--color-primary);
+          margin-top: 2px;
+        }
+
+        .divider-text {
+          color: var(--color-text-muted);
+          font-size: 0.875rem;
+        }
+
+        .register-footer {
+          text-align: center;
+        }
+
+        .register-footer p {
+          margin: 0;
+          color: var(--color-text-muted);
+        }
+
+        .login-link {
+          color: var(--color-primary);
+          text-decoration: none;
+          font-weight: 500;
+        }
+
+        .login-link:hover {
+          text-decoration: underline;
+        }
+
+        .register-terms {
+          text-align: center;
+          margin-top: 1.5rem;
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+        }
+
+        .register-terms a {
+          color: var(--color-primary);
+          text-decoration: none;
+        }
+
+        .register-terms a:hover {
+          text-decoration: underline;
+        }
+
+        .p-error {
+          display: block;
+          margin-top: 0.25rem;
+        }
+
+        /* Success State */
+        .success-state {
+          text-align: center;
+          padding: 1rem 0;
+        }
+
+        .success-icon {
+          font-size: 2.5rem;
+          color: var(--color-success);
+          margin-bottom: 0.75rem;
+        }
+
+        .success-state h2 {
+          margin: 0 0 0.75rem;
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+
+        .success-state p {
+          margin: 0 0 1.5rem;
+          color: var(--color-text-muted);
+          line-height: 1.5;
+        }
+
+  }
+
+  /* Source: workspace/apps/web/src/app/features/auth/forgot-password/forgot-password.component.ts */
+  app-forgot-password {
+        .forgot-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-surface-2) 100%);
+          padding: 2rem;
+        }
+
+        .forgot-container {
+          width: 100%;
+          max-width: 420px;
+        }
+
+        .forgot-logo {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+
+        .logo-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          color: var(--color-text);
+        }
+
+        .logo-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: var(--color-primary);
+          color: white;
+          border-radius: var(--r-sm);
+          font-size: 1rem;
+        }
+
+        .logo-text {
+          font-size: 1.125rem; font-weight: 700;
+        }
+
+        & .forgot-card {
+          border-radius: var(--r-xl);
+          box-shadow: var(--shadow-md);
+        }
+
+        .forgot-header {
+          text-align: center;
+          padding: 1rem 1rem 0;
+        }
+
+        .forgot-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 64px;
+          height: 64px;
+          background: var(--color-bg);
+          color: var(--color-primary);
+          border-radius: 50%;
+          font-size: 1.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .forgot-header h1 {
+          margin: 0 0 0.5rem;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+
+        .forgot-header p {
+          margin: 0;
+          color: var(--color-text-muted);
+        }
+
+        .form-field {
+          margin-bottom: 0.75rem;
+        }
+
+        .form-field label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: var(--color-text);
+        }
+
+        .email-sent {
+          text-align: center;
+          padding: 1rem 0;
+        }
+
+        .email-sent i {
+          font-size: 1.5rem;
+          color: var(--color-primary);
+          margin-bottom: 1rem;
+        }
+
+        .email-sent p {
+          color: var(--color-text-muted);
+          margin-bottom: 0.75rem;
+        }
+
+        .forgot-footer {
+          text-align: center;
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid var(--color-border);
+        }
+
+        .back-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: var(--color-text-muted);
+          text-decoration: none;
+          font-size: 0.875rem;
+        }
+
+        .back-link:hover {
+          color: var(--color-primary);
+        }
+
+        .p-error {
+          display: block;
+          margin-top: 0.25rem;
+        }
+
+  }
+
+  /* Source: workspace/apps/web/src/app/features/auth/login/login.component.ts */
+  app-login {
+        .login-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-surface-2) 100%);
+          padding: 2rem;
+        }
+
+        .login-container {
+          width: 100%;
+          max-width: 420px;
+        }
+
+        .login-logo {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+
+        .logo-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          color: var(--color-text);
+        }
+
+        .logo-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: var(--color-primary);
+          color: white;
+          border-radius: var(--r-sm);
+          font-size: 1.125rem;
+        }
+
+        .logo-text {
+          font-size: 1.25rem;
+          font-weight: 700;
+        }
+
+        & .login-card {
+          border-radius: var(--r-lg);
+          box-shadow: var(--shadow-md);
+        }
+
+        .login-header {
+          text-align: center;
+          padding: 1rem 1rem 0;
+        }
+
+        .login-header h1 {
+          margin: 0 0 0.5rem;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+
+        .login-header p {
+          margin: 0;
+          color: var(--color-text-muted);
+        }
+
+        .form-field {
+          margin-bottom: 0.75rem;
+        }
+
+        .form-field label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: var(--color-text);
+        }
+
+        .form-options {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        .forgot-link {
+          color: var(--color-primary);
+          text-decoration: none;
+          font-size: 0.875rem;
+        }
+
+        .forgot-link:hover {
+          text-decoration: underline;
+        }
+
+        .divider-text {
+          color: var(--color-text-muted);
+          font-size: 0.875rem;
+        }
+
+        .login-footer {
+          text-align: center;
+        }
+
+        .login-footer p {
+          margin: 0;
+          color: var(--color-text-muted);
+        }
+
+        .register-link {
+          color: var(--color-primary);
+          text-decoration: none;
+          font-weight: 500;
+        }
+
+        .register-link:hover {
+          text-decoration: underline;
+        }
+
+        .student-note {
+          margin-top: 0.75rem !important;
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.375rem;
+        }
+
+        .login-terms {
+          text-align: center;
+          margin-top: 1.5rem;
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+        }
+
+        .login-terms a {
+          color: var(--color-primary);
+          text-decoration: none;
+        }
+
+        .login-terms a:hover {
+          text-decoration: underline;
+        }
+
+        .p-error {
+          display: block;
+          margin-top: 0.25rem;
+        }
+
+  }
+
+  /* Source: workspace/apps/web/src/app/features/auth/pending/pending.component.ts */
+  app-pending {
+        .pending-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-surface-2) 100%);
+          padding: 2rem;
+        }
+
+        .pending-container {
+          width: 100%;
+          max-width: 480px;
+        }
+
+        .pending-logo {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+
+        .logo-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          color: var(--color-text);
+        }
+
+        .logo-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: var(--color-primary);
+          color: white;
+          border-radius: var(--r-sm);
+          font-size: 1rem;
+        }
+
+        .logo-text {
+          font-size: 1.125rem; font-weight: 700;
+        }
+
+        & .pending-card {
+          border-radius: var(--r-lg);
+          box-shadow: var(--shadow-md);
+        }
+
+        .pending-content {
+          text-align: center;
+          padding: 1rem;
+        }
+
+        .pending-icon {
+          font-size: 2rem;
+          color: var(--yellow-500);
+          margin-bottom: 0.5rem;
+        }
+
+        .pending-content h1 {
+          margin: 0 0 0.75rem;
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+
+        .pending-message {
+          color: var(--color-text-muted);
+          line-height: 1.6;
+          margin: 0 0 1.5rem;
+        }
+
+        .pending-info {
+          background: var(--color-bg);
+          border-radius: var(--r-sm);
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .info-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.5rem 0;
+          color: var(--color-text);
+        }
+
+        .info-item i {
+          color: var(--color-primary);
+          width: 20px;
+        }
+
+        .pending-actions {
+          margin-top: 1rem;
+        }
+
+        .pending-help {
+          text-align: center;
+          margin-top: 1.5rem;
+          font-size: 0.875rem;
+          color: var(--color-text-muted);
+        }
+
+        .pending-help a {
+          color: var(--color-primary);
+          text-decoration: none;
+        }
+
+        .pending-help a:hover {
+          text-decoration: underline;
+        }
+
+  }
+}

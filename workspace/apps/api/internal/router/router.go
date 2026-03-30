@@ -91,6 +91,8 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 		authMW(teacherOrAdmin(http.HandlerFunc(students.Enable))))
 	mux.Handle("DELETE /api/v1/students/{id}",
 		authMW(teacherOrAdmin(http.HandlerFunc(students.Delete))))
+	mux.Handle("GET /api/v1/students/{id}/subjects",
+		authMW(anyRole(http.HandlerFunc(students.GetSubjects))))
 	mux.Handle("GET /api/v1/students/{studentId}/submissions",
 		authMW(anyRole(http.HandlerFunc(submissions.GetByStudent))))
 
@@ -167,7 +169,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 		authMW(anyRole(http.HandlerFunc(submissions.GetByID))))
 	mux.Handle("POST /api/v1/submissions/{id}/answer",
 		authMW(anyRole(http.HandlerFunc(submissions.SubmitAnswer))))
-	mux.Handle("PATCH /api/v1/submissions/{id}/answer/{answerId}",
+	mux.Handle("PATCH /api/v1/submissions/answers/{id}",
 		authMW(anyRole(http.HandlerFunc(submissions.UpdateAnswer))))
 	mux.Handle("POST /api/v1/submissions/{id}/submit",
 		authMW(anyRole(http.HandlerFunc(submissions.Submit))))

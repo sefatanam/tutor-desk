@@ -171,6 +171,7 @@ export class StudentFormComponent implements OnInit {
     if (this.isEditMode()) {
       this.db.students
         .update(this.studentId()!, {
+          fullName: formValue.fullName || undefined,
           rollNumber: formValue.rollNumber || undefined,
           className: formValue.className || undefined,
           section: formValue.section || undefined,

@@ -30,6 +30,7 @@ import {
   forkJoin,
   of,
   tap,
+  catchError,
   Observable,
   Subscription,
 } from 'rxjs';
@@ -320,9 +321,36 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   }
 
   startExamTimer(): void {
-    this.phase.set('in_progress');
-    this.resetQuestionTimer();
-    this.startTimer();
+    // Resuming an in-progress exam — submission already set
+    if (this.submission()) {
+      this.phase.set('in_progress');
+      this.resetQuestionTimer();
+      this.startTimer();
+      return;
+    }
+
+    // New attempt — create submission first
+    const exam = this.exam();
+    if (!exam) return;
+
+    this.db.submissions
+      .startExam(exam.id, this.authStore.studentId() ?? '')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (submission) => {
+          this.submission.set(submission);
+          this.phase.set('in_progress');
+          this.resetQuestionTimer();
+          this.startTimer();
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to start exam. Please try again.',
+          });
+        },
+      });
   }
 
   // @REVIEW: Timer management with takeUntilDestroyed
@@ -367,22 +395,28 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
   // @REVIEW: Time up - auto move or auto submit
   private onTimeUp(): void {
+    this.stopTimer();
+    this.timeRemaining.set(0);
     const exam = this.exam();
     if (!exam) return;
 
-    // Save current answer (even if not selected)
     this.saveCurrentAnswer()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         if (this.isLastQuestion()) {
-          // Auto-submit on last question timeout
           this.autoSubmit('Time expired on last question');
-        } else if (exam.allowSkipReturn) {
-          // Skip to next if allowed
-          this.skipQuestion();
         } else {
-          // Move to next question
-          this.goToNext();
+          if (exam.allowSkipReturn) {
+            const idx = this.currentIndex();
+            const states = [...this.questionStates()];
+            if (states[idx]) {
+              states[idx] = { ...states[idx], wasSkipped: true };
+              this.questionStates.set(states);
+            }
+          }
+          this.currentIndex.update((i) => i + 1);
+          this.resetQuestionTimer();
+          this.startTimer();
         }
       });
   }
@@ -405,11 +439,13 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   // @REVIEW: Navigation
   goToNext(): void {
     this.saveCurrentAnswer()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         if (!this.isLastQuestion()) {
           this.currentIndex.update((i) => i + 1);
           this.resetQuestionTimer();
+          this.stopTimer();
+          this.startTimer();
         }
       });
   }
@@ -417,10 +453,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   goToPrevious(): void {
     if (this.currentIndex() > 0 && this.exam()?.allowSkipReturn) {
       this.saveCurrentAnswer()
-        .pipe(takeUntilDestroyed(this.destroyRef))
+        .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           this.currentIndex.update((i) => i - 1);
-          // Mark as returned
           const idx = this.currentIndex();
           const states = [...this.questionStates()];
           if (states[idx]) {
@@ -428,6 +463,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
             this.questionStates.set(states);
           }
           this.resetQuestionTimer();
+          this.stopTimer();
+          this.startTimer();
         });
     }
   }
@@ -436,12 +473,11 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     if (!this.exam()?.allowSkipReturn && index !== this.currentIndex()) return;
 
     this.saveCurrentAnswer()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         const oldIdx = this.currentIndex();
         this.currentIndex.set(index);
 
-        // Mark as returned if going back
         if (index < oldIdx) {
           const states = [...this.questionStates()];
           if (states[index]) {
@@ -450,13 +486,14 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
           }
         }
         this.resetQuestionTimer();
+        this.stopTimer();
+        this.startTimer();
       });
   }
 
   skipQuestion(): void {
     if (!this.exam()?.allowSkipReturn) return;
 
-    // Mark as skipped
     const idx = this.currentIndex();
     const states = [...this.questionStates()];
     if (states[idx]) {
@@ -465,11 +502,13 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     }
 
     this.saveCurrentAnswer()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         if (!this.isLastQuestion()) {
           this.currentIndex.update((i) => i + 1);
           this.resetQuestionTimer();
+          this.stopTimer();
+          this.startTimer();
         }
       });
   }
@@ -539,16 +578,16 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   }
 
   // @REVIEW: Submit exam
-  private submitExam(): void {
+  submitExam(): void {
     const submission = this.submission();
     if (!submission) return;
 
     this.stopTimer();
     this.phase.set('submitting');
 
-    // Save final answer first
     this.saveCurrentAnswer()
       .pipe(
+        catchError(() => of(null)),
         switchMap(() => this.db.submissions.submitExam(submission.id)),
         takeUntilDestroyed(this.destroyRef)
       )
@@ -585,6 +624,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
     this.saveCurrentAnswer()
       .pipe(
+        catchError(() => of(null)),
         switchMap(() =>
           this.db.submissions.autoSubmitExam(submission.id, reason)
         ),

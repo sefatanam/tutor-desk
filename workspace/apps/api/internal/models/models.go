@@ -113,6 +113,7 @@ type StudentWithUser struct {
 }
 
 type UpdateStudentRequest struct {
+	FullName      *string    `json:"full_name"`
 	RollNumber    *string    `json:"roll_number"`
 	ClassName     *string    `json:"class_name"`
 	Section       *string    `json:"section"`

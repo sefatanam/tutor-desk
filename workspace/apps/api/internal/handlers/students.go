@@ -184,6 +184,17 @@ func (h *StudentsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+
+	// Update users.full_name if provided
+	if req.FullName != nil && *req.FullName != "" {
+		var userID string
+		if err := h.db.QueryRow(ctx, `SELECT user_id FROM students WHERE id = $1`, id).Scan(&userID); err != nil {
+			middleware.WriteError(w, http.StatusNotFound, "student not found")
+			return
+		}
+		_, _ = h.db.Exec(ctx, `UPDATE users SET full_name = $2, updated_at = NOW() WHERE id = $1`, userID, *req.FullName)
+	}
+
 	_, err := h.db.Exec(ctx,
 		`UPDATE students SET
 		   roll_number    = COALESCE($2, roll_number),
@@ -264,6 +275,34 @@ func (h *StudentsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	_, _ = h.db.Exec(ctx, `DELETE FROM students WHERE id = $1`, id)
 	_, _ = h.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, userID)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetSubjects returns all subjects a student is enrolled in.
+func (h *StudentsHandler) GetSubjects(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	ctx := r.Context()
+	rows, err := h.db.Query(ctx,
+		`SELECT s.id, s.teacher_id, s.name, s.description, s.code, s.color, s.icon, s.is_active,
+		        s.total_students, s.total_exams, s.total_assets, s.created_at, s.updated_at
+		 FROM subjects s
+		 JOIN subject_enrollments se ON se.subject_id = s.id
+		 WHERE se.student_id = $1
+		 ORDER BY s.name ASC`, id)
+	if err != nil {
+		middleware.WriteError(w, http.StatusInternalServerError, "failed to fetch subjects")
+		return
+	}
+	defer rows.Close()
+
+	items := make([]models.Subject, 0)
+	for rows.Next() {
+		var s models.Subject
+		if err := rows.Scan(&s.ID, &s.TeacherID, &s.Name, &s.Description, &s.Code, &s.Color, &s.Icon,
+			&s.IsActive, &s.TotalStudents, &s.TotalExams, &s.TotalAssets, &s.CreatedAt, &s.UpdatedAt); err == nil {
+			items = append(items, s)
+		}
+	}
+	middleware.WriteJSON(w, http.StatusOK, items)
 }
 
 // =============================================

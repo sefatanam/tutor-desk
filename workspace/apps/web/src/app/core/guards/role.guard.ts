@@ -6,6 +6,7 @@ import { inject } from '@angular/core';
 import { Router, type CanActivateFn } from '@angular/router';
 import { AuthStore } from '../store/auth.store';
 import type { UserRole } from '../types/database.types';
+import { StyleLoaderService } from '../services/style-loader.service';
 
 /**
  * Factory function to create role-based guards
@@ -47,10 +48,19 @@ export const roleGuard = (...allowedRoles: UserRole[]): CanActivateFn => {
   };
 };
 
-// Convenience guards for common role checks
-export const superAdminGuard: CanActivateFn = roleGuard('super_admin');
-export const teacherGuard: CanActivateFn = roleGuard('teacher');
-export const studentGuard: CanActivateFn = roleGuard('student');
+// Convenience guards — load role-specific CSS bundle before activating
+export const superAdminGuard: CanActivateFn = (route, state) => {
+  inject(StyleLoaderService).load('feature-admin');
+  return roleGuard('super_admin')(route, state);
+};
+export const teacherGuard: CanActivateFn = (route, state) => {
+  inject(StyleLoaderService).load('feature-teacher');
+  return roleGuard('teacher')(route, state);
+};
+export const studentGuard: CanActivateFn = (route, state) => {
+  inject(StyleLoaderService).load('feature-student');
+  return roleGuard('student')(route, state);
+};
 export const teacherOrAdminGuard: CanActivateFn = roleGuard(
   'super_admin',
   'teacher'
