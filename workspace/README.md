@@ -1,282 +1,413 @@
-# Nx Angular Repository
+# Tutor Desk
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+An enterprise-grade exam management platform for educators and students — built as an Nx monorepo with an Angular 21 frontend and a Go REST API backend.
 
-✨ A repository showcasing key [Nx](https://nx.dev) features for Angular monorepos ✨
+---
 
-## 📦 Project Overview
+## Table of Contents
 
-This repository demonstrates a production-ready Angular monorepo with:
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [User Roles](#user-roles)
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Development Workflow](#development-workflow)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Docker](#docker)
+- [Useful Commands](#useful-commands)
 
-- **2 Applications**
+---
 
-  - `shop` - Angular e-commerce application with product listings and detail views
-  - `api` - Backend API with Docker support serving product data
+## Overview
 
-- **6 Libraries**
+Tutor Desk is a multi-tenant education platform that enables institutions to manage the full lifecycle of academic assessments — from subject creation and exam authoring to student submissions, auto-grading, and performance reporting.
 
-  - `@org/feature-products` - Product listing feature (Angular)
-  - `@org/feature-product-detail` - Product detail feature (Angular)
-  - `@org/data` - Data access layer for shop features
-  - `@org/shared-ui` - Shared UI components
-  - `@org/models` - Shared data models
-  - `@org/products` - API product service library
+**Core capabilities:**
 
-- **E2E Testing**
-  - `shop-e2e` - Playwright tests for the shop application
+- Role-based access control (Super Admin / Teacher / Student)
+- Subject and enrollment management
+- MCQ exam builder with assignment workflows
+- Exam-taking, auto-evaluation, and result publication
+- Learning asset management with threaded comments
+- PDF and CSV report exports
+- Swagger-documented REST API with JWT authentication
 
-## 🚀 Quick Start
+---
 
-```bash
-# Clone the repository
-git clone <your-fork-url>
-cd <your-repository-name>
-
-# Install dependencies
-# (Note: You may need --legacy-peer-deps)
-npm install
-
-# Serve the Angular shop application (this will simultaneously serve the API backend)
-npx nx serve shop
-
-# ...or you can serve the API separately
-npx nx serve api
-
-# Build all projects
-npx nx run-many -t build
-
-# Run tests
-npx nx run-many -t test
-
-# Lint all projects
-npx nx run-many -t lint
-
-# Run e2e tests
-npx nx e2e shop-e2e
-
-# Run tasks in parallel
-
-npx nx run-many -t lint test build e2e --parallel=3
-
-# Visualize the project graph
-npx nx graph
-```
-
-## ⭐ Featured Nx Capabilities
-
-This repository showcases several powerful Nx features:
-
-### 1. 🔒 Module Boundaries
-
-Enforces architectural constraints using tags. Each project has specific dependencies it can use:
-
-- `scope:shared` - Can be used by all projects
-- `scope:shop` - Shop-specific libraries
-- `scope:api` - API-specific libraries
-- `type:feature` - Feature libraries
-- `type:data` - Data access libraries
-- `type:ui` - UI component libraries
-
-**Try it out:**
-
-```bash
-# See the current project graph and boundaries
-npx nx graph
-
-# View a specific project's details
-npx nx show project shop --web
-```
-
-[Learn more about module boundaries →](https://nx.dev/features/enforce-module-boundaries)
-
-### 2. 🐳 Docker Integration
-
-The API project includes Docker support with automated targets and release management:
-
-```bash
-# Build Docker image
-npx nx docker:build api
-
-# Run Docker container
-npx nx docker:run api
-
-# Release with automatic Docker image versioning
-npx nx release
-```
-
-**Nx Release for Docker:** The repository is configured to use Nx Release for managing Docker image versioning and publishing. When running `nx release`, Docker images for the API project are automatically versioned and published based on the release configuration in `nx.json`. This integrates seamlessly with semantic versioning and changelog generation.
-
-[Learn more about Docker integration →](https://nx.dev/recipes/nx-release/release-docker-images)
-
-### 3. 🎭 Playwright E2E Testing
-
-End-to-end testing with Playwright is pre-configured:
-
-```bash
-# Run e2e tests
-npx nx e2e shop-e2e
-
-# Run e2e tests in CI mode
-npx nx e2e-ci shop-e2e
-```
-
-[Learn more about E2E testing →](https://nx.dev/technologies/test-tools/playwright/introduction#e2e-testing)
-
-### 4. ⚡ Vitest for Unit Testing
-
-Fast unit testing with Vite for Angular libraries:
-
-```bash
-# Test a specific library
-npx nx test data
-
-# Test all projects
-npx nx run-many -t test
-```
-
-[Learn more about Vite testing →](https://nx.dev/recipes/vite)
-
-### 5. 🔧 Self-Healing CI
-
-The CI pipeline includes `nx fix-ci` which automatically identifies and suggests fixes for common issues:
-
-```bash
-# In CI, this command provides automated fixes
-npx nx fix-ci
-```
-
-This feature helps maintain a healthy CI pipeline by automatically detecting and suggesting solutions for:
-
-- Missing dependencies
-- Incorrect task configurations
-- Cache invalidation issues
-- Common build failures
-
-[Learn more about self-healing CI →](https://nx.dev/ci/features/self-healing-ci)
-
-## 📁 Project Structure
+## Architecture
 
 ```
+┌─────────────────────────────────────────┐
+│              Nx Monorepo                │
+│                                         │
+│  ┌──────────────┐   ┌────────────────┐  │
+│  │  apps/web    │   │   apps/api     │  │
+│  │  Angular 21  │──▶│   Go 1.24      │  │
+│  │  SSR + PWA   │   │   REST API     │  │
+│  └──────────────┘   └───────┬────────┘  │
+│                             │           │
+│                    ┌────────▼────────┐  │
+│                    │  PostgreSQL 17  │  │
+│                    │    (Docker)     │  │
+│                    └─────────────────┘  │
+└─────────────────────────────────────────┘
+```
+
+The Angular frontend communicates with the Go API over HTTP (proxied in development). Authentication uses stateless JWTs signed by the Go API. The database runs in Docker with schema and seed SQL applied on first start.
+
+---
+
+## Tech Stack
+
+### Frontend (`apps/web`)
+
+| Layer | Technology |
+|---|---|
+| Framework | Angular 21 (standalone components, signals) |
+| Rendering | Angular SSR (Server-Side Rendering) |
+| PWA | Angular Service Worker |
+| UI Library | PrimeNG 21 + PrimeIcons |
+| Styling | Tailwind CSS 4 |
+| Charts | Chart.js 4 |
+| State | NgRx SignalStore |
+| HTTP | Angular `HttpClient` with JWT interceptor |
+| Testing | Vitest (unit), Playwright (e2e) |
+
+### Backend (`apps/api`)
+
+| Layer | Technology |
+|---|---|
+| Language | Go 1.24 |
+| HTTP | `net/http` (stdlib) |
+| Database | PostgreSQL 17 via `pgx/v5` (connection pool) |
+| Auth | JWT (`golang-jwt/jwt/v5`) |
+| API Docs | Swagger (`swaggo/swag`) |
+| Containerisation | Docker + Docker Compose |
+
+### Tooling
+
+| Tool | Purpose |
+|---|---|
+| Nx 22 | Monorepo build system, task orchestration, caching |
+| `@naxodev/gonx` | Nx plugin for Go targets (build, serve, test, lint) |
+| ESLint | TypeScript/Angular linting |
+| Prettier | Code formatting |
+
+---
+
+## Project Structure
+
+```
+workspace/
 ├── apps/
-│   ├── shop/           [scope:shop]    - Angular e-commerce app
-│   ├── shop-e2e/                       - E2E tests for shop
-│   └── api/            [scope:api]     - Backend API with Docker
-├── libs/
-│   ├── shop/
-│   │   ├── feature-products/        [scope:shop,type:feature] - Product listing
-│   │   ├── feature-product-detail/  [scope:shop,type:feature] - Product details
-│   │   ├── data/                    [scope:shop,type:data]    - Data access
-│   │   └── shared-ui/               [scope:shop,type:ui]      - UI components
-│   ├── api/
-│   │   └── products/    [scope:api]    - Product service
-│   └── shared/
-│       └── models/      [scope:shared,type:data] - Shared models
-├── nx.json             - Nx configuration
-├── tsconfig.json       - TypeScript configuration
-└── eslint.config.mjs   - ESLint with module boundary rules
+│   ├── web/                        # Angular 21 frontend
+│   │   └── src/app/
+│   │       ├── core/               # Guards, interceptors, services, store
+│   │       ├── features/
+│   │       │   ├── auth/           # Login, register, forgot-password
+│   │       │   ├── super-admin/    # Admin dashboard, teacher management
+│   │       │   ├── teacher/        # Subjects, exams, students, results
+│   │       │   └── student/        # Enrolled subjects, exams, results
+│   │       └── layout/             # Shell, header, sidebar, footer
+│   └── api/                        # Go REST API
+│       ├── main.go
+│       ├── internal/
+│       │   ├── config/             # Environment-based configuration
+│       │   ├── database/           # pgx connection pool
+│       │   ├── handlers/           # HTTP handlers per domain
+│       │   ├── middleware/         # JWT auth, CORS, logging
+│       │   └── router/             # Route registration
+│       ├── docs/                   # Auto-generated Swagger docs
+│       ├── schema.sql              # Database schema
+│       ├── seed.sql                # Initial seed data
+│       ├── Dockerfile
+│       └── docker-compose.yml
+├── nx.json                         # Nx configuration
+├── package.json
+└── tsconfig.base.json
 ```
 
-## 🏷️ Understanding Tags
+---
 
-This repository uses tags to enforce module boundaries:
+## User Roles
 
-| Project            | Tags                         | Can Import From              |
-| ------------------ | ---------------------------- | ---------------------------- |
-| `shop`             | `scope:shop`                 | `scope:shop`, `scope:shared` |
-| `api`              | `scope:api`                  | `scope:api`, `scope:shared`  |
-| `feature-products` | `scope:shop`, `type:feature` | `scope:shop`, `scope:shared` |
-| `data`             | `scope:shop`, `type:data`    | `scope:shared`               |
-| `models`           | `scope:shared`, `type:data`  | Nothing (base library)       |
+| Role | Description |
+|---|---|
+| **Super Admin** | Manages the platform — approves teachers, configures system settings, views cross-institutional reports |
+| **Teacher** | Creates subjects, authors exams, manages enrolled students, publishes results, uploads learning assets |
+| **Student** | Enrolls in subjects, takes assigned exams, reviews results and feedback, downloads assets |
 
-## 📚 Useful Commands
+Access is enforced via route guards on the frontend (`superAdminGuard`, `teacherGuard`, `studentGuard`) and JWT-based middleware on the API.
+
+---
+
+## Features
+
+### Authentication
+- Login / Register / Forgot Password
+- Pending approval state for new teacher accounts
+- Stateless JWT authentication (no third-party auth provider)
+
+### Super Admin
+- Dashboard with platform-wide metrics
+- Teacher management (approve, suspend, view workspace)
+- System settings (categories and key-value configuration)
+
+### Teacher
+- Subject CRUD and student enrollment
+- Exam builder (MCQ questions, assignment to students/groups)
+- Exam results management (auto-evaluation, result publication control)
+- Submission detail review with inline comments
+- Learning asset uploads per subject
+- PDF/CSV report export for subject performance
+
+### Student
+- Enrolled subject browser
+- Exam-taking interface (start → answer → submit)
+- Submission review with score and feedback
+- Subject learning asset browser with comments
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js ≥ 20 and `pnpm` (or `npm`)
+- Go 1.24+
+- Docker and Docker Compose
+
+### 1. Clone and install
 
 ```bash
-# Project exploration
-npx nx graph                                    # Interactive dependency graph
-npx nx list                                     # List installed plugins
-npx nx show project shop --web                 # View project details
+git clone <repo-url>
+cd tutor-desk/workspace
+pnpm install
+```
 
+### 2. Start the database
+
+```bash
+cd apps/api
+docker compose up -d postgres
+```
+
+This starts PostgreSQL 17, runs `schema.sql` and `seed.sql` on first boot, and exposes pgAdmin at `http://localhost:5050`.
+
+### 3. Configure the API
+
+```bash
+cp apps/api/.env.example apps/api/.env
+# Edit .env to set your JWT_SECRET and other values
+```
+
+### 4. Start the API
+
+```bash
+pnpm api:dev
+# or using Nx directly:
+npx nx serve api
+```
+
+API runs at `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger/`
+
+### 5. Start the frontend
+
+```bash
+pnpm start
+# or:
+npx nx serve web
+```
+
+Frontend runs at `http://localhost:4200`.
+
+---
+
+## Environment Variables
+
+All API configuration is via environment variables (see `apps/api/.env.example`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/tutordesk?sslmode=disable` | PostgreSQL connection string |
+| `JWT_SECRET` | *(change in production)* | Secret used to sign and verify JWTs |
+| `PORT` | `8080` | API server port |
+| `ENV` | `development` | Runtime environment (`development` / `production`) |
+| `CORS_ORIGINS` | `http://localhost:4200` | Comma-separated list of allowed CORS origins |
+| `UPLOAD_DIR` | `../../uploads` | Directory for uploaded learning assets |
+
+> **Security:** Never commit `.env`. Always rotate `JWT_SECRET` before deploying to production.
+
+---
+
+## Development Workflow
+
+### Serve both apps simultaneously
+
+```bash
+# Terminal 1 — API
+pnpm api:dev
+
+# Terminal 2 — Frontend
+pnpm start
+```
+
+The Angular dev server proxies `/api` requests to `http://localhost:8080` via `proxy.conf.js`.
+
+### Regenerate Swagger docs (after changing API annotations)
+
+```bash
+pnpm api:docs
+```
+
+### Lint
+
+```bash
+pnpm lint:check        # Check only
+pnpm lint:fix          # Auto-fix
+```
+
+### Visualise the project graph
+
+```bash
+npx nx graph
+```
+
+---
+
+## API Documentation
+
+The API is fully documented with Swagger annotations.
+
+| Endpoint group | Description |
+|---|---|
+| `/api/v1/auth` | Login, signup, token refresh, password management |
+| `/api/v1/users` | User profile operations |
+| `/api/v1/teachers` | Teacher management (super_admin) and self-service |
+| `/api/v1/students` | Student management by teachers |
+| `/api/v1/subjects` | Subject CRUD and enrollment |
+| `/api/v1/exams` | Exam lifecycle and assignment |
+| `/api/v1/questions` | MCQ question management within exams |
+| `/api/v1/submissions` | Exam-taking — start, answer, submit, evaluate |
+| `/api/v1/assets` | Subject learning material uploads |
+| `/api/v1/comments` | Comments on subject assets |
+| `/api/v1/admin` | Super-admin dashboard and reporting |
+| `/api/v1/settings` | System settings categories and key-value config |
+
+All protected endpoints require `Authorization: Bearer <token>`.
+
+Swagger UI (development): `http://localhost:8080/swagger/`
+
+---
+
+## Testing
+
+### Unit tests (Vitest)
+
+```bash
+pnpm test:unit
+# or:
+npx nx test web
+```
+
+### E2E tests (Playwright)
+
+```bash
+pnpm test:e2e
+# or:
+npx nx e2e web-e2e
+```
+
+### Go API tests
+
+```bash
+npx nx test api
+```
+
+### Run all tests in parallel
+
+```bash
+npx nx run-many -t test --parallel=3
+```
+
+---
+
+## Docker
+
+### Infrastructure only (Postgres + pgAdmin)
+
+```bash
+cd apps/api
+docker compose up -d
+```
+
+| Service | URL |
+|---|---|
+| PostgreSQL | `localhost:5432` |
+| pgAdmin | `http://localhost:5050` (admin@tutordesk.app / admin) |
+
+### Full stack (includes the Go API container)
+
+```bash
+docker compose --profile full up -d
+```
+
+### Tear down
+
+```bash
+pnpm api:down
+```
+
+### View logs
+
+```bash
+pnpm api:logs
+```
+
+---
+
+## Useful Commands
+
+```bash
 # Development
-npx nx serve shop                              # Serve Angular app
-npx nx serve api                               # Serve backend API
-npx nx build shop                              # Build Angular app
-npx nx test data                               # Test a specific library
-npx nx lint feature-products                   # Lint a specific library
+pnpm start                          # Serve Angular frontend
+pnpm api:dev                        # Serve Go API (dev)
+npx nx serve web                    # Nx: serve frontend
+npx nx serve api                    # Nx: serve API
 
-# Running multiple tasks
-npx nx run-many -t build                       # Build all projects
-npx nx run-many -t test --parallel=3          # Test in parallel
-npx nx run-many -t lint test build            # Run multiple targets
+# Build
+npx nx build web                    # Build Angular app (dev)
+pnpm build:prod                     # Build Angular app (production)
+npx nx build api                    # Build Go binary
 
-# Affected commands (great for CI)
-npx nx affected -t build                       # Build only affected projects
-npx nx affected -t test                        # Test only affected projects
+# Test & lint
+pnpm test:unit                      # Unit tests
+pnpm test:e2e                       # E2E tests
+pnpm lint:check                     # Lint check
+pnpm lint:fix                       # Auto-fix lint
 
-# Docker operations
-npx nx docker:build api                        # Build Docker image
-npx nx docker:run api                          # Run Docker container
+# Nx utilities
+npx nx graph                        # Interactive project dependency graph
+npx nx affected -t build            # Build only affected projects
+npx nx affected -t test             # Test only affected projects
+npx nx run-many -t lint test build  # Run multiple targets across all projects
+npx nx show project web --web       # View project details in browser
+
+# API docs
+pnpm api:docs                       # Regenerate Swagger docs from Go annotations
+
+# Docker
+pnpm api:dev                        # Start DB + API (dev mode)
+pnpm api:down                       # Stop all containers
+pnpm api:logs                       # Stream container logs
 ```
 
-## 🎯 Adding New Features
+---
 
-### Generate a new Angular application:
+## License
 
-```bash
-npx nx g @nx/angular:app my-app
-```
-
-### Generate a new Angular library:
-
-```bash
-npx nx g @nx/angular:lib my-lib
-```
-
-### Generate a new Angular component:
-
-```bash
-npx nx g @nx/angular:component my-component --project=my-lib
-```
-
-### Generate a new API library:
-
-```bash
-npx nx g @nx/node:lib my-api-lib
-```
-
-You can use `npx nx list` to see all available plugins and `npx nx list <plugin-name>` to see all generators for a specific plugin.
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## 🔗 Learn More
-
-- [Nx Documentation](https://nx.dev)
-- [Angular Monorepo Tutorial](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial)
-- [Module Boundaries](https://nx.dev/features/enforce-module-boundaries)
-- [Docker Integration](https://nx.dev/recipes/nx-release/release-docker-images)
-- [Playwright Testing](https://nx.dev/technologies/test-tools/playwright/introduction#e2e-testing)
-- [Vite with Angular](https://nx.dev/recipes/vite)
-- [Nx Cloud](https://nx.dev/ci/intro/why-nx-cloud)
-- [Releasing Packages](https://nx.dev/features/manage-releases)
-
-## 💬 Community
-
-Join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [X (Twitter)](https://twitter.com/nxdevtools)
-- [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [YouTube](https://www.youtube.com/@nxdevtools)
-- [Blog](https://nx.dev/blog)
+MIT

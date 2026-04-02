@@ -1,5 +1,10 @@
 {
   "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--project-path", "/Users/sefat/Documents/Github/tutor-desk"]
+    },
     "primeng": {
       "type": "stdio",
       "command": "npx",
