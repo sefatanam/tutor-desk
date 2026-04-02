@@ -19,12 +19,13 @@ import (
 
 // AssetsHandler handles asset CRUD and file upload endpoints.
 type AssetsHandler struct {
-	db        *pgxpool.Pool
-	uploadDir string
+	db          *pgxpool.Pool
+	uploadDir   string
+	maxUploadMB int64
 }
 
-func NewAssetsHandler(db *pgxpool.Pool, uploadDir string) *AssetsHandler {
-	return &AssetsHandler{db: db, uploadDir: uploadDir}
+func NewAssetsHandler(db *pgxpool.Pool, uploadDir string, maxUploadMB int64) *AssetsHandler {
+	return &AssetsHandler{db: db, uploadDir: uploadDir, maxUploadMB: maxUploadMB}
 }
 
 const assetCols = `
@@ -153,7 +154,7 @@ func (h *AssetsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400		{object}	map[string]string
 //	@Router			/assets [post]
 func (h *AssetsHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(50 << 20); err != nil { // 50 MB limit
+	if err := r.ParseMultipartForm(h.maxUploadMB << 20); err != nil {
 		middleware.WriteError(w, http.StatusBadRequest, "failed to parse form")
 		return
 	}

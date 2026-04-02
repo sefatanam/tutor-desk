@@ -729,3 +729,53 @@ func NewPaginationParams(page, pageSize int) PaginationParams {
 func (p PaginationParams) Offset() int {
 	return (p.Page - 1) * p.PageSize
 }
+
+// =============================================
+// BILLING
+// =============================================
+
+type BillingPlan struct {
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	DisplayName string     `json:"display_name"`
+	PriceBDT    int        `json:"price_bdt"`
+	MaxSubjects *int       `json:"max_subjects"` // nil = unlimited
+	MaxExams    *int       `json:"max_exams"`
+	MaxStudents *int       `json:"max_students"`
+	CanExport   bool       `json:"can_export"`
+	SeatCount   int        `json:"seat_count"`
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+type Subscription struct {
+	ID                 string    `json:"id"`
+	TeacherID          string    `json:"teacher_id"`
+	PlanID             int       `json:"plan_id"`
+	Plan               *BillingPlan `json:"plan,omitempty"`
+	Status             string    `json:"status"`
+	CurrentPeriodStart time.Time `json:"current_period_start"`
+	CurrentPeriodEnd   time.Time `json:"current_period_end"`
+	CreatedAt          time.Time `json:"created_at"`
+}
+
+type PaymentTransaction struct {
+	ID             string     `json:"id"`
+	TeacherID      string     `json:"teacher_id"`
+	PlanID         int        `json:"plan_id"`
+	BkashPaymentID string     `json:"bkash_payment_id"`
+	TrxID          *string    `json:"trx_id"`
+	AmountBDT      int        `json:"amount_bdt"`
+	Status         string     `json:"status"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+type CreatePaymentRequest struct {
+	PlanID int `json:"plan_id"`
+}
+
+type ExecutePaymentRequest struct {
+	PaymentID string `json:"payment_id"`
+	Status    string `json:"status"`
+}

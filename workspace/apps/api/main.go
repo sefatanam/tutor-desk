@@ -64,7 +64,7 @@ func main() {
 	cfg := config.Load()
 
 	ctx := context.Background()
-	db, err := database.NewPool(ctx, cfg.DatabaseURL)
+	db, err := database.NewPool(ctx, cfg)
 	if err != nil {
 		log.Fatalf("database connection error: %v", err)
 	}
@@ -81,9 +81,9 @@ func main() {
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      handler,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  time.Duration(cfg.ServerReadTimeoutS) * time.Second,
+		WriteTimeout: time.Duration(cfg.ServerWriteTimeoutS) * time.Second,
+		IdleTimeout:  time.Duration(cfg.ServerIdleTimeoutS) * time.Second,
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -100,7 +100,7 @@ func main() {
 	<-quit
 	log.Println("shutting down server...")
 
-	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutCtx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.ServerShutdownTimeoutS)*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutCtx); err != nil {

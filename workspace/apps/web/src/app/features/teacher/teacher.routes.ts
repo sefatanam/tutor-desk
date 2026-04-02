@@ -151,4 +151,10 @@ export const teacherRoutes: Routes = [
       ),
     title: 'Submission Details - Tutor Desk',
   },
+  {
+    path: 'billing',
+    loadChildren: () =>
+      import('../billing/billing.routes').then((m) => m.billingRoutes),
+    title: 'Billing - Tutor Desk',
+  },
 ];

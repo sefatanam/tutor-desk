@@ -15,23 +15,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/tutor-desk/api/internal/config"
 	"github.com/tutor-desk/api/internal/middleware"
-)
-
-const (
-	accessTokenExpiry  = 15 * 60          // 15 minutes in seconds
-	refreshTokenExpiry = 7 * 24 * 60 * 60 // 7 days in seconds
-	bcryptCost         = 12
 )
 
 // AuthHandler handles all authentication operations.
 type AuthHandler struct {
-	db        *pgxpool.Pool
-	jwtSecret string
+	db                *pgxpool.Pool
+	jwtSecret         string
+	accessTokenExpiry int // seconds
+	refreshTokenExpiry int // seconds
+	bcryptCost        int
 }
 
-func NewAuthHandler(db *pgxpool.Pool, jwtSecret string) *AuthHandler {
-	return &AuthHandler{db: db, jwtSecret: jwtSecret}
+func NewAuthHandler(db *pgxpool.Pool, cfg *config.Config) *AuthHandler {
+	return &AuthHandler{
+		db:                db,
+		jwtSecret:         cfg.JWTSecret,
+		accessTokenExpiry: cfg.JWTAccessExpiryS,
+		refreshTokenExpiry: cfg.JWTRefreshExpiryS,
+		bcryptCost:        cfg.BcryptCost,
+	}
 }
 
 // =============================================
@@ -193,7 +197,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	refreshToken, refreshHash := generateRefreshToken()
 
 	// Store refresh token
-	expiresAt := time.Now().Add(time.Duration(refreshTokenExpiry) * time.Second)
+	expiresAt := time.Now().Add(time.Duration(h.refreshTokenExpiry) * time.Second)
 	_, err = h.db.Exec(ctx,
 		`INSERT INTO refresh_tokens (user_id, token_hash, device_fingerprint, ip_address, user_agent, expires_at)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -210,7 +214,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, authSuccessResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    accessTokenExpiry,
+		ExpiresIn:    h.accessTokenExpiry,
 		User: authUserResponse{
 			ID:        user.ID,
 			Email:     user.Email,
@@ -273,7 +277,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), h.bcryptCost)
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "failed to process password")
 		return
@@ -385,7 +389,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	// Rotate refresh token
 	newRefreshToken, newRefreshHash := generateRefreshToken()
-	newExpiresAt := time.Now().Add(time.Duration(refreshTokenExpiry) * time.Second)
+	newExpiresAt := time.Now().Add(time.Duration(h.refreshTokenExpiry) * time.Second)
 
 	_, _ = h.db.Exec(ctx, `UPDATE refresh_tokens SET is_revoked = true, revoked_reason = 'rotated' WHERE id = $1`, rt.ID)
 	_, err = h.db.Exec(ctx,
@@ -408,7 +412,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, http.StatusOK, authSuccessResponse{
 		AccessToken:  accessToken,
 		RefreshToken: newRefreshToken,
-		ExpiresIn:    accessTokenExpiry,
+		ExpiresIn:    h.accessTokenExpiry,
 		User: authUserResponse{
 			ID:        user.ID,
 			Email:     user.Email,
@@ -477,7 +481,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcryptCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), h.bcryptCost)
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "failed to process password")
 		return
@@ -547,7 +551,7 @@ func (h *AuthHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), h.bcryptCost)
 	if err != nil {
 		middleware.WriteError(w, http.StatusInternalServerError, "failed to process password")
 		return
@@ -620,7 +624,7 @@ func (h *AuthHandler) createAccessToken(userID, email, role, status string) (str
 		"user_role": role, // intentionally "user_role" not "role" — matches Edge Function convention
 		"status":    status,
 		"iat":       now.Unix(),
-		"exp":       now.Add(time.Duration(accessTokenExpiry) * time.Second).Unix(),
+		"exp":       now.Add(time.Duration(h.accessTokenExpiry) * time.Second).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(h.jwtSecret))

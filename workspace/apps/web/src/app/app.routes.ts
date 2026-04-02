@@ -75,6 +75,16 @@ export const appRoutes: Route[] = [
     ],
   },
 
+  // bKash payment callback — public, no shell, no auth guard
+  {
+    path: 'payment/callback',
+    loadComponent: () =>
+      import('./features/billing/callback/callback.component').then(
+        (m) => m.PaymentCallbackComponent
+      ),
+    title: 'Payment - Tutor Desk',
+  },
+
   // Fallback
   {
     path: '**',

@@ -9,6 +9,7 @@ import (
 	"github.com/tutor-desk/api/internal/config"
 	"github.com/tutor-desk/api/internal/handlers"
 	"github.com/tutor-desk/api/internal/middleware"
+	"github.com/tutor-desk/api/internal/services"
 )
 
 // New builds and returns the HTTP mux with all routes registered.
@@ -16,7 +17,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	// Instantiate handlers
-	auth := handlers.NewAuthHandler(db, cfg.JWTSecret)
+	auth := handlers.NewAuthHandler(db, cfg)
 	users := handlers.NewUsersHandler(db)
 	teachers := handlers.NewTeachersHandler(db)
 	students := handlers.NewStudentsHandler(db)
@@ -24,10 +25,11 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 	exams := handlers.NewExamsHandler(db)
 	questions := handlers.NewQuestionsHandler(db)
 	submissions := handlers.NewSubmissionsHandler(db)
-	assets := handlers.NewAssetsHandler(db, cfg.UploadDir)
+	assets := handlers.NewAssetsHandler(db, cfg.UploadDir, cfg.MaxUploadMB)
 	comments := handlers.NewCommentsHandler(db)
 	admin := handlers.NewAdminHandler(db)
 	settings := handlers.NewSettingsHandler(db)
+	payments := handlers.NewPaymentsHandler(db, services.NewBkashClient(cfg))
 
 	// ─── Middleware helpers ───────────────────────────────────────────────────
 	jwtSecret := cfg.JWTSecret
@@ -238,6 +240,17 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 		authMW(superAdmin(http.HandlerFunc(settings.DeleteSetting))))
 	mux.Handle("POST /api/v1/settings/bulk-update",
 		authMW(superAdmin(http.HandlerFunc(settings.BulkUpdateValues))))
+
+	// ─── Billing (public) ────────────────────────────────────────────────────
+	mux.HandleFunc("GET /api/v1/billing/plans", payments.ListPlans)
+
+	// ─── Billing (teacher) ───────────────────────────────────────────────────
+	mux.Handle("POST /api/v1/payments/create",
+		authMW(teacherOrAdmin(http.HandlerFunc(payments.CreatePayment))))
+	mux.Handle("POST /api/v1/payments/execute",
+		authMW(teacherOrAdmin(http.HandlerFunc(payments.ExecutePayment))))
+	mux.Handle("GET /api/v1/subscriptions/me",
+		authMW(teacherOrAdmin(http.HandlerFunc(payments.GetMySubscription))))
 
 	// ─── Health ──────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
