@@ -71,6 +71,14 @@ func main() {
 	defer db.Close()
 	log.Println("database connected")
 
+	migrationsDir := "./migrations"
+	if v := os.Getenv("MIGRATIONS_DIR"); v != "" {
+		migrationsDir = v
+	}
+	if err := database.RunMigrations(ctx, db, migrationsDir); err != nil {
+		log.Fatalf("migration error: %v", err)
+	}
+
 	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
 		log.Fatalf("failed to create upload directory: %v", err)
 	}

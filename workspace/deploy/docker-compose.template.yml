@@ -1,0 +1,79 @@
+# ─── Per-Customer Stack Template ──────────────────────────────────────────────
+# This file is copied and env-substituted for each customer by provision.sh.
+# Variables like ${CUSTOMER_ID} are filled in at provisioning time.
+# DO NOT use this file directly — use deploy/scripts/provision.sh instead.
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+  # ─── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    container_name: ${CUSTOMER_ID}_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ${CUSTOMER_ID}_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ${CUSTOMER_ID}_net
+
+  # ─── Go API ──────────────────────────────────────────────────────────────────
+  api:
+    image: ${DOCKER_IMAGE_API}:${APP_VERSION}
+    container_name: ${CUSTOMER_ID}_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: "8080"
+      CORS_ORIGINS: https://${CUSTOMER_DOMAIN}
+      UPLOAD_DIR: /app/uploads
+      ENV: production
+      SUPER_ADMIN_KEY: ${SUPER_ADMIN_KEY}
+      # bKash credentials (customer fills in their own)
+      BKASH_APP_KEY: ${BKASH_APP_KEY:-}
+      BKASH_APP_SECRET: ${BKASH_APP_SECRET:-}
+      BKASH_USERNAME: ${BKASH_USERNAME:-}
+      BKASH_PASSWORD: ${BKASH_PASSWORD:-}
+      BKASH_CALLBACK_URL: https://${CUSTOMER_DOMAIN}/payment/callback
+    ports:
+      - "${API_PORT}:8080"
+    volumes:
+      - ${CUSTOMER_ID}_uploads:/app/uploads
+    networks:
+      - ${CUSTOMER_ID}_net
+
+  # ─── Angular SSR Web ─────────────────────────────────────────────────────────
+  web:
+    image: ${DOCKER_IMAGE_WEB}:${APP_VERSION}
+    container_name: ${CUSTOMER_ID}_web
+    restart: always
+    environment:
+      API_URL: https://${CUSTOMER_DOMAIN}/api
+    ports:
+      - "${WEB_PORT}:4000"
+    networks:
+      - ${CUSTOMER_ID}_net
+
+volumes:
+  ${CUSTOMER_ID}_postgres_data:
+    name: ${CUSTOMER_ID}_postgres_data
+  ${CUSTOMER_ID}_uploads:
+    name: ${CUSTOMER_ID}_uploads
+
+networks:
+  ${CUSTOMER_ID}_net:
+    name: ${CUSTOMER_ID}_net
+    driver: bridge

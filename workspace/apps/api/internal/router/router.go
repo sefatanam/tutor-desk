@@ -261,5 +261,11 @@ func New(db *pgxpool.Pool, cfg *config.Config) http.Handler {
 	// No auth required — accessible at http://localhost:8080/swagger/
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	return middleware.CORS(cfg.CORSOrigins)(middleware.Logging(mux))
+	// PlatformSuperAdmin runs first so super admin key bypasses JWT on all routes.
+	// CORS and Logging wrap the full chain so all requests are handled correctly.
+	return middleware.PlatformSuperAdmin(cfg.SuperAdminKey)(
+		middleware.CORS(cfg.CORSOrigins)(
+			middleware.Logging(mux),
+		),
+	)
 }

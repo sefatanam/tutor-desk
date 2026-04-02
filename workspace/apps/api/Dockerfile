@@ -32,6 +32,9 @@ COPY --from=builder /api /app/api
 # Uploads directory (mounted as volume in docker-compose)
 RUN mkdir -p /app/uploads
 
+# Copy SQL migration files (applied automatically on startup)
+COPY apps/api/migrations/ /app/migrations/
+
 EXPOSE 8080
 
 ENTRYPOINT ["/app/api"]

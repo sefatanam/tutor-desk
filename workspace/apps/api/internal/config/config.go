@@ -12,12 +12,13 @@ import (
 // Config holds all application configuration loaded from environment variables.
 type Config struct {
 	// Core
-	DatabaseURL string
-	JWTSecret   string
-	Port        string
-	CORSOrigins []string
-	UploadDir   string
-	Env         string
+	DatabaseURL    string
+	JWTSecret      string
+	SuperAdminKey  string // platform operator master key — bypasses JWT auth
+	Port           string
+	CORSOrigins    []string
+	UploadDir      string
+	Env            string
 
 	// Server timeouts (seconds)
 	ServerReadTimeoutS     int
@@ -59,11 +60,12 @@ func Load() *Config {
 
 	cfg := &Config{
 		// Core
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/tutordesk"),
-		JWTSecret:   getEnv("JWT_SECRET", "tutor-desk-super-secret-key-change-in-production-2024"),
-		Port:        getEnv("PORT", "8080"),
-		UploadDir:   getEnv("UPLOAD_DIR", "../../uploads"),
-		Env:         getEnv("ENV", "development"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/tutordesk"),
+		JWTSecret:     getEnv("JWT_SECRET", "tutor-desk-super-secret-key-change-in-production-2024"),
+		SuperAdminKey: getEnv("SUPER_ADMIN_KEY", ""),
+		Port:          getEnv("PORT", "8080"),
+		UploadDir:     getEnv("UPLOAD_DIR", "../../uploads"),
+		Env:           getEnv("ENV", "development"),
 
 		// Server timeouts
 		ServerReadTimeoutS:     getEnvInt("SERVER_READ_TIMEOUT_S", 30),

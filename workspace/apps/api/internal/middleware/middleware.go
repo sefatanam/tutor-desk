@@ -69,7 +69,7 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", origins[0])
 			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Device-Fingerprint, Accept")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Device-Fingerprint, Accept, X-Super-Admin-Key")
 			w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 			w.Header().Set("Access-Control-Max-Age", "3600")
 
@@ -88,9 +88,17 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 
 // Auth validates the JWT Bearer token in the Authorization header.
 // On success it injects user_id, user_role, email, status into the request context.
+// If the PlatformSuperAdmin middleware has already injected a role (via X-Super-Admin-Key),
+// JWT validation is skipped.
 func Auth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip JWT if PlatformSuperAdmin already authenticated this request
+			if GetUserRole(r) == "super_admin" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			authHeader := r.Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {
 				writeError(w, http.StatusUnauthorized, "authorization token required")
