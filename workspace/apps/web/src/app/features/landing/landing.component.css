@@ -1102,6 +1102,174 @@
 
 
 /* ================================================================
+   7b. PRICING
+   ================================================================ */
+.td-lp-pricing { background: #f8fafc; }
+
+.td-lp-pricing__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
+  margin-top: 3rem;
+  align-items: start;
+}
+
+/* Plan card */
+.td-lp-plan {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.td-lp-plan:hover {
+  box-shadow: 0 12px 40px rgba(15,23,42,0.08);
+  transform: translateY(-4px);
+}
+
+/* Featured card */
+.td-lp-plan--featured {
+  border-color: #16a34a;
+  box-shadow: 0 8px 32px rgba(22,163,74,0.15);
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 60%);
+}
+.td-lp-plan--featured:hover {
+  box-shadow: 0 16px 48px rgba(22,163,74,0.22);
+}
+
+.td-lp-plan__badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.3rem 1rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* Card header */
+.td-lp-plan__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.td-lp-plan__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px; height: 42px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  font-size: 1.125rem;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+.td-lp-plan--featured .td-lp-plan__icon {
+  background: rgba(22,163,74,0.1);
+  color: #16a34a;
+}
+.td-lp-plan__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+.td-lp-plan__tagline {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Price */
+.td-lp-plan__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  line-height: 1;
+}
+.td-lp-plan__currency {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+.td-lp-plan__amount {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+.td-lp-plan--featured .td-lp-plan__amount { color: #16a34a; }
+.td-lp-plan__period {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+/* Feature list */
+.td-lp-plan__features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  flex: 1;
+}
+.td-lp-plan__feat {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.4;
+}
+.td-lp-plan__feat .pi { font-size: 0.9rem; flex-shrink: 0; }
+.td-lp-plan__feat--yes .pi { color: #16a34a; }
+.td-lp-plan__feat--no { color: #94a3b8; }
+.td-lp-plan__feat--no .pi { color: #cbd5e1; }
+
+/* Outline button variant */
+.td-lp-btn--outline {
+  background: transparent;
+  color: #0f172a;
+  border: 1.5px solid #e2e8f0;
+}
+.td-lp-btn--outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-2px);
+}
+
+/* Trust note */
+.td-lp-pricing__note {
+  text-align: center;
+  margin-top: 2.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.td-lp-pricing__note .pi { color: #16a34a; }
+.td-lp-pricing__note strong { color: #0f172a; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .td-lp-pricing__grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
+}
+
+
+/* ================================================================
    8. FOOTER
    ================================================================ */
 .td-lp-footer {
@@ -1250,6 +1418,7 @@
 
   .td-lp-features-grid { grid-template-columns: repeat(2, 1fr); }
   .td-lp-testimonials-grid { grid-template-columns: 1fr; }
+  .td-lp-pricing__grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
 
   .td-lp-trust-bar__inner { justify-content: center; }
   .td-lp-trust-bar__divider { display: none; }

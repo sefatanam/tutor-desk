@@ -395,16 +395,155 @@
 
 
   <!-- ══════════════════════════════════════════════════════
-       7. CTA BAND — two-column navy section
+       7. PRICING — three-tier plan cards
   ══════════════════════════════════════════════════════ -->
-  <section id="pricing" class="td-lp-cta" aria-label="Call to action">
+  <section id="pricing" class="td-lp-section td-lp-pricing" aria-label="Pricing plans">
+    <div class="td-lp-container">
+
+      <!-- Section header -->
+      <div class="td-lp-section-header reveal">
+        <div class="td-lp-hero__badge">
+          <span class="td-lp-hero__badge-dot" aria-hidden="true"></span>
+          <span>Simple, transparent pricing</span>
+        </div>
+        <h2 class="td-lp-section-title">
+          <span class="bn">পরিকল্পনা বেছে নিন</span><br>
+          Plans that grow with you
+        </h2>
+        <p class="td-lp-section-sub">
+          Start free, upgrade when you're ready. Pay monthly with <strong>bKash</strong> — no credit card needed.
+        </p>
+      </div>
+
+      <!-- Plan cards -->
+      <div class="td-lp-pricing__grid" role="list">
+
+        <!-- Starter -->
+        <div class="td-lp-plan reveal" role="listitem" aria-label="Starter plan">
+          <div class="td-lp-plan__header">
+            <span class="td-lp-plan__icon" aria-hidden="true"><i class="pi pi-user"></i></span>
+            <h3 class="td-lp-plan__name">Starter</h3>
+            <p class="td-lp-plan__tagline bn">নতুনদের জন্য</p>
+          </div>
+          <div class="td-lp-plan__price">
+            <span class="td-lp-plan__amount">Free</span>
+            <span class="td-lp-plan__period">forever</span>
+          </div>
+          <ul class="td-lp-plan__features" aria-label="Starter features">
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> 1 subject
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> 5 exams / month
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Up to 30 students
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Auto-grading
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--no">
+              <i class="pi pi-times-circle" aria-hidden="true"></i> PDF / CSV export
+            </li>
+          </ul>
+          <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--ghost td-lp-btn--full">
+            <span class="bn">বিনামূল্যে শুরু</span>
+          </a>
+        </div>
+
+        <!-- Pro (featured) -->
+        <div class="td-lp-plan td-lp-plan--featured reveal" role="listitem" aria-label="Pro plan">
+          <div class="td-lp-plan__badge">Most popular</div>
+          <div class="td-lp-plan__header">
+            <span class="td-lp-plan__icon" aria-hidden="true"><i class="pi pi-star"></i></span>
+            <h3 class="td-lp-plan__name">Pro</h3>
+            <p class="td-lp-plan__tagline bn">পেশাদার শিক্ষকদের জন্য</p>
+          </div>
+          <div class="td-lp-plan__price">
+            <span class="td-lp-plan__currency">৳</span>
+            <span class="td-lp-plan__amount">299</span>
+            <span class="td-lp-plan__period">/ month</span>
+          </div>
+          <ul class="td-lp-plan__features" aria-label="Pro features">
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Unlimited subjects &amp; exams
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Up to 200 students
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Auto-grading &amp; analytics
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> PDF &amp; CSV export
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> <span class="bn">বিকাশ</span> payment
+            </li>
+          </ul>
+          <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--primary td-lp-btn--full">
+            <span class="bn">Pro শুরু করুন</span>
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        <!-- School -->
+        <div class="td-lp-plan reveal" role="listitem" aria-label="School plan">
+          <div class="td-lp-plan__header">
+            <span class="td-lp-plan__icon" aria-hidden="true"><i class="pi pi-building"></i></span>
+            <h3 class="td-lp-plan__name">School</h3>
+            <p class="td-lp-plan__tagline bn">প্রতিষ্ঠানের জন্য</p>
+          </div>
+          <div class="td-lp-plan__price">
+            <span class="td-lp-plan__currency">৳</span>
+            <span class="td-lp-plan__amount">999</span>
+            <span class="td-lp-plan__period">/ month</span>
+          </div>
+          <ul class="td-lp-plan__features" aria-label="School features">
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Everything in Pro
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> 10 teacher seats
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Unlimited students
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> School branding
+            </li>
+            <li class="td-lp-plan__feat td-lp-plan__feat--yes">
+              <i class="pi pi-check-circle" aria-hidden="true"></i> Priority support
+            </li>
+          </ul>
+          <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--outline td-lp-btn--full">
+            <span class="bn">School শুরু করুন</span>
+          </a>
+        </div>
+
+      </div><!-- /grid -->
+
+      <p class="td-lp-pricing__note reveal">
+        <i class="pi pi-shield" aria-hidden="true"></i>
+        Pay securely with <strong class="bn">বিকাশ</strong> (bKash) — Bangladesh's most trusted mobile payment.
+        Cancel anytime.
+      </p>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       8. CTA BAND — two-column navy section
+  ══════════════════════════════════════════════════════ -->
+  <section class="td-lp-cta" aria-label="Call to action">
     <div class="td-lp-cta__inner">
 
       <!-- Left: headline + buttons -->
       <div class="td-lp-cta__copy">
         <div class="td-lp-hero__badge td-lp-hero__badge--light">
           <span class="td-lp-hero__badge-dot" aria-hidden="true"></span>
-          <span class="bn">আজই যোগ দিন — সম্পূর্ণ বিনামূল্যে</span>
+          <span class="bn">আজই শুরু করুন — বিনামূল্যে</span>
         </div>
         <h2 class="td-lp-cta__h2">
           <span class="bn">আপনার শিক্ষাকে</span>
@@ -414,7 +553,7 @@
         <p class="td-lp-cta__body">
           <span class="bn">হাজার হাজার শিক্ষক ও শিক্ষার্থী ইতিমধ্যে Tutor Desk ব্যবহার করছেন।</span>
           <br>
-          Join thousands of educators who simplified their workflow.
+          Start free with Starter — upgrade to Pro or School when you're ready.
         </p>
         <div class="td-lp-cta__actions">
           <a routerLink="/auth/register" class="td-lp-btn td-lp-btn--primary td-lp-btn--lg">
@@ -427,13 +566,13 @@
         </div>
       </div>
 
-      <!-- Right: feature checklist -->
-      <div class="td-lp-cta__checklist" aria-label="Key features">
-        <h3 class="td-lp-cta__checklist-title">What you get — for free</h3>
+      <!-- Right: plan comparison summary -->
+      <div class="td-lp-cta__checklist" aria-label="Plan highlights">
+        <h3 class="td-lp-cta__checklist-title">Starter plan includes</h3>
         <ul class="td-lp-cta__list">
           <li class="td-lp-cta__list-item">
             <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
-            <span><span class="bn">MCQ পরীক্ষা তৈরি ও পরিচালনা</span> — Unlimited exams</span>
+            <span>1 subject · 5 exams/month · 30 students</span>
           </li>
           <li class="td-lp-cta__list-item">
             <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
@@ -445,11 +584,11 @@
           </li>
           <li class="td-lp-cta__list-item">
             <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
-            <span>Analytics dashboard for every student</span>
+            <span>Upgrade to Pro (৳299/mo) for unlimited everything</span>
           </li>
           <li class="td-lp-cta__list-item">
             <span class="td-lp-cta__check" aria-hidden="true"><i class="pi pi-check"></i></span>
-            <span><span class="bn">মোবাইল ফার্স্ট</span> — works on any device</span>
+            <span><span class="bn">বিকাশ</span> payment — no credit card needed</span>
           </li>
         </ul>
       </div>
