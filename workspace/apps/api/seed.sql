@@ -7,6 +7,16 @@
 -- =============================================
 
 -- =============================================
+-- BILLING PLANS
+-- =============================================
+
+INSERT INTO billing_plans (name, display_name, price_bdt, max_subjects, max_exams, max_students, can_export, seat_count) VALUES
+    ('starter', 'Starter',  0,    1,    5,    30,  false, 1),
+    ('pro',     'Pro',      299,  NULL, NULL, 200, true,  1),
+    ('school',  'School',   999,  NULL, NULL, NULL,true,  10)
+ON CONFLICT (name) DO NOTHING;
+
+-- =============================================
 -- RATE LIMITS
 -- =============================================
 

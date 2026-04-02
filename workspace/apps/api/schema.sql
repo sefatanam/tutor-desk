@@ -771,3 +771,51 @@ FROM exams e
 INNER JOIN exam_subject_assignments esa ON e.id = esa.exam_id
 INNER JOIN subject_enrollments se       ON esa.subject_id = se.subject_id
 WHERE esa.auto_assign_students = true;
+
+-- =============================================
+-- BILLING
+-- =============================================
+
+-- billing_plans: defines the available subscription tiers
+CREATE TABLE billing_plans (
+    id           SERIAL PRIMARY KEY,
+    name         TEXT    NOT NULL UNIQUE,  -- 'starter', 'pro', 'school'
+    display_name TEXT    NOT NULL,
+    price_bdt    INTEGER NOT NULL,         -- monthly price in BDT (0 = free)
+    max_subjects INTEGER,                  -- NULL = unlimited
+    max_exams    INTEGER,                  -- NULL = unlimited
+    max_students INTEGER,                  -- NULL = unlimited
+    can_export   BOOLEAN NOT NULL DEFAULT FALSE,
+    seat_count   INTEGER NOT NULL DEFAULT 1,
+    active       BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- subscriptions: one active subscription per teacher
+CREATE TABLE subscriptions (
+    id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    teacher_id           UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan_id              INTEGER NOT NULL REFERENCES billing_plans(id),
+    status               TEXT NOT NULL DEFAULT 'active', -- active, cancelled, expired
+    current_period_start TIMESTAMPTZ NOT NULL,
+    current_period_end   TIMESTAMPTZ NOT NULL,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (teacher_id)
+);
+
+-- payment_transactions: bKash payment audit log
+CREATE TABLE payment_transactions (
+    id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    teacher_id       UUID    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan_id          INTEGER NOT NULL REFERENCES billing_plans(id),
+    bkash_payment_id TEXT    NOT NULL UNIQUE,
+    trx_id           TEXT,            -- set after successful execute
+    amount_bdt       INTEGER NOT NULL,
+    status           TEXT    NOT NULL DEFAULT 'pending', -- pending, completed, failed, cancelled
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER trg_payment_transactions_updated_at
+    BEFORE UPDATE ON payment_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

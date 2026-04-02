@@ -177,7 +177,7 @@ Access is enforced via route guards on the frontend (`superAdminGuard`, `teacher
 
 ### Prerequisites
 
-- Node.js ≥ 20 and `pnpm` (or `npm`)
+- Bun
 - Go 1.24+
 - Docker and Docker Compose
 
@@ -186,7 +186,7 @@ Access is enforced via route guards on the frontend (`superAdminGuard`, `teacher
 ```bash
 git clone <repo-url>
 cd tutor-desk/workspace
-pnpm install
+bun install
 ```
 
 ### 2. Start the database
@@ -208,9 +208,9 @@ cp apps/api/.env.example apps/api/.env
 ### 4. Start the API
 
 ```bash
-pnpm api:dev
+bun run api:dev
 # or using Nx directly:
-npx nx serve api
+bunx nx serve api
 ```
 
 API runs at `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger/`
@@ -218,9 +218,9 @@ API runs at `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger/
 ### 5. Start the frontend
 
 ```bash
-pnpm start
+bun run start
 # or:
-npx nx serve web
+bunx nx serve web
 ```
 
 Frontend runs at `http://localhost:4200`.
@@ -250,10 +250,10 @@ All API configuration is via environment variables (see `apps/api/.env.example`)
 
 ```bash
 # Terminal 1 — API
-pnpm api:dev
+bun run api:dev
 
 # Terminal 2 — Frontend
-pnpm start
+bun run start
 ```
 
 The Angular dev server proxies `/api` requests to `http://localhost:8080` via `proxy.conf.js`.
@@ -261,20 +261,20 @@ The Angular dev server proxies `/api` requests to `http://localhost:8080` via `p
 ### Regenerate Swagger docs (after changing API annotations)
 
 ```bash
-pnpm api:docs
+bun run api:docs
 ```
 
 ### Lint
 
 ```bash
-pnpm lint:check        # Check only
-pnpm lint:fix          # Auto-fix
+bun run lint:check        # Check only
+bun run lint:fix          # Auto-fix
 ```
 
 ### Visualise the project graph
 
 ```bash
-npx nx graph
+bunx nx graph
 ```
 
 ---
@@ -309,29 +309,29 @@ Swagger UI (development): `http://localhost:8080/swagger/`
 ### Unit tests (Vitest)
 
 ```bash
-pnpm test:unit
+bun run test:unit
 # or:
-npx nx test web
+bunx nx test web
 ```
 
 ### E2E tests (Playwright)
 
 ```bash
-pnpm test:e2e
+bun run test:e2e
 # or:
-npx nx e2e web-e2e
+bunx nx e2e web-e2e
 ```
 
 ### Go API tests
 
 ```bash
-npx nx test api
+bunx nx test api
 ```
 
 ### Run all tests in parallel
 
 ```bash
-npx nx run-many -t test --parallel=3
+bunx nx run-many -t test --parallel=3
 ```
 
 ---
@@ -359,13 +359,13 @@ docker compose --profile full up -d
 ### Tear down
 
 ```bash
-pnpm api:down
+bun run api:down
 ```
 
 ### View logs
 
 ```bash
-pnpm api:logs
+bun run api:logs
 ```
 
 ---
@@ -374,36 +374,36 @@ pnpm api:logs
 
 ```bash
 # Development
-pnpm start                          # Serve Angular frontend
-pnpm api:dev                        # Serve Go API (dev)
-npx nx serve web                    # Nx: serve frontend
-npx nx serve api                    # Nx: serve API
+bun run start                       # Serve Angular frontend
+bun run api:dev                     # Serve Go API (dev)
+bunx nx serve web                   # Nx: serve frontend
+bunx nx serve api                   # Nx: serve API
 
 # Build
-npx nx build web                    # Build Angular app (dev)
-pnpm build:prod                     # Build Angular app (production)
-npx nx build api                    # Build Go binary
+bunx nx build web                   # Build Angular app (dev)
+bun run build:prod                  # Build Angular app (production)
+bunx nx build api                   # Build Go binary
 
 # Test & lint
-pnpm test:unit                      # Unit tests
-pnpm test:e2e                       # E2E tests
-pnpm lint:check                     # Lint check
-pnpm lint:fix                       # Auto-fix lint
+bun run test:unit                   # Unit tests
+bun run test:e2e                    # E2E tests
+bun run lint:check                  # Lint check
+bun run lint:fix                    # Auto-fix lint
 
 # Nx utilities
-npx nx graph                        # Interactive project dependency graph
-npx nx affected -t build            # Build only affected projects
-npx nx affected -t test             # Test only affected projects
-npx nx run-many -t lint test build  # Run multiple targets across all projects
-npx nx show project web --web       # View project details in browser
+bunx nx graph                       # Interactive project dependency graph
+bunx nx affected -t build           # Build only affected projects
+bunx nx affected -t test            # Test only affected projects
+bunx nx run-many -t lint test build # Run multiple targets across all projects
+bunx nx show project web --web      # View project details in browser
 
 # API docs
-pnpm api:docs                       # Regenerate Swagger docs from Go annotations
+bun run api:docs                    # Regenerate Swagger docs from Go annotations
 
 # Docker
-pnpm api:dev                        # Start DB + API (dev mode)
-pnpm api:down                       # Stop all containers
-pnpm api:logs                       # Stream container logs
+bun run api:dev                     # Start DB + API (dev mode)
+bun run api:down                    # Stop all containers
+bun run api:logs                    # Stream container logs
 ```
 
 ---
