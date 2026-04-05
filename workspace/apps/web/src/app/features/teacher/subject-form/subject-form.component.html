@@ -1,0 +1,143 @@
+<div class="subject-form-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__nav">
+      <p-button
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [text]="true"
+        [rounded]="false"
+        (click)="goBack()"
+      size="small"
+    />
+      <div class="page-header__content">
+        <h1 class="page-header__title">
+          {{ isEditMode() ? 'Edit Subject' : 'Add New Subject' }}
+        </h1>
+        <p class="page-header__subtitle">
+          {{
+            isEditMode()
+              ? 'Update the subject details below'
+              : 'Fill in the details to create a new subject'
+          }}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  @if (loading()) {
+  <p-card styleClass="form-card">
+    <div class="form-skeleton">
+      @for (i of [1, 2, 3, 4]; track i) {
+      <p-skeleton width="100%" height="56px" />
+      }
+    </div>
+  </p-card>
+  } @else {
+  <p-card styleClass="form-card">
+    <form [formGroup]="subjectForm" (ngSubmit)="saveSubject()">
+      <div class="form-grid">
+        <!-- Subject Name -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="name"
+              formControlName="name"
+              class="w-full"
+            />
+            <label for="name">Subject Name *</label>
+          </p-floatlabel>
+          @if (subjectForm.get('name')?.invalid &&
+          subjectForm.get('name')?.touched) {
+          <small class="form-error">Subject name is required</small>
+          }
+        </div>
+
+        <!-- Subject Code -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="code"
+              formControlName="code"
+              class="w-full"
+            />
+            <label for="code">Subject Code</label>
+          </p-floatlabel>
+          <small class="form-hint">Optional. e.g., MATH101, ENG201</small>
+        </div>
+
+        <!-- Description -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="description"
+              formControlName="description"
+              rows="4"
+              class="w-full"
+            ></textarea>
+            <label for="description">Description</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Color and Icon Row -->
+        <div class="form-row">
+          <div class="form-field form-field--small">
+            <label class="field-label">Color</label>
+            <p-colorpicker formControlName="color" />
+          </div>
+          <div class="form-field form-field--grow">
+            <p-floatlabel variant="on">
+              <input
+                pInputText
+                id="icon"
+                formControlName="icon"
+                class="w-full"
+              />
+              <label for="icon">Icon (pi-*)</label>
+            </p-floatlabel>
+            <small class="form-hint"
+              >PrimeIcons class name, e.g., pi-book, pi-calculator</small
+            >
+          </div>
+        </div>
+
+        <!-- Icon Preview -->
+        <div class="icon-preview-section">
+          <span class="icon-preview__label">Preview:</span>
+          <div
+            class="icon-preview__box"
+            [ngClass]="getThemeToneClass(subjectForm.get('color')?.value)"
+          >
+            <i [class]="'pi ' + subjectForm.get('icon')?.value"></i>
+          </div>
+          <span class="icon-preview__text">{{
+            subjectForm.get('name')?.value || 'Subject Name'
+          }}</span>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <p-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          (click)="goBack()"
+        />
+        <p-button
+          [label]="isEditMode() ? 'Update Subject' : 'Create Subject'"
+          icon="pi pi-check"
+          type="submit"
+          [loading]="saving()"
+          [disabled]="!subjectForm.valid"
+        />
+      </div>
+    </form>
+  </p-card>
+  }
+</div>
+
+<p-toast />

@@ -1,0 +1,28 @@
+/* @REVIEW: Tailwind CSS v4 setup with PrimeNG layer integration */
+/* Layer order must match providePrimeNG cssLayer.order config */
+@layer tailwind-base, primeng, tailwind-utilities;
+
+/* Tailwind layers */
+@import 'tailwindcss/theme.css'     layer(tailwind-base);
+@import 'tailwindcss/preflight.css' layer(tailwind-base);
+@import 'tailwindcss/utilities.css' layer(tailwind-utilities);
+
+/* PrimeIcons */
+@import 'primeicons/primeicons.css' layer(primeng);
+
+/* ── Global design system (always eager) ─────────────────────── */
+@import './styles/_tokens.css';
+@import './styles/_base.css';
+@import './styles/_animations.css';
+@import './styles/_primeng.css';
+@import './styles/_utilities.css';
+@import './styles/_layout.css';
+
+/*
+  Feature CSS bundles are registered in project.json with inject:false
+  and loaded on-demand by StyleLoaderService when route guards activate:
+    feature-auth.css     → guestGuard
+    feature-teacher.css  → teacherGuard
+    feature-student.css  → studentGuard
+    feature-admin.css    → superAdminGuard
+*/

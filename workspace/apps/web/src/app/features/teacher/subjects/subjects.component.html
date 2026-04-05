@@ -1,0 +1,216 @@
+<div class="subjects-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-header__title">My Subjects</h1>
+      <p class="page-header__subtitle">
+        Manage the subjects you teach and their details
+      </p>
+    </div>
+    <div class="page-header__actions">
+      <p-button
+        label="Add Subject"
+        icon="pi pi-plus"
+        (click)="navigateToCreate()"
+      />
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <section class="stats-row">
+    @if (loadingStats()) { @for (i of [1, 2, 3]; track i) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <p-skeleton shape="square" size="32px" />
+        <div class="stat-card__text">
+          <p-skeleton width="40px" height="24px" />
+          <p-skeleton width="80px" height="14px" />
+        </div>
+      </div>
+    </p-card>
+    } } @else { @for (stat of statsCards(); track stat.label) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div class="stat-card__icon" [ngClass]="stat.color">
+          <i [class]="stat.icon"></i>
+        </div>
+        <div class="stat-card__text">
+          <span class="stat-card__value">{{ stat.value }}</span>
+          <span class="stat-card__label">{{ stat.label }}</span>
+        </div>
+      </div>
+    </p-card>
+    } }
+  </section>
+
+  <!-- Subjects Table -->
+  <p-card styleClass="subjects-table-card">
+    <ng-template #header>
+      <div class="table-header">
+        <h2 class="table-header__title">All Subjects</h2>
+        <div class="table-header__filters">
+          <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              placeholder="Search subjects..."
+              [(ngModel)]="globalFilter"
+              (input)="dt()?.filterGlobal(globalFilter, 'contains')"
+            />
+          </p-iconfield>
+        </div>
+      </div>
+    </ng-template>
+
+    @if (loading()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="24px" height="24px" borderRadius="4px" />
+        <p-skeleton width="150px" height="16px" />
+        <p-skeleton width="80px" height="16px" />
+        <p-skeleton width="60px" height="16px" />
+        <p-skeleton width="60px" height="16px" />
+        <p-skeleton width="60px" height="24px" borderRadius="4px" />
+        <p-skeleton width="80px" height="32px" />
+      </div>
+      }
+    </div>
+    } @else if (subjects().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-book empty-state__icon"></i>
+      <h3 class="empty-state__title">No subjects yet</h3>
+      <p class="empty-state__text">Start by adding your first subject</p>
+      <p-button
+        label="Add Subject"
+        icon="pi pi-plus"
+        (click)="navigateToCreate()"
+      />
+    </div>
+    } @else {
+    <p-table
+      #dt
+      [value]="subjects()"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      [globalFilterFields]="['name', 'code', 'description']"
+      [rowHover]="true"
+      dataKey="id"
+      styleClass="p-datatable-sm"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} subjects"
+    >
+      <ng-template #header>
+        <tr>
+          <th class="w-[50px]"></th>
+          <th pSortableColumn="name" class="min-w-[200px]">
+            Subject <p-sortIcon field="name" />
+          </th>
+          <th class="min-w-[100px]">Code</th>
+          <th class="min-w-[100px] text-center">Students</th>
+          <th class="min-w-[100px] text-center">Exams</th>
+          <th pSortableColumn="isActive" class="min-w-[100px]">
+            Status <p-sortIcon field="isActive" />
+          </th>
+          <th class="w-[140px] text-center">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-subject>
+        <tr>
+          <td>
+            <div class="subject-color" [ngClass]="getThemeToneClass(subject.color)">
+              <i [class]="'pi ' + subject.icon"></i>
+            </div>
+          </td>
+          <td>
+            <div class="subject-cell">
+              <span class="subject-cell__name">{{ subject.name }}</span>
+              @if (subject.description) {
+              <span class="subject-cell__desc"
+                >{{ subject.description | slice : 0 : 50
+                }}{{ subject.description.length > 50 ? '...' : '' }}</span
+              >
+              }
+            </div>
+          </td>
+          <td>{{ subject.code ?? '-' }}</td>
+          <td class="text-center">{{ subject.totalStudents }}</td>
+          <td class="text-center">{{ subject.totalExams }}</td>
+          <td>
+            <p-tag
+              [value]="subject.isActive ? 'Active' : 'Inactive'"
+              [severity]="subject.isActive ? 'success' : 'secondary'"
+              [rounded]="false"
+            />
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button
+                icon="pi pi-eye"
+                severity="info"
+                [text]="true"
+                size="small"
+                [rounded]="false"
+                pTooltip="View Details"
+                tooltipPosition="top"
+                (click)="navigateToDetail(subject)"
+              />
+              <p-button
+                icon="pi pi-pencil"
+                severity="secondary"
+                [text]="true"
+                size="small"
+                [rounded]="false"
+                pTooltip="Edit"
+                tooltipPosition="top"
+                (click)="navigateToEdit(subject)"
+              />
+              @if (subject.isActive) {
+              <p-button
+                icon="pi pi-eye-slash"
+                severity="warn"
+                [text]="true"
+                size="small"
+                [rounded]="false"
+                pTooltip="Deactivate"
+                tooltipPosition="top"
+                (click)="confirmDeactivate(subject)"
+              />
+              } @else {
+              <p-button
+                icon="pi pi-eye"
+                severity="success"
+                [text]="true"
+                size="small"
+                [rounded]="false"
+                pTooltip="Activate"
+                tooltipPosition="top"
+                (click)="confirmActivate(subject)"
+              />
+              }
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                size="small"
+                [rounded]="false"
+                pTooltip="Delete"
+                tooltipPosition="top"
+                (click)="confirmDelete(subject)"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+</div>
+
+<!-- @NOT-NEED: Dialog removed - now using dedicated pages for create/edit -->
+
+<p-confirmDialog />
+<p-toast />

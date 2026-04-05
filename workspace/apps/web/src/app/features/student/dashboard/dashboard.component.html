@@ -1,0 +1,219 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <h1 class="text-base font-semibold m-0">Student Dashboard</h1>
+    <p>Welcome back, {{ userName() }}! Here's your learning overview.</p>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="dashboard__stats">
+    @if (loadingStats()) { @for (i of [1, 2, 3, 4]; track i) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <p-skeleton shape="square" size="36px" />
+        <div class="stat-card__info">
+          <p-skeleton width="40px" height="24px" />
+          <p-skeleton width="100px" height="14px" />
+        </div>
+      </div>
+    </p-card>
+    } } @else { @for (stat of statsCards(); track stat.label) {
+    <p-card styleClass="stat-card">
+      <div class="stat-card__content">
+        <div class="stat-card__icon" [ngClass]="stat.color">
+          <i [class]="'pi ' + stat.icon"></i>
+        </div>
+        <div class="stat-card__info">
+          <span class="stat-card__value">{{ stat.value }}</span>
+          <span class="stat-card__label">{{ stat.label }}</span>
+        </div>
+      </div>
+    </p-card>
+    } }
+  </div>
+
+  <!-- Upcoming Exams -->
+  <p-card styleClass="dashboard__card">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <h2>Upcoming Exams</h2>
+        <button
+          pButton
+          label="View All"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          class="p-button-text"
+          routerLink="/student/exams"
+        ></button>
+      </div>
+    </ng-template>
+
+    @if (loadingExams()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="200px" height="16px" />
+        <p-skeleton width="120px" height="24px" borderRadius="4px" />
+        <p-skeleton width="150px" height="16px" />
+        <p-skeleton width="80px" height="16px" />
+        <p-skeleton width="100px" height="36px" />
+      </div>
+      }
+    </div>
+    } @else if (upcomingExams().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-calendar empty-state__icon"></i>
+      <p class="empty-state__text">No upcoming exams scheduled</p>
+    </div>
+    } @else {
+    <p-table [value]="upcomingExams()" styleClass="p-datatable-sm">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Exam Title</th>
+          <th>Subject</th>
+          <th>Schedule</th>
+          <th>Questions</th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-item>
+        <tr>
+          <td>
+            <span class="exam-title">{{ item.exam.title }}</span>
+          </td>
+          <td>
+            <span
+              class="subject-badge"
+              [ngClass]="getThemeToneClass(item.exam.subject.color)"
+            >
+              {{ item.exam.subject.name }}
+            </span>
+          </td>
+          <td>
+            @if (item.exam.scheduledStart) {
+            {{ item.exam.scheduledStart | date : 'short' }}
+            } @else {
+            <span class="text-secondary">Anytime</span>
+            }
+          </td>
+          <td>
+            {{ item.exam.totalQuestions }} ({{ item.exam.totalMarks }}
+            marks)
+          </td>
+          <td>
+            @switch (item.status) { @case ('in_progress') {
+            <button
+              pButton
+              label="Resume"
+              icon="pi pi-play"
+              class="p-button-sm p-button-warning"
+              [routerLink]="['/student/exams', item.exam.id, 'take']"
+            ></button>
+            } @case ('retake_allowed') {
+            <button
+              pButton
+              label="Retake"
+              icon="pi pi-refresh"
+              class="p-button-sm p-button-help"
+              [routerLink]="['/student/exams', item.exam.id, 'take']"
+            ></button>
+            } @case ('completed') {
+            <p-tag
+              value="Completed"
+              severity="success"
+              icon="pi pi-check"
+            />
+            } @default {
+            <button
+              pButton
+              label="Take Exam"
+              icon="pi pi-play"
+              class="p-button-sm"
+              [routerLink]="['/student/exams', item.exam.id, 'take']"
+            ></button>
+            } }
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+
+  <!-- Recent Results -->
+  <p-card styleClass="dashboard__card">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <h2>Recent Results</h2>
+        <button
+          pButton
+          label="View All"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          class="p-button-text"
+          routerLink="/student/results"
+        ></button>
+      </div>
+    </ng-template>
+
+    @if (loadingResults()) {
+    <div class="skeleton-table">
+      @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton-row">
+        <p-skeleton width="200px" height="16px" />
+        <p-skeleton width="120px" height="24px" borderRadius="4px" />
+        <p-skeleton width="80px" height="16px" />
+        <p-skeleton width="60px" height="24px" borderRadius="4px" />
+      </div>
+      }
+    </div>
+    } @else if (recentResults().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-chart-bar empty-state__icon"></i>
+      <p class="empty-state__text">
+        No exam results yet. Complete an exam to see your results here.
+      </p>
+    </div>
+    } @else {
+    <p-table [value]="recentResults()" styleClass="p-datatable-sm">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Exam Title</th>
+          <th>Subject</th>
+          <th>Score</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-result>
+        <tr>
+          <td>
+            <span class="exam-title">{{ result.examTitle }}</span>
+          </td>
+          <td>
+            <span
+              class="subject-badge"
+              [ngClass]="getThemeToneClass(result.subjectColor)"
+            >
+              {{ result.subjectName }}
+            </span>
+          </td>
+          <td>
+            <span class="score" [class.score--pass]="result.passed">
+              {{ result.submission.score }} / {{ result.totalMarks }}
+              <span class="score__percentage"
+                >({{ result.submission.percentage }}%)</span
+              >
+            </span>
+          </td>
+          <td>
+            <p-tag
+              [value]="result.passed ? 'Passed' : 'Failed'"
+              [severity]="result.passed ? 'success' : 'danger'"
+            />
+          </td>
+          <td>{{ result.submission.submittedAt | date : 'short' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+    }
+  </p-card>
+</div>

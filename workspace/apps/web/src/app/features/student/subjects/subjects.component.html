@@ -1,0 +1,175 @@
+<div class="page">
+  <div class="page__header">
+    <h1>My Subjects</h1>
+    <p>View all subjects you are enrolled in</p>
+  </div>
+
+  @if (loading()) {
+  <div class="subjects-grid">
+    @for (i of [1, 2, 3]; track i) {
+    <p-card styleClass="subject-card">
+      <p-skeleton width="100%" height="120px" />
+      <p-skeleton width="60%" height="24px" styleClass="mt-3" />
+      <p-skeleton width="40%" height="16px" styleClass="mt-2" />
+    </p-card>
+    }
+  </div>
+  } @else if (subjects().length === 0) {
+  <p-card>
+    <div class="empty-state">
+      <i class="pi pi-book"></i>
+      <h2>No Subjects Yet</h2>
+      <p>You haven't been enrolled in any subjects by your teacher yet.</p>
+    </div>
+  </p-card>
+  } @else {
+  <div class="subjects-grid">
+    @for (item of subjects(); track item.subject.id) {
+    <p-card styleClass="subject-card" (click)="openSubjectDialog(item)">
+      <div
+        class="subject-card__header"
+        [ngClass]="getThemeToneClass(item.subject.color)"
+      >
+        <i [class]="'pi ' + item.subject.icon"></i>
+      </div>
+      <div class="subject-card__body">
+        <h3 class="subject-card__title">{{ item.subject.name }}</h3>
+        @if (item.subject.code) {
+        <span class="subject-card__code">{{ item.subject.code }}</span>
+        } @if (item.subject.description) {
+        <p class="subject-card__desc">
+          {{ item.subject.description | slice : 0 : 80
+          }}{{ item.subject.description.length > 80 ? '...' : '' }}
+        </p>
+        }
+        <div class="subject-card__stats">
+          <span pTooltip="Learning Materials">
+            <i class="pi pi-folder"></i> {{ item.assets.length }} assets
+          </span>
+          <span pTooltip="Upcoming Exams">
+            <i class="pi pi-file-edit"></i>
+            {{ item.upcomingExams.length }} exams
+          </span>
+        </div>
+      </div>
+    </p-card>
+    }
+  </div>
+  }
+</div>
+
+<!-- Subject Detail Dialog -->
+<p-dialog
+  [(visible)]="showDialog"
+  [header]="selectedSubject()?.subject?.name ?? 'Subject'"
+  [modal]="true"
+  styleClass="w-[600px] max-w-[95vw]"
+  contentStyleClass="max-h-[80vh] overflow-y-auto"
+  [draggable]="false"
+  [resizable]="false"
+>
+  @if (selectedSubject(); as item) {
+  <div class="dialog-content">
+    <!-- Subject Info -->
+    <div class="subject-info">
+      <div class="subject-badge" [ngClass]="getThemeToneClass(item.subject.color)">
+        <i [class]="'pi ' + item.subject.icon"></i>
+      </div>
+      <div>
+        @if (item.subject.code) {
+        <span class="subject-code">{{ item.subject.code }}</span>
+        } @if (item.subject.description) {
+        <p class="subject-desc">{{ item.subject.description }}</p>
+        }
+      </div>
+    </div>
+
+    <p-divider />
+
+    <!-- Upcoming Exams Section -->
+    <section class="section">
+      <h4 class="section-title">
+        <i class="pi pi-file-edit"></i>
+        Upcoming Exams ({{ item.upcomingExams.length }})
+      </h4>
+      @if (item.upcomingExams.length === 0) {
+      <p class="section-empty">No upcoming exams for this subject</p>
+      } @else {
+      <div class="exam-list">
+        @for (exam of item.upcomingExams; track exam.id) {
+        <div class="exam-item">
+          <div class="exam-item__info">
+            <span class="exam-item__title">{{ exam.title }}</span>
+            <span class="exam-item__meta">
+              {{ exam.totalQuestions }} questions •
+              {{ exam.totalMarks }} marks
+            </span>
+          </div>
+          <p-button
+            label="Take Exam"
+            icon="pi pi-play"
+            size="small"
+            [routerLink]="['/student/exams']"
+            (click)="closeDialog()"
+          />
+        </div>
+        }
+      </div>
+      }
+    </section>
+
+    <p-divider />
+
+    <!-- Assets Section -->
+    <section class="section">
+      <div class="section-header">
+        <h4 class="section-title">
+          <i class="pi pi-folder"></i>
+          Learning Materials ({{ item.assets.length }})
+        </h4>
+        @if (item.assets.length > 0) {
+        <p-button
+          label="View All"
+          icon="pi pi-external-link"
+          size="small"
+          [text]="true"
+          (click)="goToSubjectAssets(item.subject.id)"
+        />
+        }
+      </div>
+      @if (item.assets.length === 0) {
+      <p class="section-empty">No learning materials posted yet</p>
+      } @else {
+      <div class="asset-list">
+        @for (asset of item.assets.slice(0, 3); track asset.id) {
+        <div class="asset-item" (click)="openAsset(asset)">
+          <i
+            [class]="getAssetIcon(asset.assetType)"
+            class="asset-item__icon"
+          ></i>
+          <div class="asset-item__info">
+            <span class="asset-item__title">{{ asset.title }}</span>
+            @if (asset.description) {
+            <span class="asset-item__desc"
+              >{{ asset.description | slice : 0 : 50 }}...</span
+            >
+            }
+          </div>
+          <p-tag [value]="asset.assetType" size="small" />
+        </div>
+        } @if (item.assets.length > 3) {
+        <p-button
+          label="View all {{ item.assets.length }} materials"
+          icon="pi pi-arrow-right"
+          [text]="true"
+          styleClass="w-full"
+          (click)="goToSubjectAssets(item.subject.id)"
+      size="small"
+    />
+        }
+      </div>
+      }
+    </section>
+  </div>
+  }
+</p-dialog>

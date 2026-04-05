@@ -34,11 +34,18 @@
       "mcp__plugin_serena_serena__think_about_whether_you_are_done",
       "Bash(npx ng lint:*)",
       "mcp__plugin_supabase_supabase__execute_sql",
-      "mcp__supabase__search_docs"
+      "mcp__supabase__search_docs",
+      "Bash(find /Users/sefat/Documents/Github/tutor-desk/workspace -name tailwind.config.* -o -name postcss.config.*)",
+      "Bash(xargs sed:*)",
+      "Bash(python3:*)",
+      "Bash(npx nx:*)",
+      "Bash(find /Users/sefat/Documents/Github/tutor-desk/workspace/apps -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.go \\\\\\))",
+      "Bash(find /Users/sefat/Documents/Github/tutor-desk/workspace -name *payment* -o -name *subscription* -o -name *billing* -o -name *pricing*)",
+      "Bash(go vet:*)",
+      "Bash(go get:*)",
+      "Bash(go build:*)",
+      "Bash(grep -rn --include=*.go -E \"\\(bcrypt\\\\.Cost|DefaultCost|MaxFileSize|maxUpload|maxFile|time\\\\.Hour|time\\\\.Minute|time\\\\.Second|ReadTimeout|WriteTimeout|IdleTimeout|ShutdownTimeout|MaxAge|pageSize|PageSize|MaxPage|limit|bcrypt\\\\.|cost\\)\" /Users/sefat/Documents/Github/tutor-desk/workspace/apps/api/)"
     ]
   },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "supabase"
-  ]
+  "enableAllProjectMcpServers": true
 }

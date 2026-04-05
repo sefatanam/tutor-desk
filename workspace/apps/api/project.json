@@ -1,0 +1,76 @@
+{
+  "name": "api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "root": "apps/api",
+  "sourceRoot": "apps/api",
+  "tags": ["scope:tutor-desk", "type:api", "lang:go"],
+  "targets": {
+    "build": {
+      "executor": "@naxodev/gonx:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/api",
+        "main": "apps/api/main.go"
+      }
+    },
+    "serve": {
+      "executor": "@naxodev/gonx:serve",
+      "options": {
+        "main": "apps/api/main.go"
+      }
+    },
+    "test": {
+      "executor": "@naxodev/gonx:test",
+      "options": {
+        "testPattern": "./..."
+      }
+    },
+    "lint": {
+      "executor": "@naxodev/gonx:lint",
+      "options": {}
+    },
+    "docker-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose up -d",
+        "cwd": "apps/api"
+      }
+    },
+    "docker-down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose down",
+        "cwd": "apps/api"
+      }
+    },
+    "docker-logs": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose logs -f",
+        "cwd": "apps/api"
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose build api",
+        "cwd": "apps/api"
+      }
+    },
+    "docker-up-full": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose --profile full up -d",
+        "cwd": "apps/api"
+      }
+    },
+    "docs:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "/Users/sefat/go/bin/swag init -g main.go -o ./docs --parseDependency --parseInternal",
+        "cwd": "apps/api"
+      }
+    }
+  }
+}

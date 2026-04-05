@@ -1,0 +1,446 @@
+<div class="report-page">
+  <!-- Navigation -->
+  <div class="page-nav">
+    <p-button
+      icon="pi pi-arrow-left"
+      label="Back to Subjects"
+      [text]="true"
+      routerLink="/teacher/subjects"
+      size="small"
+    />
+  </div>
+
+  @if (loading()) {
+  <div class="loading-container">
+    <p-skeleton width="350px" height="36px" styleClass="mb-3" />
+    <p-skeleton width="200px" height="20px" styleClass="mb-4" />
+    <div class="stats-row">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+      <p-skeleton width="100%" height="100px" />
+      }
+    </div>
+  </div>
+  } @else if (!subject()) {
+  <div class="not-found">
+    <i class="pi pi-exclamation-circle"></i>
+    <h2>Subject Not Found</h2>
+    <p>The subject you're looking for doesn't exist.</p>
+    <p-button label="Go to Subjects" size="small" routerLink="/teacher/subjects" />
+  </div>
+  } @else {
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-info">
+      <div class="subject-icon" [ngClass]="getThemeToneClass(subject()!.color)">
+        <i [class]="'pi ' + subject()!.icon"></i>
+      </div>
+      <div class="subject-details">
+        <h1 class="subject-name">
+          {{ subject()!.name }} - Performance Report
+        </h1>
+        @if (subject()!.code) {
+        <span class="subject-code">{{ subject()!.code }}</span>
+        }
+      </div>
+    </div>
+    <div class="header-actions">
+      <p-button
+        icon="pi pi-download"
+        label="Export Report"
+        severity="secondary"
+        size="small"
+        (click)="exportReport()"
+      />
+    </div>
+  </header>
+
+  <!-- Overall Stats -->
+  <section class="stats-row">
+    <p-card styleClass="stat-card primary">
+      <div class="stat-content">
+        <i class="pi pi-users"></i>
+        <div class="stat-text">
+          <span class="stat-value">{{ enrolledStudents().length }}</span>
+          <span class="stat-label">Enrolled Students</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card purple">
+      <div class="stat-content">
+        <i class="pi pi-file-edit"></i>
+        <div class="stat-text">
+          <span class="stat-value">{{ exams().length }}</span>
+          <span class="stat-label">Total Exams</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card green">
+      <div class="stat-content">
+        <i class="pi pi-check-circle"></i>
+        <div class="stat-text">
+          <span class="stat-value">{{ overallPassRate() }}%</span>
+          <span class="stat-label">Pass Rate</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card blue">
+      <div class="stat-content">
+        <i class="pi pi-chart-line"></i>
+        <div class="stat-text">
+          <span class="stat-value">{{ overallAverageScore() }}%</span>
+          <span class="stat-label">Avg Score</span>
+        </div>
+      </div>
+    </p-card>
+    <p-card styleClass="stat-card orange">
+      <div class="stat-content">
+        <i class="pi pi-percentage"></i>
+        <div class="stat-text">
+          <span class="stat-value">{{ participationRate() }}%</span>
+          <span class="stat-label">Participation</span>
+        </div>
+      </div>
+    </p-card>
+  </section>
+
+  <!-- Tabs for different views -->
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">
+        <i class="pi pi-users"></i>
+        Student Performance
+      </p-tab>
+      <p-tab value="1">
+        <i class="pi pi-file-edit"></i>
+        Exam-wise Analysis
+      </p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <!-- Student Performance Tab -->
+      <p-tabpanel value="0">
+        <p-card styleClass="table-card">
+          <ng-template #header>
+            <div class="table-header">
+              <h3>Student Performance Summary</h3>
+              <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input
+                  type="text"
+                  pInputText
+                  placeholder="Search students..."
+                  [(ngModel)]="studentSearchTerm"
+                />
+              </p-iconfield>
+            </div>
+          </ng-template>
+
+          @if (filteredStudentPerformance().length === 0) {
+          <div class="empty-state">
+            <i class="pi pi-users"></i>
+            <p>No students enrolled in this subject</p>
+          </div>
+          } @else {
+          <p-table
+            [value]="filteredStudentPerformance()"
+            [paginator]="filteredStudentPerformance().length > 10"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 25, 50]"
+            styleClass="p-datatable-sm"
+            sortField="averagePercentage"
+            [sortOrder]="-1"
+          >
+            <ng-template #header>
+              <tr>
+                <th pSortableColumn="student.user.fullName">
+                  Student <p-sortIcon field="student.user.fullName" />
+                </th>
+                <th pSortableColumn="examsTaken">
+                  Exams Taken <p-sortIcon field="examsTaken" />
+                </th>
+                <th pSortableColumn="averagePercentage">
+                  Avg Score <p-sortIcon field="averagePercentage" />
+                </th>
+                <th pSortableColumn="passed">
+                  Passed <p-sortIcon field="passed" />
+                </th>
+                <th pSortableColumn="failed">
+                  Failed <p-sortIcon field="failed" />
+                </th>
+                <th>Progress</th>
+                <th>Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-perf>
+              <tr>
+                <td>
+                  <div class="student-cell">
+                    <div
+                      class="student-avatar"
+                      [ngClass]="
+                        getAvatarColor(perf.student.user.fullName)
+                      "
+                    >
+                      {{ getInitials(perf.student.user.fullName) }}
+                    </div>
+                    <div class="student-info">
+                      <span class="student-name">{{
+                        perf.student.user.fullName
+                      }}</span>
+                      <span class="student-email">{{
+                        perf.student.user.email
+                      }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="exams-count"
+                    >{{ perf.examsTaken }} / {{ perf.totalExams }}</span
+                  >
+                </td>
+                <td>
+                  <div class="score-cell">
+                    <span
+                      class="score-value"
+                      [class.good]="perf.averagePercentage >= 60"
+                    >
+                      {{ perf.averagePercentage }}%
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <p-tag
+                    [value]="perf.passed.toString()"
+                    severity="success"
+                  />
+                </td>
+                <td>
+                  <p-tag
+                    [value]="perf.failed.toString()"
+                    severity="danger"
+                  />
+                </td>
+                <td>
+                  <div class="progress-cell">
+                    <p-progressBar
+                      [value]="perf.averagePercentage"
+                      [showValue]="false"
+                      styleClass="progress-bar"
+                    />
+                  </div>
+                </td>
+                <td>
+                  <p-button
+                    icon="pi pi-eye"
+                    [rounded]="false"
+                    [text]="true"
+                    pTooltip="View Details"
+                    [routerLink]="['/teacher/students', perf.student.id]"
+      size="small"
+    />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+          }
+        </p-card>
+
+        <!-- Detailed Exam Matrix -->
+        @if (exams().length > 0 && studentPerformance().length > 0) {
+        <p-card styleClass="matrix-card">
+          <ng-template #header>
+            <div class="table-header">
+              <h3>Exam-wise Scores Matrix</h3>
+            </div>
+          </ng-template>
+
+          <div class="matrix-container">
+            <table class="score-matrix">
+              <thead>
+                <tr>
+                  <th class="student-col">Student</th>
+                  @for (exam of exams(); track exam.id) {
+                  <th class="exam-col" [pTooltip]="exam.title">
+                    {{ exam.title | slice : 0 : 15
+                    }}{{ exam.title.length > 15 ? '...' : '' }}
+                  </th>
+                  }
+                  <th class="avg-col">Average</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (perf of studentPerformance(); track perf.student.id) {
+                <tr>
+                  <td class="student-col">
+                    <span class="matrix-student">{{
+                      perf.student.user.fullName
+                    }}</span>
+                  </td>
+                  @for (examSub of perf.submissions; track examSub.examId) {
+                  <td class="score-col">
+                    @if (examSub.submission) {
+                    <span
+                      class="matrix-score"
+                      [class.passed]="
+                        examSub.submission.score >= examSub.passingMarks
+                      "
+                      [class.failed]="
+                        examSub.submission.score < examSub.passingMarks
+                      "
+                      [pTooltip]="
+                        examSub.submission.score + '/' + examSub.totalMarks
+                      "
+                      [routerLink]="[
+                        '/teacher/submissions',
+                        examSub.submission.id
+                      ]"
+                    >
+                      {{ examSub.submission.percentage }}%
+                    </span>
+                    } @else {
+                    <span class="matrix-score not-taken">-</span>
+                    }
+                  </td>
+                  }
+                  <td class="avg-col">
+                    <span
+                      class="matrix-avg"
+                      [class.good]="perf.averagePercentage >= 60"
+                    >
+                      {{ perf.averagePercentage }}%
+                    </span>
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </p-card>
+        }
+      </p-tabpanel>
+
+      <!-- Exam-wise Analysis Tab -->
+      <p-tabpanel value="1">
+        <p-card styleClass="table-card">
+          <ng-template #header>
+            <div class="table-header">
+              <h3>Exam Performance Analysis</h3>
+            </div>
+          </ng-template>
+
+          @if (examStats().length === 0) {
+          <div class="empty-state">
+            <i class="pi pi-file-edit"></i>
+            <p>No exams in this subject</p>
+          </div>
+          } @else {
+          <p-table
+            [value]="examStats()"
+            styleClass="p-datatable-sm"
+            sortField="exam.createdAt"
+            [sortOrder]="-1"
+          >
+            <ng-template #header>
+              <tr>
+                <th pSortableColumn="exam.title">
+                  Exam <p-sortIcon field="exam.title" />
+                </th>
+                <th>Status</th>
+                <th pSortableColumn="submitted">
+                  Submissions <p-sortIcon field="submitted" />
+                </th>
+                <th pSortableColumn="passed">
+                  Passed <p-sortIcon field="passed" />
+                </th>
+                <th pSortableColumn="averageScore">
+                  Avg Score <p-sortIcon field="averageScore" />
+                </th>
+                <th>Score Range</th>
+                <th>Pass Rate</th>
+                <th>Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-stat>
+              <tr>
+                <td>
+                  <div class="exam-cell">
+                    <span class="exam-title">{{ stat.exam.title }}</span>
+                    <span class="exam-meta"
+                      >{{ stat.exam.totalQuestions }} Q •
+                      {{ stat.exam.totalMarks }} marks</span
+                    >
+                  </div>
+                </td>
+                <td>
+                  <p-tag
+                    [value]="stat.exam.status"
+                    [severity]="getExamStatusSeverity(stat.exam.status)"
+                  />
+                </td>
+                <td>
+                  <span class="submission-count">
+                    {{ stat.submitted }} / {{ stat.totalStudents }}
+                  </span>
+                </td>
+                <td>
+                  <div class="pass-fail">
+                    <span class="passed">{{ stat.passed }}</span>
+                    <span class="separator">/</span>
+                    <span class="failed">{{ stat.failed }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="avg-score"
+                    [class.good]="stat.averageScore >= 60"
+                  >
+                    {{ stat.averageScore }}%
+                  </span>
+                </td>
+                <td>
+                  @if (stat.submitted > 0) {
+                  <span class="score-range">
+                    {{ stat.lowestScore }}% - {{ stat.highestScore }}%
+                  </span>
+                  } @else {
+                  <span class="no-data">-</span>
+                  }
+                </td>
+                <td>
+                  @if (stat.submitted > 0) {
+                  <div class="pass-rate">
+                    <p-progressBar
+                      [value]="getPassRate(stat)"
+                      [showValue]="false"
+                      styleClass="pass-rate-bar"
+                    />
+                    <span>{{ getPassRate(stat) }}%</span>
+                  </div>
+                  } @else {
+                  <span class="no-data">-</span>
+                  }
+                </td>
+                <td>
+                  <p-button
+                    icon="pi pi-chart-bar"
+                    [rounded]="false"
+                    [text]="true"
+                    pTooltip="View Results"
+                    [routerLink]="[
+                      '/teacher/exams',
+                      stat.exam.id,
+                      'results'
+                    ]"
+      size="small"
+    />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+          }
+        </p-card>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+  }
+</div>

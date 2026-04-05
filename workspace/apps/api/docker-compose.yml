@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: tutordesk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tutordesk
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init scripts run alphabetically on first start (empty volume)
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d tutordesk']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── pgAdmin ───────────────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tutordesk-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@tutordesk.app
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - '5050:80'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ─── Go API (only with --profile full) ────────────────────────────────────
+  # Run: docker compose --profile full up -d
+  # For local development, run the API natively with: nx run api:serve
+  api:
+    profiles: ['full']
+    build:
+      context: ../.. # workspace root — go.mod lives here
+      dockerfile: apps/api/Dockerfile
+    container_name: tutordesk-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/tutordesk?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-tutor-desk-super-secret-key-change-in-production-2024}
+      PORT: '8080'
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+      UPLOAD_DIR: /app/uploads
+      ENV: ${ENV:-development}
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  pgadmin_data:

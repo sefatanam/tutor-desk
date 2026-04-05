@@ -1,0 +1,69 @@
+# ─── TutorDesk Self-Hosted Docker Compose ─────────────────────────────────────
+# For customers who host on their own server.
+# Run setup.sh first, then: docker compose up -d
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: tutordesk_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tutordesk}
+      POSTGRES_USER: ${DB_USER:-tutordesk}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tutordesk} -d ${DB_NAME:-tutordesk}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tutordesk_net
+
+  api:
+    image: ${DOCKER_IMAGE_API:?DOCKER_IMAGE_API is required}:${APP_VERSION:-latest}
+    container_name: tutordesk_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-tutordesk}:${DB_PASSWORD}@db:5432/${DB_NAME:-tutordesk}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      PORT: "8080"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      UPLOAD_DIR: /app/uploads
+      ENV: production
+      SUPER_ADMIN_KEY: ${SUPER_ADMIN_KEY:-}
+      BKASH_APP_KEY: ${BKASH_APP_KEY:-}
+      BKASH_APP_SECRET: ${BKASH_APP_SECRET:-}
+      BKASH_USERNAME: ${BKASH_USERNAME:-}
+      BKASH_PASSWORD: ${BKASH_PASSWORD:-}
+      BKASH_CALLBACK_URL: ${BKASH_CALLBACK_URL:-}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - tutordesk_net
+
+  web:
+    image: ${DOCKER_IMAGE_WEB:?DOCKER_IMAGE_WEB is required}:${APP_VERSION:-latest}
+    container_name: tutordesk_web
+    restart: always
+    ports:
+      - "${WEB_PORT:-3000}:4000"
+    networks:
+      - tutordesk_net
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  tutordesk_net:
+    driver: bridge

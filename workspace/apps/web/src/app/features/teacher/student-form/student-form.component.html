@@ -1,0 +1,267 @@
+<div class="student-form-page">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-header__nav">
+      <p-button
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [text]="true"
+        [rounded]="false"
+        (click)="goBack()"
+      size="small"
+    />
+      <div class="page-header__content">
+        <h1 class="page-header__title">
+          {{ isEditMode() ? 'Edit Student' : 'Add New Student' }}
+        </h1>
+        <p class="page-header__subtitle">
+          {{
+            isEditMode()
+              ? 'Update the student information below'
+              : 'Fill in the details to create a new student account'
+          }}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  @if (loading()) {
+  <p-card styleClass="form-card">
+    <div class="form-skeleton">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <p-skeleton width="100%" height="56px" />
+      }
+    </div>
+  </p-card>
+  } @else {
+  <form [formGroup]="studentForm" (ngSubmit)="saveStudent()">
+    <!-- Account Information Card (only for create mode) -->
+    @if (!isEditMode()) {
+    <p-card styleClass="form-card">
+      <ng-template #header>
+        <div class="card-header">
+          <i class="pi pi-user card-header__icon"></i>
+          <div>
+            <h2 class="card-header__title">Account Information</h2>
+            <p class="card-header__subtitle">
+              Login credentials for the student
+            </p>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Full Name -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="fullName"
+              formControlName="fullName"
+              class="w-full"
+            />
+            <label for="fullName">Full Name *</label>
+          </p-floatlabel>
+          @if (studentForm.get('fullName')?.invalid &&
+          studentForm.get('fullName')?.touched) {
+          <small class="form-error">Full name is required</small>
+          }
+        </div>
+
+        <!-- Email -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="email"
+              formControlName="email"
+              type="email"
+              class="w-full"
+            />
+            <label for="email">Email *</label>
+          </p-floatlabel>
+          @if (studentForm.get('email')?.hasError('required') &&
+          studentForm.get('email')?.touched) {
+          <small class="form-error">Email is required</small>
+          } @if (studentForm.get('email')?.hasError('email') &&
+          studentForm.get('email')?.touched) {
+          <small class="form-error"
+            >Please enter a valid email address</small
+          >
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <p-password
+              id="password"
+              formControlName="password"
+              [toggleMask]="true"
+              [feedback]="true"
+              styleClass="w-full"
+              inputStyleClass="w-full"
+            />
+            <label for="password">Password *</label>
+          </p-floatlabel>
+          @if (studentForm.get('password')?.invalid &&
+          studentForm.get('password')?.touched) {
+          <small class="form-error"
+            >Password is required (min 6 characters)</small
+          >
+          }
+        </div>
+      </div>
+    </p-card>
+    }
+
+    <!-- Student Details Card -->
+    <p-card styleClass="form-card">
+      <ng-template #header>
+        <div class="card-header">
+          <i class="pi pi-id-card card-header__icon"></i>
+          <div>
+            <h2 class="card-header__title">Student Details</h2>
+            <p class="card-header__subtitle">
+              Academic and identification information
+            </p>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Roll Number -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="rollNumber"
+              formControlName="rollNumber"
+              class="w-full"
+            />
+            <label for="rollNumber">Roll Number</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Class and Section Row -->
+        <div class="form-row">
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <input
+                pInputText
+                id="className"
+                formControlName="className"
+                class="w-full"
+              />
+              <label for="className">Class</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <input
+                pInputText
+                id="section"
+                formControlName="section"
+                class="w-full"
+              />
+              <label for="section">Section</label>
+            </p-floatlabel>
+          </div>
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <p-datepicker
+              id="dateOfBirth"
+              formControlName="dateOfBirth"
+              dateFormat="dd/mm/yy"
+              [showIcon]="true"
+              [maxDate]="maxDate"
+              styleClass="w-full"
+              inputStyleClass="w-full"
+            />
+            <label for="dateOfBirth">Date of Birth</label>
+          </p-floatlabel>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Guardian Information Card -->
+    <p-card styleClass="form-card">
+      <ng-template #header>
+        <div class="card-header">
+          <i class="pi pi-users card-header__icon"></i>
+          <div>
+            <h2 class="card-header__title">Guardian Information</h2>
+            <p class="card-header__subtitle">
+              Parent or guardian contact details
+            </p>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="form-grid">
+        <!-- Guardian Name -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="guardianName"
+              formControlName="guardianName"
+              class="w-full"
+            />
+            <label for="guardianName">Guardian Name</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Guardian Phone -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <input
+              pInputText
+              id="guardianPhone"
+              formControlName="guardianPhone"
+              class="w-full"
+            />
+            <label for="guardianPhone">Guardian Phone</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Address -->
+        <div class="form-field">
+          <p-floatlabel variant="on">
+            <textarea
+              pTextarea
+              id="address"
+              formControlName="address"
+              rows="3"
+              class="w-full"
+            ></textarea>
+            <label for="address">Address</label>
+          </p-floatlabel>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [outlined]="true"
+        (click)="goBack()"
+      />
+      <p-button
+        [label]="isEditMode() ? 'Update Student' : 'Create Student'"
+        icon="pi pi-check"
+        type="submit"
+        [loading]="saving()"
+        [disabled]="!isFormValid()"
+      />
+    </div>
+  </form>
+  }
+</div>
+
+<p-toast />
